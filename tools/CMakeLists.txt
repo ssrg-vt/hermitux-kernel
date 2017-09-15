@@ -3,7 +3,8 @@ project(hermit_tools)
 
 include(../cmake/HermitCore-Paths.cmake)
 
-add_compile_options(-std=c99)
+# Switched from c99 to GNU99 to enable inline assembly
+add_compile_options(-std=gnu99 -g)
 
 add_executable(proxy proxy.c uhyve.c)
 target_compile_options(proxy PUBLIC -pthread)

@@ -290,6 +290,14 @@ size_t** irq_handler(struct state *s)
 
 	size_t** ret = NULL;
 
+	if (s->int_no != 123 && s->int_no != 43) {
+		LOG_INFO("DC: in irq_handler, INT #%llu\n", s->int_no);
+
+		if (s->int_no == 13 || s->int_no == 6) {
+			LOG_INFO("DC: rsi = %#lx\n", s->rsi);
+		}
+	}
+	
 	if (BUILTIN_EXPECT(s->int_no >= MAX_HANDLERS, 0)) {
 		LOG_ERROR("Invalid IRQ number %d\n", s->int_no);
 		return NULL;

@@ -34,6 +34,9 @@
 
 #define N	255
 
+char *hello = "Hello World from the assembler!!\n";
+int l;
+
 static void test_handler(int s)
 {
 	printf("Receive signal with number %d\n", s);
@@ -43,6 +46,12 @@ int main(int argc, char** argv)
 {
 	int i, random;
 	FILE* file;
+
+	int fd = 1;
+	int scno = 14;
+	
+	// For ASM code
+	l = strlen(hello);
 
 	// register test handler
 	signal(SIGUSR1, test_handler);
@@ -55,6 +64,12 @@ int main(int argc, char** argv)
 
 	raise(SIGUSR1);
 
+	/*
+	unsigned long int size = 10000*4096;
+	void *a = malloc(size);
+	memset(a, 0, size);
+	*/
+	
 	file = fopen("/etc/hostname", "r");
 	if (file)
 	{
@@ -71,6 +86,47 @@ int main(int argc, char** argv)
 		fprintf(file, "Hello World!!!\n");
 		fclose(file);
 	} else fprintf(stderr, "Unable to open file /tmp/test.txt\n");
+
+
+	printf("hello is at %p\n", &hello);
+	//printf("l = %d\n", l);
+
+	//printf("now divinding by 0 %d\n", 5/0);
+		
+	
+	asm  ( 	"mov	$1, %%rax\n\t"
+		"mov 	$1, %%rdi\n\t"
+		"mov	hello, %%rsi\n\t"
+		"mov 	l, %%rdx\n\t"
+		//"int $0x06\n\t"
+		"syscall\n\t"
+		
+		:
+		:
+		: "%rax", "%rdi", "%rsi", "%rdx"
+		);
+
+
+	/*
+	asm  ( 	"mov	$1, %rax\n\t"
+		"mov 	$1, %rdi\n\t"
+		"mov	$message, %rsi\n\t"
+		"mov 	$20, %rdx\n\t"
+		"int $0x80\n\t"
+
+		"message: .ascii \"Hello World (ASM)!\n\"\n\t"
+		);
+
+	
+	int retval;
+	asm volatile ("int $0x80"
+		      : "=a" (retval)
+		      : "a" (4), "b" (1), "c" (hello), "d" (sizeof(hello)-1)
+		      : "memory");
+	asm volatile ("syscall" : : "a" (1), "b" (0));
+	*/
+
+	printf("Returned from syscall\n");
 
 	return 0;
 }
