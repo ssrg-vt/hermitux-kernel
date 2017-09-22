@@ -28,5 +28,7 @@ add_executable(signals signals.c)
 target_compile_options(signals PRIVATE -pthread)
 target_link_libraries(signals pthread)
 
+add_executable(syscall_tester syscall_tester.c)
+
 # deployment
 install_local_targets(extra/tests)

@@ -230,7 +230,7 @@ void page_fault_handler(struct state *s)
 {
 	size_t viraddr = read_cr2();
 	task_t* task = per_core(current_task);
-	LOG_INFO("DC: in page_fault_handler()\n");
+
 	int check_pagetables(size_t vaddr)
 	{
 		int lvl;

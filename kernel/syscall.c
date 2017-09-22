@@ -202,8 +202,6 @@ typedef struct {
 
 ssize_t sys_write(int fd, const char* buf, size_t len)
 {
-	LOG_INFO("DC: In sys_write, fd = %d, len = %d, buf = %s", fd, len, buf);
-    
 	if (BUILTIN_EXPECT(!buf, 0))
 		return -1;
 
