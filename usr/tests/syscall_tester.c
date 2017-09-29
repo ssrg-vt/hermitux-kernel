@@ -15,7 +15,7 @@ volatile size_t fd_g = 0;
 volatile char *buf_g;
 volatile size_t len_g;
 volatile ssize_t ret_g;
-
+volatile size_t exit_arg_g;
 
 static ssize_t write_asm(int fd, char *buf)
 {
@@ -41,13 +41,27 @@ static ssize_t write_asm(int fd, char *buf)
 }
 
 
+static void exit_asm (int exit_arg)
+{
+	exit_arg_g = exit_arg;
+
+	asm volatile ( "mov $60, %%rax\n\t"
+		       "mov exit_arg_g, %%rdi\n\t"
+		       "syscall\n\t"
+		       :
+		       :
+		       : "%rax", "%rdi"
+		     );
+}
+
+
 static ssize_t printf_asm(char *buf)
 {
 	return write_asm(1, buf);
 }
 
 
-static void syscall_tester(void)
+static void write_tester(void)
 {
 	ssize_t ret;
 
@@ -58,9 +72,14 @@ static void syscall_tester(void)
 	ret = printf_asm("Hello once again from the assembler!!\n");
 	printf("Returned from second syscall\n");
 	printf("%zd values were printed\n\n", ret);
+}
 
-	//ret = write_asm(1, "sadf\n");
-	//printf_asm("jahskjdhfashf\n");
+
+static void exit_tester(void)
+{
+	printf("Now exiting using a static syscall\n");
+	exit_asm(0);
+	printf("You should not be seeing this\n");
 }
 
 
@@ -101,10 +120,10 @@ static void syscall_eval(void)
 int main(int argc, char** argv)
 {
 	printf("Now testing statically compiled syscalls...\n\n");
-	syscall_tester();
+	write_tester();
 	printf("Returned from syscall tester\n\n");
 	
 	syscall_eval();
-	
+	exit_tester();
 	return 0;
 }

@@ -58,10 +58,10 @@ set(HERMIT_KERNEL_FLAGS
 					-mno-80387 -mno-fp-ret-in-387 -mskip-rax-setup
 					-fno-common -Wframe-larger-than=1024
 					-fno-strict-aliasing -fno-asynchronous-unwind-tables
-					-fno-strict-overflow -maccumulate-outgoing-args -g)
+					-fno-strict-overflow -maccumulate-outgoing-args)
 
 set(HERMIT_APP_FLAGS
-					-m64 -mtls-direct-seg-refs -O3 -ftree-vectorize -g)
+					-m64 -mtls-direct-seg-refs -O3 -ftree-vectorize)
 
 if(MTUNE)
 	set(HERMIT_KERNEL_FLAGS ${HERMIT_KERNEL_FLAGS} -mtune=${MTUNE})

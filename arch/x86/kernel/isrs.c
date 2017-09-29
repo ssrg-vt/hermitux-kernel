@@ -218,13 +218,24 @@ static void static_syscall_handler(struct state *s)
 		
 	/* syscall opcode = 0F05 */
 	if (*opcode == 0x50F) {
-		/* TODO: Write a switch-case statement for different syscalls based
-		   on the number in rax.
-		 */
-		if (s->rax == 1) { /* write */
+		switch (s->rax) {
+		case 1:	/* write */
 			s->rax = sys_write(s->rdi, (char *)s->rsi, s->rdx);
-		}
+			break;
 
+		case 60: /* exit */
+			sys_exit(s->rdi);
+			break;
+
+		default:
+			LOG_ERROR("System call %zu not supported\n", s->rax);
+			LOG_ERROR(" Exception on core %d at %#x:%#lx, fs = %#lx, gs = %#lx, error code = %#lx, task id = %u, rflags = %#x\n",
+				  CORE_ID, s->cs, s->rip, s->fs, s->gs, s->error, per_core(current_task)->id, s->rflags);
+			LOG_ERROR("rax %#lx, rbx %#lx, rcx %#lx, rdx %#lx, rbp, %#lx, rsp %#lx rdi %#lx, rsi %#lx, r8 %#lx, r9 %#lx, r10 %#lx, r11 %#lx, r12 %#lx, r13 %#lx, r14 %#lx, r15 %#lx\n",
+				  s->rax, s->rbx, s->rcx, s->rdx, s->rbp, s->rsp, s->rdi, s->rsi, s->r8, s->r9, s->r10, s->r11, s->r12, s->r13, s->r14, s->r15);
+			sys_exit(-EFAULT);
+		}
+		
 		/* Make sure control returns to the instruction after syscall */
 		s->rip += 2;
 	}
