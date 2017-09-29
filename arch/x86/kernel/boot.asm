@@ -122,6 +122,13 @@ GDT64:                           ; Global Descriptor Table (64-bit).
     db 0                         ; Base (high).
 GDT64_end:
 
+; GDT64:
+; - code:
+;  - limit (size) = 0x0 (is that a problem?)
+;  - base = 0x0
+;  - access: present, kernel level of privileges, executable, grows up,
+;  RW,   
+
 ALIGN 4
 stublet:
 
