@@ -37,6 +37,7 @@
 #include <hermit/memory.h>
 #include <hermit/signal.h>
 #include <hermit/logging.h>
+#include <hermit/ioctl.h>
 #include <asm/uhyve.h>
 #include <sys/poll.h>
 
@@ -199,6 +200,27 @@ typedef struct {
 	const char* buf;
 	size_t len;
 } __attribute__((packed)) uhyve_write_t;
+
+/* Pierre */
+long sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg) {
+	/* Check cmd, we want that to fail on commands that we did not explore */
+	switch(cmd) {
+		case TIOCGWINSZ:
+			{
+				struct winsize *res = (struct winsize *)arg;
+				/* Quick hack, FIXME */
+				res->ws_row = 24;
+				res->ws_col = 80;
+				res->ws_xpixel = 0;
+				res->ws_ypixel = 0;
+				return 0;
+			}
+		default:
+			LOG_INFO("PIERRE: unsupported ioctl 0x%x\n", cmd);
+			return -1;
+	}	
+
+}
 
 ssize_t sys_write(int fd, const char* buf, size_t len)
 {

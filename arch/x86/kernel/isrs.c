@@ -228,10 +228,23 @@ static void static_syscall_handler(struct state *s)
 	if (*opcode == 0x50F) {
 		/* TODO: Write a switch-case statement for different syscalls based
 		   on the number in rax */
-		// Write
-		if (s->rax == 1) {
-			sys_write(s->rdi, s->rsi, s->rdx);
+
+		LOG_INFO("Syscall num: %d\n", s->rax);
+
+		switch(s->rax) {
+			case 1:
+				/* write */
+				sys_write(s->rdi, s->rsi, s->rdx);
+				break;
+			case 16:
+				/* ioctl */
+				sys_ioctl(s->rdi, s->rsi, s->rdx);
+				break;
+			default:
+			LOG_INFO("PIERRE: unsupported linux syscall %d\n", s->rax);
+			sys_exit(-EFAULT);
 		}
+
 	}
 		
 	asm ("jmp next\n\t");
