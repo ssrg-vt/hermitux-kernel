@@ -411,6 +411,7 @@ static int qemu_init(char *path)
 
 		// add flag to start gdbserver on TCP port 1234
 		qemu_argv[i] = "-s";
+		qemu_argv[i+1] = "-S";
 	}
 
 	str = getenv("HERMIT_CAPTURE_NET");
