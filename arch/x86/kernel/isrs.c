@@ -225,11 +225,25 @@ static void static_syscall_handler(struct state *s)
 			s->rax = sys_write(s->rdi, (char *)s->rsi, s->rdx);
 		}
 
+		switch(s->rax) {
+			case 1:
+				/* write */
+				s->rax = sys_write(s->rdi, (char *)s->rsi, s->rdx);
+				break;
+
+			case 16:
+				/* ioctl */
+				s->rax = sys_ioctl(s->rdi, s->rsi, s->rdx);
+				break;
+
+			default:
+				LOG_ERROR("Unsuported Linux syscall: %d\n", s->rax);
+				arch_fault_handler(s);
+		}
+
 		/* Make sure control returns to the instruction after syscall */
 		s->rip += 2;
-	}
-
-	else {
+	} else {
 		arch_fault_handler(s);
 	}
 }
