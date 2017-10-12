@@ -46,7 +46,6 @@
 
 #define SYSCALL_INT_NO 6
 
-uint64_t next;
 
 /*
  * These are function prototypes for all of the exception
@@ -89,7 +88,6 @@ extern void isr31(void);
 static void arch_fault_handler(struct state *s);
 static void arch_fpu_handler(struct state *s);
 extern void fpu_handler(void);
-//extern void static_syscalls(void);
 static void static_syscall_handler(struct state *s);
 	
 /*
@@ -179,9 +177,6 @@ void isrs_install(void)
 	idt_set_gate(31, (size_t)isr31, KERNEL_CODE_SELECTOR,
 		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 
-	// For static syscalls
-	//	idt_set_gate(SYSCALL_INT_NO, (size_t)static_syscalls, KERNEL_CODE_SELECTOR,
-	//	IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 
 	// install the default handler
 	for(i=0; i<32; i++)
@@ -190,7 +185,6 @@ void isrs_install(void)
 	// For static syscalls
 	irq_uninstall_handler(SYSCALL_INT_NO);
 	irq_install_handler(SYSCALL_INT_NO, static_syscall_handler);
-	//LOG_INFO("DC: ret from irq_install_handler = %d\n", ret);
 	
 	// set hanlder for fpu exceptions
 	irq_uninstall_handler(7);
@@ -214,45 +208,30 @@ static const char *exception_messages[] = {
 	"Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved",
 	"Reserved", "Reserved" };
 
+
 static void static_syscall_handler(struct state *s)
 {
 	LOG_INFO("DC: YOU'VE REACHED THE SYSCALL HANDLER\n");
 
 	// This is actually the reversed opcode
 	uint16_t *opcode = (uint16_t *)s->rip;
-	next = s->rip + 2;	
-	
-	LOG_INFO("DC: RIP = %#llx, opcode = %x \n", s->rip, *opcode);
-	
+		
 	/* syscall opcode = 0F05 */
 	if (*opcode == 0x50F) {
 		/* TODO: Write a switch-case statement for different syscalls based
-		   on the number in rax */
-
-		LOG_INFO("Syscall num: %d\n", s->rax);
-
-		switch(s->rax) {
-			case 1:
-				/* write */
-				sys_write(s->rdi, s->rsi, s->rdx);
-				break;
-			case 16:
-				/* ioctl */
-				sys_ioctl(s->rdi, s->rsi, s->rdx);
-				break;
-			default:
-			LOG_INFO("PIERRE: unsupported linux syscall %d\n", s->rax);
-			sys_exit(-EFAULT);
+		   on the number in rax.
+		 */
+		if (s->rax == 1) { /* write */
+			s->rax = sys_write(s->rdi, (char *)s->rsi, s->rdx);
 		}
 
+		/* Make sure control returns to the instruction after syscall */
+		s->rip += 2;
 	}
-		
-	asm ("jmp next\n\t");
-	
-	//return;
-	//apic_eoi(s->int_no);
 
-	//sys_exit(-EFAULT);
+	else {
+		arch_fault_handler(s);
+	}
 }
 	
      
@@ -268,14 +247,6 @@ static void arch_fpu_handler(struct state *s)
 }
 
 
-
-static void handle_syscall(struct state *s)
-{
-	char *p = s->rsi;
-	LOG_INFO("DC: string at rsi is: %s\n", p);
-
-}
-
 /*
  * All of our Exception handling Interrupt Service Routines will
  * point to this function. This will tell us what exception has
@@ -286,14 +257,6 @@ static void handle_syscall(struct state *s)
  */
 static void arch_fault_handler(struct state *s)
 {
-	LOG_INFO("DC: in arch_fault_handler()\n");
-
-	/* Assuming invalid opcode is a syscall instruction
-	if (s->int_no == 6) {
-		handle_syscall(s);
-	}
-	*/
-	
 	if (s->int_no < 32)
 		LOG_INFO("%s\n", exception_messages[s->int_no]);
 	else

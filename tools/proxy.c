@@ -411,7 +411,6 @@ static int qemu_init(char *path)
 
 		// add flag to start gdbserver on TCP port 1234
 		qemu_argv[i] = "-s";
-		//qemu_argv[++i] = "-S";
 	}
 
 	str = getenv("HERMIT_CAPTURE_NET");
@@ -593,7 +592,6 @@ int handle_syscalls(int s)
 
 	while(1)
 	{
-	    //printf("DC: In while loop\n");
 		j = 0;
 		while(j < sizeof(sysnr)) {
 			sret = read(s, ((char*)&sysnr)+j, sizeof(sysnr)-j);
@@ -602,7 +600,6 @@ int handle_syscalls(int s)
 			j += sret;
 		}
 
-		printf("DC: sysnr = %d\n", sysnr);
 		switch(sysnr)
 		{
 		case __HERMIT_exit: {
@@ -616,19 +613,11 @@ int handle_syscalls(int s)
 				j += sret;
 			}
 			close(s);
-			printf("DC: arg = %d\n", arg);
+
 			// already called by fini_env
 			//dump_log();
 			//stop_hermit();
-			/*
-			unsigned long long addr;
-			addr = 0xDEADBEEF;
-			asm volatile ("mov %%rcx, %0"
-			     : "=r"(addr));
 
-			printf("DC: rcx = %p\n", addr);
-			*/
-			printf("DC: HERE\n");
 			if (arg == -14)
 				fprintf(stderr, "Did HermitCore receive an exception?\n");
 			exit(arg);
@@ -906,7 +895,6 @@ int socket_loop(int argc, char **argv)
 	int32_t magic = HERMIT_MAGIC;
 	struct sockaddr_in serv_name;
 
-	printf("DC: in socket_loop\n");
 #if 0
 		// check if mmnif interface is available
 		if (!qemu) {
