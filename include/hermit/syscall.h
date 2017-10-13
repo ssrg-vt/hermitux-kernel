@@ -38,6 +38,7 @@
 
 #ifdef __KERNEL__
 #include <hermit/stddef.h>
+#include <lwip/sockets.h>
 #else
 #include <stdlib.h>
 #include <stdint.h>
@@ -92,6 +93,10 @@ int sys_rcce_fini(int session_id);
 void sys_yield(void);
 int sys_kill(tid_t dest, int signum);
 int sys_signal(signal_handler_t handler);
+
+/* Pierre */
+int sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg);
+int sys_writev(int fd, const struct iovec *iov, int iovcnt);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;

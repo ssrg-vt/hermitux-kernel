@@ -218,9 +218,6 @@ static void static_syscall_handler(struct state *s)
 		
 	/* syscall opcode = 0F05 */
 	if (*opcode == 0x50F) {
-		/* TODO: Write a switch-case statement for different syscalls based
-		   on the number in rax.
-		 */
 		if (s->rax == 1) { /* write */
 			s->rax = sys_write(s->rdi, (char *)s->rsi, s->rdx);
 		}
@@ -234,6 +231,17 @@ static void static_syscall_handler(struct state *s)
 			case 16:
 				/* ioctl */
 				s->rax = sys_ioctl(s->rdi, s->rsi, s->rdx);
+				break;
+
+			case 20:
+				/* writev */
+				s->rax = sys_writev(s->rdi, (const struct iovec *)s->rsi, s->rdx);
+				break;
+
+			case 231:
+				/* exit_group */
+				/* FIXME */
+				sys_exit(s->rdi);
 				break;
 
 			default:

@@ -202,7 +202,7 @@ typedef struct {
 } __attribute__((packed)) uhyve_write_t;
 
 /* Pierre */
-long sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg) {
+int sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg) {
 	/* Check cmd, we want that to fail on commands that we did not explore */
 	switch(cmd) {
 		case TIOCGWINSZ:
@@ -220,6 +220,28 @@ long sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg) {
 			return -1;
 	}	
 
+	/* should not come here */
+	return -1;
+}
+
+/* Pierre */
+int sys_writev(int fd, const struct iovec *iov, int iovcnt) {
+	int i, bytes_written, total_bytes_written;
+
+	/* FIXME writev is supposed to be atomic, we are loosing this feature here 
+	 * I guess */
+	bytes_written = total_bytes_written = 0;
+	for(i=0; i<iovcnt; i++) {
+		bytes_written = sys_write(fd, (char *)(iov[i].iov_base),
+				iov[i].iov_len);
+		
+		if(bytes_written < 0)
+			return total_bytes_written;
+
+		total_bytes_written += bytes_written;
+	}
+
+	return -1;
 }
 
 ssize_t sys_write(int fd, const char* buf, size_t len)
