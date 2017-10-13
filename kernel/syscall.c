@@ -59,6 +59,8 @@ extern int32_t isle;
 extern int32_t possible_isles;
 extern volatile int libc_sd;
 
+static spinlock_t readwritev_spinlock = SPINLOCK_INIT;
+
 tid_t sys_getpid(void)
 {
 	task_t* task = per_core(current_task);
@@ -228,20 +230,23 @@ int sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg) {
 int sys_writev(int fd, const struct iovec *iov, int iovcnt) {
 	int i, bytes_written, total_bytes_written;
 
-	/* FIXME writev is supposed to be atomic, we are loosing this feature here 
-	 * I guess */
 	bytes_written = total_bytes_written = 0;
+	
+	/* writev is supposed to be atomic */
+	spinlock_lock(&readwritev_spinlock);
 	for(i=0; i<iovcnt; i++) {
 		bytes_written = sys_write(fd, (char *)(iov[i].iov_base),
 				iov[i].iov_len);
 		
 		if(bytes_written < 0)
-			return total_bytes_written;
+			goto out;
 
 		total_bytes_written += bytes_written;
 	}
 
-	return -1;
+out:
+	spinlock_unlock(&readwritev_spinlock);
+	return total_bytes_written;
 }
 
 ssize_t sys_write(int fd, const char* buf, size_t len)
