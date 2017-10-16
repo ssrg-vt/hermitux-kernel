@@ -235,14 +235,6 @@ int sys_clock_gettime(clockid_t clk_id, struct timespec *tp) {
 }
 
 /* Pierre */
-int sys_gettimeofday(struct timeval *tv, struct timezone *tz) {
-	/* TODO */
-	tv->tv_usec = 0;
-	tv->tv_sec = 0;
-	return 0;
-}
-
-/* Pierre */
 int sys_writev(int fd, const struct iovec *iov, int iovcnt) {
 	int i, bytes_written, total_bytes_written;
 
@@ -264,6 +256,9 @@ out:
 	spinlock_unlock(&readwritev_spinlock);
 	return total_bytes_written;
 }
+
+/* sys_gettimeofday is in arch/x86/kernel/gettimeofday.c, it is arch
+ * specific as it relies on rdtsc */
 
 ssize_t sys_write(int fd, const char* buf, size_t len)
 {

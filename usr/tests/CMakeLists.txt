@@ -4,7 +4,6 @@ include(../../cmake/HermitCore-Application.cmake)
 project(hermit_tests C CXX Fortran Go)
 
 add_executable(hello hello.c)
-add_executable(gettimeofday gettimeofday.c)
 add_executable(jacobi jacobi.c)
 add_executable(hello++ hello++.cpp)
 add_executable(hellof hellof.f90)
