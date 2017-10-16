@@ -39,6 +39,7 @@
 #ifdef __KERNEL__
 #include <hermit/stddef.h>
 #include <lwip/sockets.h>
+#include <hermit/hermitux_syscalls.h>
 #else
 #include <stdlib.h>
 #include <stdint.h>
@@ -97,6 +98,8 @@ int sys_signal(signal_handler_t handler);
 /* Pierre */
 int sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg);
 int sys_writev(int fd, const struct iovec *iov, int iovcnt);
+int sys_clock_gettime(clockid_t clk_id, struct timespec *tp);
+int sys_gettimeofday(struct timeval *tv, struct timezone *tz);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;

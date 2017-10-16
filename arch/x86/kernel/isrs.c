@@ -228,6 +228,11 @@ static void static_syscall_handler(struct state *s)
 				s->rax = sys_write(s->rdi, (char *)s->rsi, s->rdx);
 				break;
 
+			case 2:
+				/* open */
+				s->rax = sys_open((const char *)s->rdi, s->rsi, s->rdx);
+				break;
+
 			case 16:
 				/* ioctl */
 				s->rax = sys_ioctl(s->rdi, s->rsi, s->rdx);
@@ -235,14 +240,41 @@ static void static_syscall_handler(struct state *s)
 
 			case 20:
 				/* writev */
-				s->rax = sys_writev(s->rdi, (const struct iovec *)s->rsi, s->rdx);
+				s->rax = sys_writev(s->rdi, (const struct iovec *)s->rsi, 
+						s->rdx);
+				break;
+
+			case 96:
+				/* gettimeofday */
+				s->rax = sys_gettimeofday((struct timeval *)s->rdi, 
+						(struct timezone *)s->rsi);
+				break;
+
+			case 158:
+				/* arch_prctl */
+				/* TODO */
+				s->rax = 0;
+				break;
+			
+			case 218:
+				/* set_tid_address */
+				/* TODO */
+				s->rax = s->rdi;
+				break;
+
+			case 228:
+				/* clock_gettime */
+				s->rax = sys_clock_gettime(s->rdi, (struct timespec *)s->rsi);
 				break;
 
 			case 231:
 				/* exit_group */
-				/* FIXME */
+				/* FIXME this will probably not work in multi-threaded 
+				 * environments */
 				sys_exit(s->rdi);
 				break;
+
+
 
 			default:
 				LOG_ERROR("Unsuported Linux syscall: %d\n", s->rax);

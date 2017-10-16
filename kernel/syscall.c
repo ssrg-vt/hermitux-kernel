@@ -38,6 +38,7 @@
 #include <hermit/signal.h>
 #include <hermit/logging.h>
 #include <hermit/ioctl.h>
+#include <hermit/hermitux_syscalls.h>
 #include <asm/uhyve.h>
 #include <sys/poll.h>
 
@@ -224,6 +225,21 @@ int sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg) {
 
 	/* should not come here */
 	return -1;
+}
+
+/* Pierre */
+int sys_clock_gettime(clockid_t clk_id, struct timespec *tp) {
+	/* Disabled for now, musl calls gettimeofday if clock_gettime
+	 * returns -ENOSYS */
+	return -ENOSYS;
+}
+
+/* Pierre */
+int sys_gettimeofday(struct timeval *tv, struct timezone *tz) {
+	/* TODO */
+	tv->tv_usec = 0;
+	tv->tv_sec = 0;
+	return 0;
 }
 
 /* Pierre */
