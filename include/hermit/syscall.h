@@ -100,6 +100,7 @@ int sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg);
 int sys_writev(int fd, const struct iovec *iov, int iovcnt);
 int sys_clock_gettime(clockid_t clk_id, struct timespec *tp);
 int sys_gettimeofday(struct timeval *tv, struct timezone *tz);
+int sys_nanosleep(struct timespec *req, struct timespec *rem);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;

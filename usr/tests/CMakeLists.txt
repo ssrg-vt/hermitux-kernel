@@ -4,6 +4,7 @@ include(../../cmake/HermitCore-Application.cmake)
 project(hermit_tests C CXX Fortran Go)
 
 add_executable(hello hello.c)
+add_executable(ioctl ioctl.c)
 add_executable(jacobi jacobi.c)
 add_executable(hello++ hello++.cpp)
 add_executable(hellof hellof.f90)

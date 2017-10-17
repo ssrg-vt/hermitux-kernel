@@ -15,4 +15,7 @@ struct timezone {			/* for gettimeofday */
 	int tz_dsttime;
 };
 
+#define SEEK_SET	0		/* for lseek */
+#define SEEK_CUR	1		/* for lseek */
+
 #endif /* HERMITUX_SYSCALLS_H */

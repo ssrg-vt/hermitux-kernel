@@ -211,17 +211,11 @@ static const char *exception_messages[] = {
 
 static void static_syscall_handler(struct state *s)
 {
-	LOG_INFO("DC: YOU'VE REACHED THE SYSCALL HANDLER\n");
-
 	// This is actually the reversed opcode
 	uint16_t *opcode = (uint16_t *)s->rip;
-		
+
 	/* syscall opcode = 0F05 */
 	if (*opcode == 0x50F) {
-		if (s->rax == 1) { /* write */
-			s->rax = sys_write(s->rdi, (char *)s->rsi, s->rdx);
-		}
-
 		switch(s->rax) {
 			case 1:
 				/* write */
@@ -233,6 +227,18 @@ static void static_syscall_handler(struct state *s)
 				s->rax = sys_open((const char *)s->rdi, s->rsi, s->rdx);
 				break;
 
+			case 11:
+				/* munmap */
+				/* TODO */
+				s->rax = -ENOSYS;
+				break;
+
+			case 12:
+				/* brk */
+				/* TODO */
+				s->rax = sys_sbrk(0);
+				break;
+
 			case 16:
 				/* ioctl */
 				s->rax = sys_ioctl(s->rdi, s->rsi, s->rdx);
@@ -242,6 +248,16 @@ static void static_syscall_handler(struct state *s)
 				/* writev */
 				s->rax = sys_writev(s->rdi, (const struct iovec *)s->rsi, 
 						s->rdx);
+				break;
+
+			case 35:
+				/* nanosleep */
+				s->rax = sys_nanosleep((struct timespec *)s->rdi, 
+						(struct timespec *)s->rsi);
+
+			case 39:
+				/* getpid */
+				s->rax = sys_getpid();
 				break;
 
 			case 96:

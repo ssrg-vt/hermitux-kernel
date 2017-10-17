@@ -235,6 +235,15 @@ int sys_clock_gettime(clockid_t clk_id, struct timespec *tp) {
 }
 
 /* Pierre */
+int sys_nanosleep(struct timespec *req, struct timespec *rem) {
+	/* TODO here I don't take care of rem, I don't think signal interruption
+	 * is possible ... */
+	unsigned long long int ms = req->tv_sec * 1000 + req->tv_nsec / 1000000;
+	sys_msleep(ms);
+	return 0;
+}
+
+/* Pierre */
 int sys_writev(int fd, const struct iovec *iov, int iovcnt) {
 	int i, bytes_written, total_bytes_written;
 
