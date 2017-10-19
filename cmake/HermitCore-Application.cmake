@@ -7,3 +7,6 @@ add_compile_options(${HERMIT_APP_FLAGS})
 # supplied with the toolchain, if built from top-level
 link_directories(${LOCAL_PREFIX_ARCH_LIB_DIR})
 include_directories(BEFORE ${LOCAL_PREFIX_ARCH_INCLUDE_DIR})
+
+# Pierre: hack, FIXME later
+include_directories(BEFORE ${HERMIT_ROOT}/prefix/x86_64-hermit/include)

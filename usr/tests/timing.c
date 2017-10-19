@@ -1,5 +1,6 @@
 #include <stdio.h>
-#include <stdlib,h>
+#include <stdlib.h>
+#include <sys/time.h>
 
 int main(void) {
 	struct timeval start, stop, res;
