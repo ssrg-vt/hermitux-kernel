@@ -1,0 +1,9 @@
+KVM 
+Time in seconds =                     1.16
+ Time in seconds =                     1.32
+ Time in seconds =                     1.28
+
+UHYVE
+ Time in seconds =                     1.25
+ Time in seconds =                     1.35
+ Time in seconds =                     1.29

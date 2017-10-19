@@ -17,5 +17,13 @@ add_executable(stream stream.c)
 target_compile_options(stream PRIVATE -fopenmp)
 target_link_libraries(stream -fopenmp)
 
+add_subdirectory (ua.b)
+add_subdirectory (cg.b)
+add_subdirectory (ep.b)
+add_subdirectory (bt.b)
+add_subdirectory (is.b)
+add_subdirectory (mg.b)
+add_subdirectory (sp.b)
+
 # deployment
 install_local_targets(extra/benchmarks)
