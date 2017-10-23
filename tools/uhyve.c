@@ -270,9 +270,13 @@ static void uhyve_atexit(void)
 
 static uint32_t get_cpufreq(void)
 {
-	char line[128];
+	char line[128], *str;
 	uint32_t freq = 0;
 	char* match;
+
+	str = getenv("HERMIT_FREQ");
+	if(str)
+		return atoi(str);
 
 	FILE* fp = fopen("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq", "r");
 	if (fp != NULL) {

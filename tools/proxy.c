@@ -130,10 +130,16 @@ static void exit_handler(int sig)
 
 static char* get_append_string(void)
 {
-	char line[2048];
+	char line[2048], *str;
 	char* match;
 	char* point;
-
+	
+	str = getenv("HERMIT_FREQ");
+	if(str) {
+		snprintf(cmdline, MAX_PATH, "\"-freq%s -proxy\"", str);
+		return cmdline;
+	}
+	
 	FILE* fp = fopen("/proc/cpuinfo", "r");
 	if (!fp)
 		return "-freq0";
