@@ -217,6 +217,11 @@ static void static_syscall_handler(struct state *s)
 	/* syscall opcode = 0F05 */
 	if (*opcode == 0x50F) {
 		switch(s->rax) {
+			case 0:
+				/* read */
+				s->rax = sys_read(s->rdi, (char *)s->rsi, s->rdx);
+				break;
+
 			case 1:
 				/* write */
 				s->rax = sys_write(s->rdi, (char *)s->rsi, s->rdx);
@@ -225,6 +230,22 @@ static void static_syscall_handler(struct state *s)
 			case 2:
 				/* open */
 				s->rax = sys_open((const char *)s->rdi, s->rsi, s->rdx);
+				break;
+
+			case 3:
+				/* close */
+				s->rax = sys_close(s->rdi);
+				break;
+
+			case 8:
+				/* lseek */
+				s->rax = sys_lseek(s->rdi, s->rsi, s->rdx);
+				break;
+
+			case 9:
+				/* mmap */
+				/* TODO */
+				s->rax = -1; /* MAP_FAILED */
 				break;
 
 			case 11:
@@ -236,7 +257,7 @@ static void static_syscall_handler(struct state *s)
 			case 12:
 				/* brk */
 				/* TODO */
-				s->rax = sys_sbrk(0);
+				s->rax = sys_brk(s->rdi);
 				break;
 
 			case 16:
@@ -259,6 +280,10 @@ static void static_syscall_handler(struct state *s)
 				/* getpid */
 				s->rax = sys_getpid();
 				break;
+
+			case 60:
+				/* exit */
+				sys_exit(s->rdi);
 
 			case 96:
 				/* gettimeofday */

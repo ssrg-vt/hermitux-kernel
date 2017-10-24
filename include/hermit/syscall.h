@@ -101,6 +101,7 @@ int sys_writev(int fd, const struct iovec *iov, int iovcnt);
 int sys_clock_gettime(clockid_t clk_id, struct timespec *tp);
 int sys_gettimeofday(struct timeval *tv, struct timezone *tz);
 int sys_nanosleep(struct timespec *req, struct timespec *rem);
+ssize_t sys_brk(ssize_t val);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;
