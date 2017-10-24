@@ -1,6 +1,6 @@
 //-------------------------------------------------------------------------//
 //                                                                         //
-//  This benchmark is a serial C version of the NPB CG code. This C        //
+//  This benchmark is a serial C version of the NPB BT code. This C        //
 //  version is developed by the Center for Manycore Programming at Seoul   //
 //  National University and derived from the serial Fortran versions in    //
 //  "NPB3.3-SER" developed by NAS.                                         //
@@ -31,96 +31,71 @@
 //          and Jaejin Lee                                                 //
 //-------------------------------------------------------------------------//
 
-#include "npbparams.h"
-#include "type.h"
+#include <math.h>
+#include "header.h"
 
 //---------------------------------------------------------------------
-//  Note: please observe that in the routine conj_grad three 
-//  implementations of the sparse matrix-vector multiply have
-//  been supplied.  The default matrix-vector multiply is not
-//  loop unrolled.  The alternate implementations are unrolled
-//  to a depth of 2 and unrolled to a depth of 8.  Please
-//  experiment with these to find the fastest for your particular
-//  architecture.  If reporting timing results, any of these three may
-//  be used without penalty.
+// this function computes the norm of the difference between the
+// computed solution and the exact solution
 //---------------------------------------------------------------------
+void error_norm(double rms[5])
+{
+  int i, j, k, m, d;
+  double xi, eta, zeta, u_exact[5], add;
+
+  for (m = 0; m < 5; m++) {
+    rms[m] = 0.0;
+  }
+
+  for (k = 0; k <= grid_points[2]-1; k++) {
+    zeta = (double)(k) * dnzm1;
+    for (j = 0; j <= grid_points[1]-1; j++) {
+      eta = (double)(j) * dnym1;
+      for (i = 0; i <= grid_points[0]-1; i++) {
+        xi = (double)(i) * dnxm1;
+        exact_solution(xi, eta, zeta, u_exact);
+
+        for (m = 0; m < 5; m++) {
+          add = u[k][j][i][m]-u_exact[m];
+          rms[m] = rms[m] + add*add;
+        }
+      }
+    }
+  }
+
+  for (m = 0; m < 5; m++) {
+    for (d = 0; d < 3; d++) {
+      rms[m] = rms[m] / (double)(grid_points[d]-2);
+    }
+    rms[m] = sqrt(rms[m]);
+  }
+}
 
 
-//---------------------------------------------------------------------
-//  Class specific parameters: 
-//  It appears here for reference only.
-//  These are their values, however, this info is imported in the npbparams.h
-//  include file, which is written by the sys/setparams.c program.
-//---------------------------------------------------------------------
+void rhs_norm(double rms[5])
+{
+  int i, j, k, d, m;
+  double add;
 
-//----------
-//  Class S:
-//----------
-//#define NA        1400
-//#define NONZER    7
-//#define SHIFT     10
-//#define NITER     15
-//#define RCOND     1.0e-1
+  for (m = 0; m < 5; m++) {
+    rms[m] = 0.0;
+  } 
 
-//----------
-//  Class W:
-//----------
-//#define NA        7000
-//#define NONZER    8
-//#define SHIFT     12
-//#define NITER     15
-//#define RCOND     1.0e-1
+  for (k = 1; k <= grid_points[2]-2; k++) {
+    for (j = 1; j <= grid_points[1]-2; j++) {
+      for (i = 1; i <= grid_points[0]-2; i++) {
+        for (m = 0; m < 5; m++) {
+          add = rhs[k][j][i][m];
+          rms[m] = rms[m] + add*add;
+        } 
+      } 
+    } 
+  } 
 
-//----------
-//  Class A:
-//----------
-//#define NA        14000
-//#define NONZER    11
-//#define SHIFT     20
-//#define NITER     15
-//#define RCOND     1.0e-1
-
-//----------
-//  Class B:
-//----------
-//#define NA        75000
-//#define NONZER    13
-//#define SHIFT     60
-//#define NITER     75
-//#define RCOND     1.0e-1
-
-//----------
-//  Class C:
-//----------
-//#define NA        150000
-//#define NONZER    15
-//#define SHIFT     110
-//#define NITER     75
-//#define RCOND     1.0e-1
-
-//----------
-//  Class D:
-//----------
-//#define NA        1500000
-//#define NONZER    21
-//#define SHIFT     500
-//#define NITER     100
-//#define RCOND     1.0e-1
-
-//----------
-//  Class E:
-//----------
-//#define NA        9000000
-//#define NONZER    26
-//#define SHIFT     1500
-//#define NITER     100
-//#define RCOND     1.0e-1
-
-#define NZ    (NA*(NONZER+1)*(NONZER+1))
-#define NAZ   (NA*(NONZER+1))
-
-#define T_init        0
-#define T_bench       1
-#define T_conj_grad   2
-#define T_last        3
-
+  for (m = 0; m < 5; m++) {
+    for (d = 0; d < 3; d++) {
+      rms[m] = rms[m] / (double)(grid_points[d]-2);
+    } 
+    rms[m] = sqrt(rms[m]);
+  } 
+}

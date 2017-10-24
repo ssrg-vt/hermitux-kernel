@@ -1,17 +1,20 @@
-#define CLASS 'B'
+/* CLASS = B */
 /*
    This file is generated automatically by the setparams utility.
    It sets the number of processors and the class of the NPB
-   in this directory. Do not modify it by hand.
-   This file provided for backward compatibility.
-   It is not used in DC benchmark.   */
-   
-long long int input_tuples=10000000, attrnum=20;
+   in this directory. Do not modify it by hand.   
+*/
+#define PROBLEM_SIZE   102
+#define NITER_DEFAULT  200
+#define DT_DEFAULT     0.0003
+
+#define CONVERTDOUBLE  false
 #define COMPILETIME "17 Oct 2017"
 #define NPBVERSION "3.3.1"
-#define CC "../../musl/prefix/bin/musl-gcc"
-#define CFLAGS "-g -Wall -O3 -mcmodel=medium"
-#define CLINK "$(CC)"
-#define CLINKFLAGS "-O3 -mcmodel=medium"
-#define C_LIB "-static -L../../musl/prefix/lib -lm"
-#define C_INC "-I../common -I../../musl/prefix/include"
+#define CS1 "../../musl/prefix/bin/musl-gcc"
+#define CS2 "$(CC)"
+#define CS3 "-static -L../../musl/prefix/lib -lm"
+#define CS4 "-I../common -I../../musl/prefix/include"
+#define CS5 "-g -Wall -O3 -mcmodel=medium"
+#define CS6 "-O3 -mcmodel=medium"
+#define CS7 "randdp"
