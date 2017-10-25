@@ -630,6 +630,46 @@ int handle_syscalls(int s)
 			exit(arg);
 			break;
 		}
+		case __HERMIT_unlink: {
+			char *pathname;
+			int len;
+
+			j = 0;
+			while(j < sizeof(len)) {
+				sret = read(s, ((char *)&len)+j, sizeof(len)-j);
+				if(sret < 0)
+					goto out;
+				j += sret;
+			}
+
+			pathname = malloc(len);
+			if(!pathname) {
+				fprintf(stderr, "Proxy: not enough memory\n");
+				return 1;
+			}
+
+			j=0;
+			while(j < len)
+			{
+				sret = read(s, pathname+j, len-j);
+				if (sret < 0)
+					goto out;
+				j += sret;
+			}
+			
+			sret = unlink(pathname);
+			j = 0;
+			while(j < sizeof(sret))
+			{
+				int l = write(s, ((char*)&sret)+j, sizeof(sret)-j);
+				if (l < 0)
+					goto out;
+				j += l;
+			}
+		
+			free(pathname);
+			break;			  
+		}
 		case __HERMIT_write: {
 			int fd;
 			size_t len;

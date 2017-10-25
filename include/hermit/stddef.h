@@ -65,6 +65,7 @@ extern const size_t image_size;
 #define UHYVE_PORT_READ		0x502
 #define UHYVE_PORT_EXIT		0x503
 #define UHYVE_PORT_LSEEK	0x504
+#define UHYVE_PORT_UNLINK	0x505
 
 #define BUILTIN_EXPECT(exp, b)		__builtin_expect((exp), (b))
 //#define BUILTIN_EXPECT(exp, b)	(exp)

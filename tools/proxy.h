@@ -32,12 +32,14 @@
 
 #define HERMIT_ELFOSABI	0x42
 
+/* Pierre: this must be consistent with include/hermit/syscall.h !! */
 #define __HERMIT_exit	0
 #define __HERMIT_write	1
 #define __HERMIT_open	2
 #define __HERMIT_close	3
 #define __HERMIT_read	4
 #define __HERMIT_lseek	5
+#define __HERMIT_unlink 6
 
 int uhyve_init(char *path);
 int uhyve_loop(void);

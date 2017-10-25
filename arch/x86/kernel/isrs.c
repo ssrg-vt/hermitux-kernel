@@ -290,6 +290,18 @@ static void static_syscall_handler(struct state *s)
 			case 60:
 				/* exit */
 				sys_exit(s->rdi);
+				LOG_ERROR("Should not reach here after exit ... \n");
+				break;
+
+			case 72:
+				/* fcntl */
+				s->rax = sys_fcntl(s->rdi, s->rsi, s->rdx);
+				break;
+
+			case 87:
+				/* unlink */
+				s->rax = sys_unlink((const char *)s->rdi);
+				break;
 
 			case 96:
 				/* gettimeofday */

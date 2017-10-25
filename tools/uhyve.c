@@ -806,6 +806,14 @@ static int vcpu_loop(void)
 					break;
 				}
 
+			case UHYVE_PORT_UNLINK: {
+					unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+					uhyve_unlink_t *uhyve_unlink = (uhyve_unlink_t *) (guest_mem+data);
+
+					uhyve_unlink->ret = unlink((const char *)guest_mem+(size_t)uhyve_unlink->pathname);
+					break;	
+				}
+
 			case UHYVE_PORT_CLOSE: {
 					unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
 					uhyve_close_t* uhyve_close = (uhyve_close_t*) (guest_mem+data);

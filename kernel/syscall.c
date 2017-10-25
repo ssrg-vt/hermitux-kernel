@@ -120,6 +120,7 @@ void NORETURN sys_exit(int arg)
 	do_exit(arg);
 }
 
+
 typedef struct {
 	int sysnr;
 	int fd;
@@ -203,6 +204,12 @@ typedef struct {
 	const char* buf;
 	size_t len;
 } __attribute__((packed)) uhyve_write_t;
+
+typedef struct {
+	const char* pathname;
+	int ret;
+} __attribute__((packed)) uhyve_unlink_t;
+
 
 /* Pierre */
 int sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg) {
@@ -292,6 +299,53 @@ out:
 /* sys_gettimeofday is in arch/x86/kernel/gettimeofday.c, it is arch
  * specific as it relies on rdtsc */
 
+/* pierre */
+int sys_fcntl(unsigned int fd, unsigned int cmd, unsigned long arg) {
+	LOG_INFO("fcntl fd: %u, cmd: %u, arg: %lu\n");
+
+	/* TODO */
+	return -ENOSYS;
+}
+
+int sys_unlink(const char *pathname) {
+	int s, sysnr, i, len, ret;
+
+	if(is_uhyve()) {
+		uhyve_unlink_t uhyve_args = { (const char *) virt_to_phys((size_t) pathname), 0};
+		uhyve_send(UHYVE_PORT_UNLINK, (unsigned)virt_to_phys((size_t)&uhyve_args));
+		return uhyve_args.ret;
+	}
+
+	spinlock_irqsave_lock(&lwip_lock);
+	s = libc_sd;
+
+	sysnr = __NR_unlink;
+	lwip_write(s, &sysnr, sizeof(sysnr));
+	
+	len = strlen(pathname);
+	lwip_write(s, &len, sizeof(len));
+	
+	i=0;
+	while(i < len)
+	{
+		ret = lwip_write(s, (char*)pathname+i, len-i);
+		if (ret < 0) {
+			spinlock_irqsave_unlock(&lwip_lock);
+			return ret;
+		}
+
+		i += ret;
+	}
+
+	ret = lwip_read(s, &i, sizeof(i));
+	if (ret < 0)
+		i = ret;
+
+	spinlock_irqsave_unlock(&lwip_lock);
+
+	return i;
+}
+
 ssize_t sys_write(int fd, const char* buf, size_t len)
 {
 	if (BUILTIN_EXPECT(!buf, 0))
@@ -362,7 +416,7 @@ ssize_t writev(int fildes, const struct iovec *iov, int iovcnt)
 	return -ENOSYS;
 }
 
-/* Pierre: tentative */
+/* Pierre: */
 ssize_t sys_brk(ssize_t val) {
 	ssize_t ret;
 	vma_t* heap = per_core(current_task)->heap;
