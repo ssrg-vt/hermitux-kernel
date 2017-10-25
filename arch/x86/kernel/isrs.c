@@ -265,6 +265,12 @@ static void static_syscall_handler(struct state *s)
 				s->rax = sys_ioctl(s->rdi, s->rsi, s->rdx);
 				break;
 
+			case 19:
+				/* readv */
+				s->rax = sys_readv(s->rdi, (const struct iovec *)s->rsi,
+						s->rdx);
+				break;
+
 			case 20:
 				/* writev */
 				s->rax = sys_writev(s->rdi, (const struct iovec *)s->rsi, 

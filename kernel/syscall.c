@@ -244,14 +244,37 @@ int sys_nanosleep(struct timespec *req, struct timespec *rem) {
 }
 
 /* Pierre */
-int sys_writev(int fd, const struct iovec *iov, int iovcnt) {
+int sys_readv(int fd, const struct iovec *iov, unsigned long vlen) {
+	int i, bytes_read, total_bytes_read;
+
+	bytes_read = total_bytes_read = 0;
+	
+	/* writev is supposed to be atomic */
+	spinlock_lock(&readwritev_spinlock);
+	for(i=0; i<vlen; i++) {
+		bytes_read = sys_read(fd, (char *)(iov[i].iov_base),
+				iov[i].iov_len);
+		
+		if(bytes_read < 0)
+			goto out;
+
+		total_bytes_read += bytes_read;
+	}
+
+out:
+	spinlock_unlock(&readwritev_spinlock);
+	return total_bytes_read;
+}
+
+/* Pierre */
+int sys_writev(int fd, const struct iovec *iov, unsigned long vlen) {
 	int i, bytes_written, total_bytes_written;
 
 	bytes_written = total_bytes_written = 0;
 	
 	/* writev is supposed to be atomic */
 	spinlock_lock(&readwritev_spinlock);
-	for(i=0; i<iovcnt; i++) {
+	for(i=0; i<vlen; i++) {
 		bytes_written = sys_write(fd, (char *)(iov[i].iov_base),
 				iov[i].iov_len);
 		
