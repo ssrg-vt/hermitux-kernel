@@ -18,8 +18,6 @@ inline static unsigned long long rdtsc(void)
 void gettimeofday_init(void) {
 	start_tsc = rdtsc();
 	freq = get_cpufreq() * 1000000ULL;
-	LOG_INFO("freq: %llu\n", freq);
-	
 }
 
 int sys_gettimeofday(struct timeval *tv, struct timezone *tz) {
