@@ -336,6 +336,7 @@ static void static_syscall_handler(struct state *s)
 				/* FIXME this will probably not work in multi-threaded 
 				 * environments */
 				sys_exit(s->rdi);
+				LOG_ERROR("Should not reach here after exit_group ... \n");
 				break;
 
 
