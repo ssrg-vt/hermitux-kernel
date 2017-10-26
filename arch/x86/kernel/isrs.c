@@ -309,6 +309,11 @@ static void static_syscall_handler(struct state *s)
 						(struct timezone *)s->rsi);
 				break;
 
+			case 140:
+				/* getpriority */
+				s->rax = sys_getprio(s->rsi);
+				break;
+
 			case 158:
 				/* arch_prctl */
 				/* TODO */
