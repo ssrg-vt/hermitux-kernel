@@ -37,6 +37,9 @@ foreach(MODULE ${KERNEL_MODULES})
 	target_compile_definitions(${MODULE}
 		PRIVATE -D__KERNEL__)
 
+	target_compile_definitions(${MODULE}
+		PRIVATE $ENV{HERMITUX_DISABLED_SYSCALLS})
+
 	target_compile_options(${MODULE}
 		PRIVATE ${HERMIT_KERNEL_FLAGS})
 

@@ -52,130 +52,19 @@
  */
 extern const void kernel_start;
 
-//TODO: don't use one big kernel lock to comminicate with all proxies
-static spinlock_irqsave_t lwip_lock = SPINLOCK_IRQSAVE_INIT;
-
+spinlock_irqsave_t lwip_lock = SPINLOCK_IRQSAVE_INIT;
 extern spinlock_irqsave_t stdio_lock;
 extern int32_t isle;
 extern int32_t possible_isles;
 extern volatile int libc_sd;
 
-static spinlock_t readwritev_spinlock = SPINLOCK_INIT;
-
-int sys_setprio(tid_t* id, int prio)
-{
-	return -ENOSYS;
-}
-
-void NORETURN do_exit(int arg);
-
-typedef struct {
-	int sysnr;
-	int arg;
-} __attribute__((packed)) sys_exit_t;
-
-/** @brief To be called by the systemcall to exit tasks */
-void NORETURN sys_exit(int arg)
-{
-	if (is_uhyve()) {
-		uhyve_send(UHYVE_PORT_EXIT, (unsigned) virt_to_phys((size_t) &arg));
-	} else {
-		sys_exit_t sysargs = {__NR_exit, arg};
-
-		spinlock_irqsave_lock(&lwip_lock);
-		if (libc_sd >= 0)
-		{
-			int s = libc_sd;
-
-			lwip_write(s, &sysargs, sizeof(sysargs));
-			libc_sd = -1;
-
-			spinlock_irqsave_unlock(&lwip_lock);
-
-			// switch to LwIP thread
-			reschedule();
-
-			lwip_close(s);
-		} else {
-			spinlock_irqsave_unlock(&lwip_lock);
-		}
-	}
-
-	do_exit(arg);
-}
+spinlock_t readwritev_spinlock = SPINLOCK_INIT;
 
 
-typedef struct {
-	int sysnr;
-	int fd;
-	size_t len;
-} __attribute__((packed)) sys_read_t;
-
-typedef struct {
-	int fd;
-	char* buf;
-        size_t len;
-	ssize_t ret;
-} __attribute__((packed)) uhyve_read_t;
-
-ssize_t sys_read(int fd, char* buf, size_t len)
-{
-	if (is_uhyve()) {
-                uhyve_read_t uhyve_args = {fd, (char*) virt_to_phys((size_t) buf), len, -1};
-
-                uhyve_send(UHYVE_PORT_READ, (unsigned)virt_to_phys((size_t)&uhyve_args));
-
-                return uhyve_args.ret;
-        }
-
-	sys_read_t sysargs = {__NR_read, fd, len};
-	ssize_t j, ret;
-	int s;
-
-	// do we have an LwIP file descriptor?
-	if (fd & LWIP_FD_BIT) {
-		ret = lwip_read(fd & ~LWIP_FD_BIT, buf, len);
-		if (ret < 0)
-			return -errno;
-
-		return ret;
-	}
-
-	spinlock_irqsave_lock(&lwip_lock);
-	if (libc_sd < 0) {
-		spinlock_irqsave_unlock(&lwip_lock);
-		return -ENOSYS;
-	}
-
-	s = libc_sd;
-	lwip_write(s, &sysargs, sizeof(sysargs));
-
-	lwip_read(s, &j, sizeof(j));
-	if (j > 0)
-	{
-		ssize_t i = 0;
-
-		while(i < j)
-		{
-			ret = lwip_read(s, buf+i, j-i);
-			if (ret < 0) {
-				spinlock_irqsave_unlock(&lwip_lock);
-				return ret;
-			}
-
-			i += ret;
-		}
-	}
-
-	spinlock_irqsave_unlock(&lwip_lock);
-
-	return j;
-}
-
-ssize_t readv(int d, const struct iovec *iov, int iovcnt)
-{
-	return -ENOSYS;
-}
+//ssize_t readv(int d, const struct iovec *iov, int iovcnt)
+//{
+//	return -ENOSYS;
+//}
 
 typedef struct {
 	int sysnr;
@@ -239,29 +128,6 @@ int sys_nanosleep(struct timespec *req, struct timespec *rem) {
 	unsigned long long int ms = req->tv_sec * 1000 + req->tv_nsec / 1000000;
 	sys_msleep(ms);
 	return 0;
-}
-
-/* Pierre */
-int sys_readv(int fd, const struct iovec *iov, unsigned long vlen) {
-	int i, bytes_read, total_bytes_read;
-
-	bytes_read = total_bytes_read = 0;
-	
-	/* writev is supposed to be atomic */
-	spinlock_lock(&readwritev_spinlock);
-	for(i=0; i<vlen; i++) {
-		bytes_read = sys_read(fd, (char *)(iov[i].iov_base),
-				iov[i].iov_len);
-		
-		if(bytes_read < 0)
-			goto out;
-
-		total_bytes_read += bytes_read;
-	}
-
-out:
-	spinlock_unlock(&readwritev_spinlock);
-	return total_bytes_read;
 }
 
 /* Pierre */
