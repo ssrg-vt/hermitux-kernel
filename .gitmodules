@@ -1,6 +1,6 @@
 [submodule "lwip"]
 	path = lwip
-	url = https://github.com/RWTH-OS/LwIP.git
+	url = git@github.com:ssrg-vt/lwip-hermitux.git
 	branch = hermit
 [submodule "usr/libomp"]
 	path = usr/libomp

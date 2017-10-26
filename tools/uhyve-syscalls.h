@@ -28,7 +28,8 @@ typedef enum {
 	UHYVE_PORT_READ		= 0x502,
 	UHYVE_PORT_EXIT		= 0x503,
 	UHYVE_PORT_LSEEK	= 0x504,
-	UHYVE_PORT_UNLINK	= 0x505
+	UHYVE_PORT_UNLINK	= 0x505,
+	UHYVE_PORT_FCNTL	= 0x506
 } uhyve_syscall_t;
 
 typedef struct {
@@ -41,6 +42,14 @@ typedef struct {
 	const char* pathname;
 	int ret;
 } __attribute__((packed)) uhyve_unlink_t;
+
+typedef struct {
+	unsigned int fd;
+	unsigned int cmd;
+	unsigned long arg;
+	int ret;
+
+} __attribute__ ((packed)) uhyve_fcntl_t;
 
 typedef struct {
 	const char* name;
