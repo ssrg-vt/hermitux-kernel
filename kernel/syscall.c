@@ -60,23 +60,10 @@ extern volatile int libc_sd;
 
 spinlock_t readwritev_spinlock = SPINLOCK_INIT;
 
-
 //ssize_t readv(int d, const struct iovec *iov, int iovcnt)
 //{
 //	return -ENOSYS;
 //}
-
-typedef struct {
-	int sysnr;
-	int fd;
-	size_t len;
-} __attribute__((packed)) sys_write_t;
-
-typedef struct {
-	int fd;
-	const char* buf;
-	size_t len;
-} __attribute__((packed)) uhyve_write_t;
 
 typedef struct {
 	const char* pathname;
@@ -128,29 +115,6 @@ int sys_nanosleep(struct timespec *req, struct timespec *rem) {
 	unsigned long long int ms = req->tv_sec * 1000 + req->tv_nsec / 1000000;
 	sys_msleep(ms);
 	return 0;
-}
-
-/* Pierre */
-int sys_writev(int fd, const struct iovec *iov, unsigned long vlen) {
-	int i, bytes_written, total_bytes_written;
-
-	bytes_written = total_bytes_written = 0;
-	
-	/* writev is supposed to be atomic */
-	spinlock_lock(&readwritev_spinlock);
-	for(i=0; i<vlen; i++) {
-		bytes_written = sys_write(fd, (char *)(iov[i].iov_base),
-				iov[i].iov_len);
-		
-		if(bytes_written < 0)
-			goto out;
-
-		total_bytes_written += bytes_written;
-	}
-
-out:
-	spinlock_unlock(&readwritev_spinlock);
-	return total_bytes_written;
 }
 
 /* sys_gettimeofday is in arch/x86/kernel/gettimeofday.c, it is arch
@@ -206,71 +170,6 @@ int sys_unlink(const char *pathname) {
 	ret = lwip_read(s, &i, sizeof(i));
 	if (ret < 0)
 		i = ret;
-
-	spinlock_irqsave_unlock(&lwip_lock);
-
-	return i;
-}
-
-ssize_t sys_write(int fd, const char* buf, size_t len)
-{
-	if (BUILTIN_EXPECT(!buf, 0))
-		return -1;
-
-	if (is_uhyve()) {
-		uhyve_write_t uhyve_args = {fd, (const char*) virt_to_phys((size_t) buf), len};
-
-		uhyve_send(UHYVE_PORT_WRITE, (unsigned)virt_to_phys((size_t)&uhyve_args));
-
-		return uhyve_args.len;
-	}
-
-	ssize_t i, ret;
-	int s;
-	sys_write_t sysargs = {__NR_write, fd, len};
-
-	// do we have an LwIP file descriptor?
-	if (fd & LWIP_FD_BIT) {
-		ret = lwip_write(fd & ~LWIP_FD_BIT, buf, len);
-		if (ret < 0)
-			return -errno;
-
-		return ret;
-	}
-
-	spinlock_irqsave_lock(&lwip_lock);
-	if (libc_sd < 0)
-	{
-		spinlock_irqsave_unlock(&lwip_lock);
-
-		spinlock_irqsave_lock(&stdio_lock);
-		for(i=0; i<len; i++)
-			kputchar(buf[i]);
-		spinlock_irqsave_unlock(&stdio_lock);
-
-		return len;
-	}
-
-	s = libc_sd;
-	lwip_write(s, &sysargs, sizeof(sysargs));
-
-	i=0;
-	while(i < len)
-	{
-		ret = lwip_write(s, (char*)buf+i, len-i);
-		if (ret < 0) {
-			spinlock_irqsave_unlock(&lwip_lock);
-			return ret;
-		}
-
-		i += ret;
-	}
-
-	if (fd > 2) {
-		ret = lwip_read(s, &i, sizeof(i));
-		if (ret < 0)
-			i = ret;
-	} else i = len;
 
 	spinlock_irqsave_unlock(&lwip_lock);
 
