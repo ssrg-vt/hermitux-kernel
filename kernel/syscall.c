@@ -62,22 +62,6 @@ extern volatile int libc_sd;
 
 static spinlock_t readwritev_spinlock = SPINLOCK_INIT;
 
-tid_t sys_getpid(void)
-{
-	task_t* task = per_core(current_task);
-
-	return task->id;
-}
-
-int sys_getprio(tid_t* id)
-{
-	task_t* task = per_core(current_task);
-
-	if (!id || (task->id == *id))
-		return task->prio;
-	return -EINVAL;
-}
-
 int sys_setprio(tid_t* id, int prio)
 {
 	return -ENOSYS;
