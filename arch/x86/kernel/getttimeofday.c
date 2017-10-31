@@ -6,7 +6,7 @@ extern unsigned int get_cpufreq(void);
 static unsigned long long start_tsc;
 static unsigned long long freq = 0;
 
-inline static unsigned long long rdtsc(void)
+inline static unsigned long long gtod_rdtsc(void)
 {
 	unsigned int lo, hi;
 
@@ -16,7 +16,7 @@ inline static unsigned long long rdtsc(void)
 }
 
 void gettimeofday_init(void) {
-	start_tsc = rdtsc();
+	start_tsc = gtod_rdtsc();
 	freq = get_cpufreq() * 1000000ULL;
 }
 
@@ -27,7 +27,7 @@ int sys_gettimeofday(struct timeval *tv, struct timezone *tz) {
 
 
 	if(tv) {
-		unsigned long long diff = rdtsc() - start_tsc;
+		unsigned long long diff = gtod_rdtsc() - start_tsc;
 		tv->tv_sec = diff/freq;
 		tv->tv_usec = ((diff - tv->tv_sec * freq) * 1000000ULL) / freq;
 	}

@@ -11,6 +11,7 @@ project (HermitCore)
 add_subdirectory(include/hermit)
 
 add_kernel_module_sources("kernel"		"kernel/*.c")
+add_kernel_module_sources("syscalls"	"kernel/syscalls/*.c")
 add_kernel_module_sources("libkern"		"libkern/*.c")
 add_kernel_module_sources("mm"			"mm/*.c")
 add_kernel_module_sources("drivers"		"drivers/net/*.c")
