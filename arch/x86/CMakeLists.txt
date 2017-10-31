@@ -11,7 +11,6 @@ add_custom_target(${X86_KERNEL_TARGET})
 
 # compiling kernel code here
 add_definitions(-D__KERNEL__)
-add_definitions($ENV{HERMITUX_DISABLED_SYSCALLS})
 
 
 ### ASM sources ###

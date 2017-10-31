@@ -282,7 +282,7 @@ static void static_syscall_handler(struct state *s)
 				break;
 #endif /* DISABLE_SYS_IOCTL */
 
-#ifdef DISABLE_SYS_READV
+#ifndef DISABLE_SYS_READV
 			case 19:
 				/* readv */
 				s->rax = sys_readv(s->rdi, (const struct iovec *)s->rsi,
