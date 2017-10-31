@@ -345,7 +345,7 @@ static void static_syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_GETPRIO
 			case 140:
 				/* getpriority */
-				s->rax = sys_getprio(s->rsi);
+				s->rax = sys_getprio((unsigned int *)&(s->rsi));
 				break;
 #endif /* DISABLE_SYS_GETPRIO */
 
