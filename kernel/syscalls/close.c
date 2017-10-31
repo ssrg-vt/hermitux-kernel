@@ -6,10 +6,14 @@
 extern spinlock_irqsave_t lwip_lock;
 extern volatile int libc_sd;
 
+#ifdef NO_NET
+
 typedef struct {
 	int sysnr;
 	int fd;
 } __attribute__((packed)) sys_close_t;
+
+#endif /* NO_DEV */
 
 typedef struct {
         int fd;
@@ -25,6 +29,8 @@ int sys_close(int fd)
 
 		return uhyve_close.ret;
 	}
+
+#ifdef NO_NET
 
 	int ret, s;
 	sys_close_t sysargs = {__NR_close, fd};
@@ -54,6 +60,12 @@ out:
 	spinlock_irqsave_unlock(&lwip_lock);
 
 	return ret;
+
+#else /*NO_NET */
+
+	return -ENOSYS;
+
+#endif /* NO_NET */
 }
 
 int sys_spinlock_init(spinlock_t** lock)
