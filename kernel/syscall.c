@@ -25,48 +25,9 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <hermit/stddef.h>
-#include <hermit/stdio.h>
-#include <hermit/tasks.h>
-#include <hermit/errno.h>
-#include <hermit/syscall.h>
 #include <hermit/spinlock.h>
-#include <hermit/semaphore.h>
-#include <hermit/time.h>
-#include <hermit/rcce.h>
-#include <hermit/memory.h>
-#include <hermit/signal.h>
-#include <hermit/logging.h>
-#include <hermit/ioctl.h>
-#include <hermit/hermitux_syscalls.h>
-#include <asm/uhyve.h>
-#include <sys/poll.h>
-
-#include <lwip/sockets.h>
-#include <lwip/err.h>
-#include <lwip/stats.h>
-
-/*
- * Note that linker symbols are not variables, they have no memory allocated for
- * maintaining a value, rather their address is their value.
- */
-extern const void kernel_start;
-
-spinlock_irqsave_t lwip_lock = SPINLOCK_IRQSAVE_INIT;
-extern spinlock_irqsave_t stdio_lock;
-extern int32_t possible_isles;
-extern volatile int libc_sd;
 
 spinlock_t readwritev_spinlock = SPINLOCK_INIT;
+spinlock_irqsave_t lwip_lock = SPINLOCK_IRQSAVE_INIT;
 
-//ssize_t readv(int d, const struct iovec *iov, int iovcnt)
-//{
-//	return -ENOSYS;
-//}
-
-
-//ssize_t writev(int fildes, const struct iovec *iov, int iovcnt)
-//{
-//	return -ENOSYS;
-//}
 
