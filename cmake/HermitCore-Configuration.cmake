@@ -19,6 +19,9 @@ set(KERNEL_STACK_SIZE 8192 CACHE STRING
 set(DEFAULT_STACK_SIZE 262144 CACHE STRING
 	"Task stack size in bytes")
 
+option(NO_NET 
+	"Disable networking" OFF)
+
 option(DYNAMIC_TICKS
 	"Don't use a periodic timer event to keep track of time" ON)
 
