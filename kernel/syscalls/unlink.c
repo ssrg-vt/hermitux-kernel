@@ -2,6 +2,7 @@
 #include <hermit/spinlock.h>
 #include <asm/uhyve.h>
 #include <asm/page.h>
+#include <hermit/logging.h>
 
 extern spinlock_irqsave_t lwip_lock;
 extern volatile int libc_sd;
@@ -20,6 +21,8 @@ int sys_unlink(const char *pathname) {
 		uhyve_send(UHYVE_PORT_UNLINK, (unsigned)virt_to_phys((size_t)&uhyve_args));
 		return uhyve_args.ret;
 	}
+
+#ifndef NO_NET
 
 	spinlock_irqsave_lock(&lwip_lock);
 	s = libc_sd;
@@ -49,5 +52,9 @@ int sys_unlink(const char *pathname) {
 	spinlock_irqsave_unlock(&lwip_lock);
 
 	return i;
+
+#endif /* NO_NET */
+	LOG_ERROR("Network disabled, cannot use qemu isle\n");
+	return -ENOSYS;
 }
 

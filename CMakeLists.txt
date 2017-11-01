@@ -14,7 +14,10 @@ add_kernel_module_sources("kernel"		"kernel/*.c")
 add_kernel_module_sources("syscalls"	"kernel/syscalls/*.c")
 add_kernel_module_sources("libkern"		"libkern/*.c")
 add_kernel_module_sources("mm"			"mm/*.c")
+
+if(NOT ${NO_NET})
 add_kernel_module_sources("drivers"		"drivers/net/*.c")
+endif(NOT ${NO_NET})
 
 if(NOT ${NO_NET})
 message("Enabling LWIP")
@@ -41,6 +44,11 @@ foreach(MODULE ${KERNEL_MODULES})
 	# this is kernel code
 	target_compile_definitions(${MODULE}
 		PRIVATE -D__KERNEL__)
+
+	if(${NO_NET})
+		target_compile_definitions(${MODULE}
+			PRIVATE -DNO_NET)
+	endif(${NO_NET})
 
 	target_compile_options(${MODULE}
 		PRIVATE ${HERMIT_KERNEL_FLAGS})

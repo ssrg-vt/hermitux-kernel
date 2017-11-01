@@ -42,6 +42,8 @@
 #include <asm/uart.h>
 #include <asm/multiboot.h>
 
+#ifndef NO_NET
+
 #include <lwip/init.h>
 #include <lwip/sys.h>
 #include <lwip/stats.h>
@@ -61,11 +63,15 @@
 #include <net/e1000.h>
 #include <net/vioif.h>
 
+#endif /* NO_NET */
+
 #define HERMIT_PORT	0x494E
 #define HERMIT_MAGIC	0x7E317
 
+#ifndef NO_NET
 static struct netif	default_netif;
 static const int sobufsize = 131072;
+#endif /* NO_NET */
 
 /*
  * Note that linker symbols are not variables, they have no memory allocated for
@@ -132,6 +138,7 @@ static void print_status(void)
 	spinlock_unlock(&status_lock);
 }
 
+#ifndef NO_NET
 static void tcpip_init_done(void* arg)
 {
 	sys_sem_t* sem = (sys_sem_t*)arg;
@@ -268,6 +275,8 @@ int network_shutdown(void)
 	return 0;
 }
 
+#endif /* NO_NET */
+
 #if MAX_CORES > 1
 int smp_main(void)
 {
@@ -318,18 +327,29 @@ int libc_start(int argc, char** argv, char** env);
 // init task => creates all other tasks an initialize the LwIP
 static int initd(void* arg)
 {
-	int s = -1, c = -1;
-	int i, j, flag;
-	int len, err;
-	int magic = 0;
-	struct sockaddr_in6 server, client;
+	int c = -1;
+	int i;
+	int err = 0;
 	task_t* curr_task = per_core(current_task);
 	size_t heap = HEAP_START;
-	int argc, envc;
+	int argc = 1;
 	char** argv = NULL;
 	char **environ = NULL;
+#ifndef NO_NET
+	int envc, len, flag, j;
+	int s = -1;
+	int magic = 0;
+	struct sockaddr_in6 server, client;
+#endif /* NO_NET */
 
 	LOG_INFO("Initd is running\n");
+
+#ifdef NO_NET
+	if(!is_uhyve()) {
+		LOG_ERROR("Networking disabled and the isle is not uhyve, aborting\n");
+		return -1;
+	}
+#endif /* NO_NET */
 
 	// initialized bss section
 	memset((void*)&__bss_start, 0x00, (size_t) &kernel_start + image_size - (size_t) &__bss_start);
@@ -352,8 +372,10 @@ static int initd(void* arg)
 	vma_free(curr_task->heap->start, curr_task->heap->start+PAGE_SIZE);
 	vma_add(curr_task->heap->start, curr_task->heap->start+PAGE_SIZE, VMA_HEAP|VMA_USER);
 
+#ifndef NO_NET
 	// initialize network
 	err = init_netifs();
+#endif /* NO_NET */
 
 	if ((err != 0) || !is_proxy())
 	{
@@ -370,6 +392,7 @@ static int initd(void* arg)
 	if (!is_single_kernel())
 		init_rcce();
 
+#ifndef NO_NET
 	s = lwip_socket(AF_INET6, SOCK_STREAM , 0);
 	if (s < 0) {
 		LOG_ERROR("socket failed: %d\n", server);
@@ -483,11 +506,15 @@ static int initd(void* arg)
 		}
 	}
 
+#endif /* NO_NET */
+
 	// call user code
 	libc_sd = c;
 	libc_start(argc, argv, environ);
 
+#ifndef NO_NET
 out:
+#endif /*NO_NET */
 	if (argv) {
 		for(i=0; i<argc; i++) {
 			if (argv[i])
@@ -507,12 +534,16 @@ out:
 		kfree(environ);
 	}
 
+#ifndef NO_NET
+
 	if (c > 0)
 		lwip_close(c);
 	libc_sd = -1;
 
 	if (s > 0)
 		lwip_close(s);
+
+#endif /* NO_NET */
 
 	return 0;
 }

@@ -2,16 +2,21 @@
 #include <asm/uhyve.h>
 #include <asm/page.h>
 #include <hermit/spinlock.h>
+#include <hermit/logging.h>
 
 extern spinlock_irqsave_t lwip_lock;
 extern volatile int libc_sd;
 extern spinlock_irqsave_t stdio_lock;
+
+#ifndef NO_NET
 
 typedef struct {
 	int sysnr;
 	int fd;
 	size_t len;
 } __attribute__((packed)) sys_write_t;
+
+#endif /* NO_NET */
 
 typedef struct {
 	int fd;
@@ -31,6 +36,8 @@ ssize_t sys_write(int fd, const char* buf, size_t len)
 
 		return uhyve_args.len;
 	}
+
+#ifndef NO_NET
 
 	ssize_t i, ret;
 	int s;
@@ -82,5 +89,9 @@ ssize_t sys_write(int fd, const char* buf, size_t len)
 	spinlock_irqsave_unlock(&lwip_lock);
 
 	return i;
+
+#endif /* NO_NET */
+	LOG_ERROR("Network disabled, cannot use qemu isle\n");
+	return -ENOSYS;
 }
 

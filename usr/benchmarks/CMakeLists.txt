@@ -8,7 +8,9 @@ target_link_libraries(basic pthread)
 
 add_executable(hg hg.c hist.c rdtsc.c run.c init.c opt.c report.c setup.c)
 
+if(NOT ${NODEV})
 add_executable(netio netio.c)
+endif(NOT ${NODEV})
 
 add_executable(RCCE_pingpong RCCE_pingpong.c)
 target_link_libraries(RCCE_pingpong ircce)

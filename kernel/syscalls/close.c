@@ -2,11 +2,12 @@
 #include <hermit/spinlock.h>
 #include <asm/uhyve.h>
 #include <asm/page.h>
+#include <hermit/logging.h>
 
 extern spinlock_irqsave_t lwip_lock;
 extern volatile int libc_sd;
 
-#ifdef NO_NET
+#ifndef NO_NET
 
 typedef struct {
 	int sysnr;
@@ -30,7 +31,7 @@ int sys_close(int fd)
 		return uhyve_close.ret;
 	}
 
-#ifdef NO_NET
+#ifndef NO_NET
 
 	int ret, s;
 	sys_close_t sysargs = {__NR_close, fd};
@@ -63,6 +64,7 @@ out:
 
 #else /*NO_NET */
 
+	LOG_ERROR("Network disabled, cannot use qemu isle\n");
 	return -ENOSYS;
 
 #endif /* NO_NET */

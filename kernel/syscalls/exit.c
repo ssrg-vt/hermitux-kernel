@@ -8,17 +8,23 @@ extern volatile int libc_sd;
 
 void NORETURN do_exit(int arg);
 
+#ifndef NO_NET
+
 typedef struct {
 	int sysnr;
 	int arg;
 } __attribute__((packed)) sys_exit_t;
+
+#endif /* NO_NET */
 
 /** @brief To be called by the systemcall to exit tasks */
 void NORETURN sys_exit(int arg)
 {
 	if (is_uhyve()) {
 		uhyve_send(UHYVE_PORT_EXIT, (unsigned) virt_to_phys((size_t) &arg));
-	} else {
+	} 
+#ifndef NO_NET
+	else {
 		sys_exit_t sysargs = {__NR_exit, arg};
 
 		spinlock_irqsave_lock(&lwip_lock);
@@ -39,6 +45,7 @@ void NORETURN sys_exit(int arg)
 			spinlock_irqsave_unlock(&lwip_lock);
 		}
 	}
+#endif /* NO_NET */
 
 	do_exit(arg);
 }

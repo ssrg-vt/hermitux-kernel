@@ -1055,7 +1055,9 @@ void shutdown_system(void)
 		while(atomic_int32_read(&cpu_online) != 1)
 			PAUSE;
 
+#ifndef NO_NET
 		network_shutdown();
+#endif /* NO_NET */
 
 		LOG_INFO("Disable APIC timer\n");
 	}
