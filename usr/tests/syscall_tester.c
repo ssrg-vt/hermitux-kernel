@@ -6,7 +6,7 @@
 #include <signal.h>
 #include <sys/time.h>
 #include <fcntl.h>
-
+#include <hermit/syscall.h>
 #define RUNS 25
 
 /* For the write_asm function, the C variables used inside the asm()

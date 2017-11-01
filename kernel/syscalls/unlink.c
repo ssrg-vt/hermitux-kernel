@@ -14,7 +14,9 @@ typedef struct {
 
 
 int sys_unlink(const char *pathname) {
+#ifndef NO_NET
 	int s, sysnr, i, len, ret;
+#endif /* NO_NET */
 
 	if(is_uhyve()) {
 		uhyve_unlink_t uhyve_args = { (const char *) virt_to_phys((size_t) pathname), 0};
