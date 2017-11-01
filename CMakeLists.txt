@@ -50,6 +50,11 @@ foreach(MODULE ${KERNEL_MODULES})
 			PRIVATE -DNO_NET)
 	endif(${NO_NET})
 
+	if(${NO_IRCCE})
+		target_compile_definitions(${MODULE}
+			PRIVATE -DNO_IRCCE)
+	endif(${NO_IRCCE})
+
 	target_compile_options(${MODULE}
 		PRIVATE ${HERMIT_KERNEL_FLAGS})
 
@@ -161,8 +166,10 @@ build_external(libiomp ${HERMIT_ROOT}/usr/libomp ""
 add_dependencies(hermit libiomp)
 
 ## iRCCE
+if(NOT ${NO_IRCCE})
 build_external(ircce ${HERMIT_ROOT}/usr/ircce "")
 add_dependencies(hermit ircce)
+endif(NOT ${NO_IRCCE})
 
 ## XRay profiler
 build_external(xray ${HERMIT_ROOT}/usr/xray "")

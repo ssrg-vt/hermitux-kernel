@@ -12,8 +12,10 @@ if(NOT ${NO_NET})
 add_executable(netio netio.c)
 endif(NOT ${NO_NET})
 
+if(NOT ${NO_IRCCE})
 add_executable(RCCE_pingpong RCCE_pingpong.c)
 target_link_libraries(RCCE_pingpong ircce)
+endif(NOT ${NO_IRCCE})
 
 add_executable(stream stream.c)
 target_compile_options(stream PRIVATE -fopenmp)

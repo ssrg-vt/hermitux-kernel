@@ -1,3 +1,5 @@
+#ifndef NO_IRCCE
+
 #include <hermit/syscall.h>
 #include <asm/processor.h>
 #include <asm/page.h>
@@ -61,3 +63,4 @@ out:
 	return 0;
 }
 
+#endif /* NO_IRCCE */

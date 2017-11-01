@@ -22,6 +22,9 @@ set(DEFAULT_STACK_SIZE 262144 CACHE STRING
 option(NO_NET 
 	"Disable networking" OFF)
 
+option(NO_IRCCE
+	"Disable IRCCE" OFF)
+
 option(DYNAMIC_TICKS
 	"Don't use a periodic timer event to keep track of time" ON)
 

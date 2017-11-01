@@ -35,7 +35,11 @@
 #include <hermit/syscall.h>
 #include <hermit/memory.h>
 #include <hermit/spinlock.h>
+
+#ifndef NO_IRCCE
 #include <hermit/rcce.h>
+#endif /* NO_IRCCE */
+
 #include <hermit/logging.h>
 #include <asm/irq.h>
 #include <asm/page.h>
@@ -43,7 +47,6 @@
 #include <asm/multiboot.h>
 
 #ifndef NO_NET
-
 #include <lwip/init.h>
 #include <lwip/sys.h>
 #include <lwip/stats.h>
@@ -62,7 +65,6 @@
 #include <net/rtl8139.h>
 #include <net/e1000.h>
 #include <net/vioif.h>
-
 #endif /* NO_NET */
 
 #define HERMIT_PORT	0x494E
@@ -101,8 +103,10 @@ extern int32_t possible_isles;
 extern uint32_t boot_processor;
 extern volatile int libc_sd;
 
+#ifndef NO_IRCCE
 islelock_t* rcce_lock = NULL;
 rcce_mpb_t* rcce_mpb = NULL;
+#endif /* NO_IRCCE */
 
 extern void signal_init();
 
@@ -300,6 +304,7 @@ int smp_main(void)
 }
 #endif
 
+#ifndef NO_IRCCE
 static int init_rcce(void)
 {
 	size_t addr, flags = PG_GLOBAL|PG_RW;
@@ -321,6 +326,7 @@ static int init_rcce(void)
 
 	return 0;
 }
+#endif /* NO_IRCCE */
 
 int libc_start(int argc, char** argv, char** env);
 
@@ -388,9 +394,11 @@ static int initd(void* arg)
 		return 0;
 	}
 
+#ifndef NO_IRCCE
 	// initialize iRCCE
 	if (!is_single_kernel())
 		init_rcce();
+#endif /* NO_IRCCE */
 
 #ifndef NO_NET
 	s = lwip_socket(AF_INET6, SOCK_STREAM , 0);
