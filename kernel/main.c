@@ -108,7 +108,9 @@ islelock_t* rcce_lock = NULL;
 rcce_mpb_t* rcce_mpb = NULL;
 #endif /* NO_IRCCE */
 
+#ifndef NO_SIGNAL
 extern void signal_init();
+#endif /* NO_SIGNAL */
 
 static int hermit_init(void)
 {
@@ -128,7 +130,9 @@ static int hermit_init(void)
 	timer_init();
 	multitasking_init();
 	memory_init();
+#ifndef NO_SIGNAL
 	signal_init();
+#endif /* NO_SIGNAL */
 
 	return 0;
 }

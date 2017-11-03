@@ -44,6 +44,10 @@
 extern "C" {
 #endif
 
+#define TLS_OFFSET	8
+
+uint32_t get_next_core_id(void);
+
 /** @brief System call to terminate a user level process */
 void NORETURN sys_exit(int);
 

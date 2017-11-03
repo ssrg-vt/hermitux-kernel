@@ -55,6 +55,11 @@ foreach(MODULE ${KERNEL_MODULES})
 			PRIVATE -DNO_IRCCE)
 	endif(${NO_IRCCE})
 
+	if(${NO_SIGNAL})
+		target_compile_definitions(${MODULE}
+			PRIVATE -DNO_SIGNAL)
+	endif(${NO_SIGNAL})
+
 	target_compile_options(${MODULE}
 		PRIVATE ${HERMIT_KERNEL_FLAGS})
 

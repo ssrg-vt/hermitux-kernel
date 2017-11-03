@@ -25,6 +25,9 @@ option(NO_NET
 option(NO_IRCCE
 	"Disable IRCCE" OFF)
 
+option(NO_SIGNAL
+	"Disable signal support" OFF)
+
 option(DYNAMIC_TICKS
 	"Don't use a periodic timer event to keep track of time" ON)
 
