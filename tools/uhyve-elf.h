@@ -25,24 +25,18 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __PROXY_H__
-#define __PROXY_H__
+ #ifndef __UHYVE_ELF_H__
+ #define __UHYVE_ELF_H__
 
-#include <stdint.h>
-#include <stdbool.h>
+ #include <unistd.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <stdint.h>
 
-#define HERMIT_ELFOSABI	0x42
+ extern size_t tux_entry;
+ extern size_t tux_size;
 
-#define __HERMIT_exit	0
-#define __HERMIT_write	1
-#define __HERMIT_open	2
-#define __HERMIT_close	3
-#define __HERMIT_read	4
-#define __HERMIT_lseek	5
-
-int uhyve_init(char** argv);
-int uhyve_loop(void);
-
-extern bool verbose;
+int uhyve_elf_loader(const char*);
+ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset);
 
 #endif

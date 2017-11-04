@@ -25,24 +25,27 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __PROXY_H__
-#define __PROXY_H__
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 
-#include <stdint.h>
-#include <stdbool.h>
+// Linux applications are always located at address 0x400000
+#define tux_start_address	0x400000
 
-#define HERMIT_ELFOSABI	0x42
+extern const size_t tux_entry;
+extern const size_t tux_size;
 
-#define __HERMIT_exit	0
-#define __HERMIT_write	1
-#define __HERMIT_open	2
-#define __HERMIT_close	3
-#define __HERMIT_read	4
-#define __HERMIT_lseek	5
+int main(int argc, char** argv)
+{
+	printf("Hello from HermiTux loader\n\n");
 
-int uhyve_init(char** argv);
-int uhyve_loop(void);
+	if (tux_entry >= tux_start_address) {
+		printf("Found linux image at 0x%zx with a size of 0x%zx\n", tux_start_address, tux_size);
+		printf("Entry point is located at 0x%zx\n", tux_entry);
 
-extern bool verbose;
+		printf("Value of first byte at entry point: 0x%zx\n", (size_t) *((char*) tux_entry));
+	} else fprintf(stderr, "Unable to find a Linux image!!!\n");
 
-#endif
+	return 0;
+}

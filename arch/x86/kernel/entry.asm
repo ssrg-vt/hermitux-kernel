@@ -75,6 +75,8 @@ align 4
     global hcip
     global hcgateway
     global hcmask
+    global tux_entry
+    global tux_size
     base dq 0
     limit dq 0
     cpu_freq dd 0
@@ -105,6 +107,9 @@ align 4
     hcip db  10,0,5,2
     hcgateway db 10,0,5,1
     hcmask db 255,255,255,0
+align 8
+    tux_entry dq 0
+    tux_size dq 0
 
 ; Bootstrap page tables are used during the initialization.
 align 4096
@@ -696,7 +701,6 @@ align 64
 is_single_kernel:
     mov eax, DWORD [single_kernel]
     ret
-
 
 global sighandler_epilog
 sighandler_epilog:

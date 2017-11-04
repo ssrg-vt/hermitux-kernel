@@ -83,8 +83,10 @@ extern char **environ;
 
 static void stop_hermit(void);
 static void dump_log(void);
-static int multi_init(char *path);
-static int qemu_init(char *path);
+static int multi_init(const char *path);
+static int qemu_init(const char *path);
+
+bool verbose = false;
 
 static void qemu_fini(void)
 {
@@ -158,10 +160,14 @@ static char* get_append_string(void)
 	return "-freq0";
 }
 
-static int env_init(char *path)
+static int env_init(char** argv)
 {
 	char* str;
 	struct sigaction sINT, sTERM;
+
+	str = getenv("HERMIT_VERBOSE");
+	if (str && (strcmp(str, "0") != 0))
+		verbose = true;
 
 	// define action for SIGINT
 	sINT.sa_handler = exit_handler;
@@ -207,12 +213,12 @@ static int env_init(char *path)
 
 	if (monitor == QEMU) {
 		atexit(qemu_fini);
-		return qemu_init(path);
+		return qemu_init(argv[1]);
 	} else if (monitor == UHYVE) {
-		return uhyve_init(path);
+		return uhyve_init(argv);
 	} else {
 		atexit(multi_fini);
-		return multi_init(path);
+		return multi_init(argv[1]);
 	}
 }
 
@@ -305,7 +311,7 @@ static void wait_hermit_available(void)
 	close(fd);
 }
 
-static int qemu_init(char *path)
+static int qemu_init(const char *path)
 {
 	int kvm, i = 0;
 	char* str;
@@ -424,8 +430,7 @@ static int qemu_init(char *path)
 		qemu_argv[i+1] = "dump";
 	}
 
-	str = getenv("HERMIT_VERBOSE");
-	if (str && (strcmp(str, "0") != 0))
+	if (verbose)
 	{
 		printf("qemu startup command: ");
 
@@ -461,7 +466,7 @@ static int qemu_init(char *path)
 	return 0;
 }
 
-static int multi_init(char *path)
+static int multi_init(const char *path)
 {
 	int ret;
 	char* str;
@@ -529,11 +534,10 @@ static int multi_init(char *path)
 
 static void dump_log(void)
 {
-	char* str = getenv("HERMIT_VERBOSE");
 	FILE* file;
 	char line[2048];
 
-	if (!(str && (strcmp(str, "0") != 0)))
+	if (!verbose)
 		return;
 
 	if (monitor == BAREMETAL)
@@ -1041,7 +1045,7 @@ int main(int argc, char **argv)
 {
 	int ret;
 
-	ret = env_init(argv[1]);
+	ret = env_init(argv);
 	if (ret)
 		return ret;
 

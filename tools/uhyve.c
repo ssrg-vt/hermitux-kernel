@@ -63,9 +63,11 @@
 #include <asm/msr-index.h>
 #include <asm/mman.h>
 
+#include "uhyve.h"
 #include "uhyve-cpu.h"
 #include "uhyve-syscalls.h"
 #include "uhyve-net.h"
+#include "uhyve-elf.h"
 #include "proxy.h"
 
 // define this macro to create checkpoints with KVM's dirty log
@@ -74,7 +76,6 @@
 #define MAX_FNAME	256
 #define MAX_MSR_ENTRIES	25
 
-#define GUEST_OFFSET		0x0
 #define CPUID_FUNC_PERFMON	0x0A
 #define GUEST_PAGE_SIZE		0x200000   /* 2 MB pages in guest */
 
@@ -171,10 +172,8 @@ static bool cap_irqchip = false;
 static bool cap_adjust_clock_stable = false;
 static bool cap_irqfd = false;
 static bool cap_vapic = false;
-static bool verbose = false;
 static bool full_checkpoint = false;
 static uint32_t ncores = 1;
-static uint8_t* guest_mem = NULL;
 static uint8_t* klog = NULL;
 static uint8_t* mboot = NULL;
 static size_t guest_size = 0x20000000ULL;
@@ -189,6 +188,7 @@ static pthread_barrier_t barrier;
 static __thread struct kvm_run *run = NULL;
 static __thread int vcpufd = -1;
 static __thread uint32_t cpuid = 0;
+uint8_t* guest_mem = NULL;
 
 static uint64_t memparse(const char *ptr)
 {
@@ -239,7 +239,8 @@ static void uhyve_exit(void* arg)
 {
 	if (pthread_mutex_trylock(&kvm_lock))
 	{
-		close_fd(&vcpufd);
+		if (vcpufd > 0)
+			close_fd(&vcpufd);
 		return;
 	}
 
@@ -256,7 +257,8 @@ static void uhyve_exit(void* arg)
 			pthread_kill(net_thread, SIGTERM);
 	}
 
-	close_fd(&vcpufd);
+	if (vcpufd > 0)
+		close_fd(&vcpufd);
 }
 
 static void uhyve_atexit(void)
@@ -284,8 +286,10 @@ static void uhyve_atexit(void)
 	}
 
 	// clean up and close KVM
-	close_fd(&vmfd);
-	close_fd(&kvm);
+	if (vmfd > 0)
+		close_fd(&vmfd);
+	if (kvm > 0)
+		close_fd(&kvm);
 }
 
 static uint32_t get_cpufreq(void)
@@ -327,41 +331,12 @@ static uint32_t get_cpufreq(void)
 	return freq;
 }
 
-static ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
-{
-	ssize_t total = 0;
-	char *p = buf;
-
-	if (count > SSIZE_MAX) {
-		errno = E2BIG;
-		return -1;
-	}
-
-	while (count > 0) {
-		ssize_t nr;
-
-		nr = pread(fd, p, count, offset);
-		if (nr == 0)
-			return total;
-		else if (nr == -1 && errno == EINTR)
-			continue;
-		else if (nr == -1)
-			return -1;
-
-		count -= nr;
-		total += nr;
-		p += nr;
-		offset += nr;
-	}
-
-	return total;
-}
-
-static int load_kernel(uint8_t* mem, char* path)
+static int load_kernel(uint8_t* mem, const char* path)
 {
 	Elf64_Ehdr hdr;
 	Elf64_Phdr *phdr = NULL;
 	size_t buflen;
+	size_t total_size = 0;
 	int fd, ret;
 	int first_load = 1;
 
@@ -459,6 +434,7 @@ static int load_kernel(uint8_t* mem, char* path)
 				*((uint8_t*) (mem+paddr-GUEST_OFFSET + 0xB6)) = (uint8_t) ip[2];
 				*((uint8_t*) (mem+paddr-GUEST_OFFSET + 0xB7)) = (uint8_t) ip[3];
 			}
+
 			str = getenv("HERMIT_MASK");
 			if (str) {
 				uint32_t ip[4];
@@ -469,9 +445,9 @@ static int load_kernel(uint8_t* mem, char* path)
 				*((uint8_t*) (mem+paddr-GUEST_OFFSET + 0xBA)) = (uint8_t) ip[2];
 				*((uint8_t*) (mem+paddr-GUEST_OFFSET + 0xBB)) = (uint8_t) ip[3];
 			}
-
 		}
-		*((uint64_t*) (mem+paddr-GUEST_OFFSET + 0x38)) += memsz; // total kernel size
+		total_size += memsz; // total kernel size
+		*((uint64_t*) (mem+paddr-GUEST_OFFSET + 0x38)) = total_size;
 	}
 
 out:
@@ -480,10 +456,13 @@ out:
 
 	close(fd);
 
+	//if (verbose)
+	//	fprintf(stderr, "Memory size of the image: %zd KiB\n", total_size / 1024);
+
 	return 0;
 }
 
-static int load_checkpoint(uint8_t* mem, char* path)
+static int load_checkpoint(uint8_t* mem, const char* path)
 {
 	char fname[MAX_FNAME];
 	size_t location;
@@ -832,6 +811,9 @@ static int vcpu_loop(void)
 			no_checkpoint++;
 	}
 
+	if (verbose)
+		puts("uhyve is entering vcpu_loop");
+
 	while (1) {
 		ret = ioctl(vcpufd, KVM_RUN, NULL);
 
@@ -1074,6 +1056,7 @@ static int vcpu_init(void)
 
 		/* Setup registers and memory. */
 		setup_system(vcpufd, guest_mem, cpuid);
+
 		kvm_ioctl(vcpufd, KVM_SET_REGS, &regs);
 
 		// only one core is able to enter startup code
@@ -1200,12 +1183,9 @@ void sigterm_handler(int signum)
 	pthread_exit(0);
 }
 
-int uhyve_init(char *path)
+int uhyve_init(char** argv)
 {
-	char* v = getenv("HERMIT_VERBOSE");
-	if (v && (strcmp(v, "0") != 0))
-		verbose = true;
-
+	const char* path = argv[1];
 	signal(SIGTERM, sigterm_handler);
 
 	// register routine to close the VM
@@ -1374,6 +1354,18 @@ int uhyve_init(char *path)
 			exit(EXIT_FAILURE);
 	} else {
 		if (load_kernel(guest_mem, path) != 0)
+			exit(EXIT_FAILURE);
+	}
+
+	const char* hermit_tux = getenv("HERMIT_TUX");
+	if (hermit_tux)
+	{
+		if (argv[2] == NULL) {
+			fprintf(stderr, "Name of the ELF file is missing!\n");
+			exit(EXIT_FAILURE);
+		}
+
+		if (uhyve_elf_loader(argv[2]) < 0)
 			exit(EXIT_FAILURE);
 	}
 
@@ -1576,6 +1568,8 @@ int uhyve_loop(void)
 		ts = atoi(hermit_check);
 
 	*((uint32_t*) (mboot+0x24)) = ncores;
+	*((uint64_t*) (mboot + 0xC0)) = tux_entry;
+	*((uint64_t*) (mboot + 0xC8)) = tux_size;
 
 	// First CPU is special because it will boot the system. Other CPUs will
 	// be booted linearily after the first one.

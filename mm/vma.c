@@ -33,11 +33,17 @@
 #include <hermit/errno.h>
 #include <hermit/logging.h>
 
+// Linux applications are always located at address 0x400000
+#define tux_start_address	0x400000
+
 /*
  * Note that linker symbols are not variables, they have no memory allocated for
  * maintaining a value, rather their address is their value.
  */
 extern const void kernel_start;
+
+extern uint64_t tux_entry;
+extern uint64_t tux_size;
 
 /*
  * Kernel space VMA list and lock
@@ -64,10 +70,26 @@ int vma_init(void)
 	if (BUILTIN_EXPECT(ret, 0))
 		goto out;
 
-	// reserve space for the heap
-	ret = vma_add(HEAP_START, HEAP_START+HEAP_SIZE, VMA_NO_ACCESS);
-	if (BUILTIN_EXPECT(ret, 0))
-		goto out;
+	if (tux_size == 0) {
+		// reserve space for the heap
+		ret = vma_add(HEAP_START, HEAP_START+HEAP_SIZE, VMA_NO_ACCESS);
+		if (BUILTIN_EXPECT(ret, 0))
+			goto out;
+	} else {
+		// A linux app is already loaded => resereve the virtual address space
+		ret = vma_add(tux_start_address, PAGE_CEIL(tux_start_address + tux_size),
+			VMA_READ|VMA_WRITE|VMA_CACHEABLE|VMA_EXECUTE|VMA_USER);
+		if (BUILTIN_EXPECT(ret, 0))
+				goto out;
+
+		// reserve space for the heap
+		ret = vma_add(PAGE_CEIL(tux_start_address + tux_size),
+			HEAP_START+HEAP_SIZE, VMA_NO_ACCESS);
+		if (BUILTIN_EXPECT(ret, 0))
+			goto out;
+
+		vma_dump();
+	}
 
 	// we might move the architecture specific VMA regions to a
 	// seperate function vma_arch_init()

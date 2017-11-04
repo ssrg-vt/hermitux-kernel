@@ -25,24 +25,16 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __PROXY_H__
-#define __PROXY_H__
+ #ifndef __UHYVE_H__
+ #define __UHYVE_H__
 
+#include <unistd.h>
 #include <stdint.h>
-#include <stdbool.h>
 
-#define HERMIT_ELFOSABI	0x42
+#define GUEST_OFFSET		0x0
 
-#define __HERMIT_exit	0
-#define __HERMIT_write	1
-#define __HERMIT_open	2
-#define __HERMIT_close	3
-#define __HERMIT_read	4
-#define __HERMIT_lseek	5
+extern uint8_t* guest_mem;
 
-int uhyve_init(char** argv);
-int uhyve_loop(void);
+extern ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset);
 
-extern bool verbose;
-
-#endif
+ #endif
