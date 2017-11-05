@@ -1,6 +1,8 @@
 #include <hermit/syscall.h>
 #include <hermit/tasks.h>
 #include <hermit/spinlock.h>
+#include <hermit/logging.h>
+#include <hermit/time.h>
 
 extern task_t *task_table;
 extern spinlock_irqsave_t table_lock;
