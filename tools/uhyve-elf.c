@@ -49,36 +49,6 @@
 size_t tux_entry = 0;
 size_t tux_size = 0;
 
-ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
-{
-	ssize_t total = 0;
-	char *p = buf;
-
-	if (count > SSIZE_MAX) {
-		errno = E2BIG;
-		return -1;
-	}
-
-	while (count > 0) {
-		ssize_t nr;
-
-		nr = pread(fd, p, count, offset);
-		if (nr == 0)
-			return total;
-		else if (nr == -1 && errno == EINTR)
-			continue;
-		else if (nr == -1)
-			return -1;
-
-		count -= nr;
-		total += nr;
-		p += nr;
-		offset += nr;
-	}
-
-	return total;
-}
-
 int uhyve_elf_loader(const char* path)
 {
 	Elf64_Ehdr hdr;
