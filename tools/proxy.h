@@ -42,6 +42,6 @@
 #define __HERMIT_unlink 6
 
 int uhyve_init(char *path);
-int uhyve_loop(void);
+int uhyve_loop(int argc, char **argv);
 
 #endif
