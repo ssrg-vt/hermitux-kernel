@@ -1,7 +1,7 @@
 set(PACKAGE_VERSION "0.2.2" CACHE STRING
 	"HermitCore current version")
 
-set(MAX_CORES "512" CACHE STRING
+set(MAX_CORES "64" CACHE STRING
 	"Maximum number of cores that can be managed")
 
 set(MAX_TASKS "((MAX_CORES * 2) + 2)" CACHE STRING

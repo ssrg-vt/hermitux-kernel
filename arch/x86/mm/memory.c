@@ -41,6 +41,11 @@
 
 extern uint64_t base;
 extern uint64_t limit;
+extern uint64_t tux_entry;
+extern uint64_t tux_size;
+
+// Linux applications are always located at address 0x400000
+#define tux_start_address	0x400000
 
 typedef struct free_list {
 	size_t start, end;
@@ -303,6 +308,33 @@ int memory_init(void)
 	atomic_int64_add(&total_allocated_pages, PAGE_2M_CEIL(image_size) >> PAGE_BITS);
 	atomic_int64_sub(&total_available_pages, PAGE_2M_CEIL(image_size) >> PAGE_BITS);
 
+	if (tux_size > 0) {
+		LOG_INFO("Found linux ap at 0x%zx with a size of 0x%zx\n", tux_start_address,
+			tux_size);
+
+		/* Need to update init_list.start before calling page_map because the
+		 * latter may allocate memory for page table, and this allocation is
+		 * served from init_list.start */
+		init_list.start = PAGE_CEIL(tux_start_address + tux_size);
+
+		// A linux app is already loaded => map it into the address space
+		if (BUILTIN_EXPECT(page_map(tux_start_address, tux_start_address,
+			PAGE_CEIL(tux_size) >> PAGE_BITS, PG_RW|PG_PRESENT), 0))
+		{
+			LOG_ERROR("Unable to map linux app");
+			tux_size = tux_entry = 0;
+		} else {
+
+
+			// A linux app is already loaded => determine the reserved memory
+			atomic_int64_add(&total_allocated_pages, PAGE_CEIL(tux_size) >> PAGE_BITS);
+			atomic_int64_sub(&total_available_pages, PAGE_CEIL(tux_size) >> PAGE_BITS);
+
+			LOG_INFO("check mapping: 0x%zx == 0x%zx\n",
+				tux_start_address, virt_to_phys(tux_start_address));
+		}
+	}
+
 	LOG_INFO("free list starts at 0x%zx, limit 0x%zx\n", init_list.start, init_list.end);
 
 	// init high bandwidth memory subsystem
@@ -360,6 +392,9 @@ int memory_init(void)
 			}
 		}
 	}
+
+	// Ok, we are now able to use our memory management => update tss
+	tss_init();
 
 	return ret;
 

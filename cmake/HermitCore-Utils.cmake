@@ -101,6 +101,7 @@ function(build_external NAME PATH DEPENDS)
 			-DNO_IRCCE=${NO_IRCCE}
 			-DMAX_ARGC_ENVC=${MAX_ARGC_ENVC}
 			-DCMAKE_INSTALL_MESSAGE=NEVER
+			-DCMAKE_EXPORT_COMPILE_COMMANDS=true
 			--no-warn-unused-cli
 			${DO_PROFILING}
 			${CMD_VARS}

@@ -72,6 +72,11 @@ align 4
     global uartport
     global cmdline
     global cmdsize
+    global hcip
+    global hcgateway
+    global hcmask
+    global tux_entry
+    global tux_size
     base dq 0
     limit dq 0
     cpu_freq dd 0
@@ -99,6 +104,12 @@ align 4
     uartport dq 0
     cmdline dq 0
     cmdsize dq 0
+    hcip db  10,0,5,2
+    hcgateway db 10,0,5,1
+    hcmask db 255,255,255,0
+align 8
+    tux_entry dq 0
+    tux_size dq 0
 
 ; Bootstrap page tables are used during the initialization.
 align 4096
@@ -121,10 +132,11 @@ SECTION .ktext
 align 4
 start64:
     ; reset registers to kill any stale realmode selectors
-    xor eax, eax
+    mov eax, 0x10
     mov ds, eax
     mov ss, eax
     mov es, eax
+    xor eax, eax
     mov fs, eax
     mov gs, eax
 
@@ -263,7 +275,22 @@ extern gp
 ; C as 'extern void gdt_flush();'
 gdt_flush:
     lgdt [gp]
-    ret
+    ; reload the segment descriptors
+    mov eax, 0x10
+    mov ds, eax
+    mov es, eax
+    mov ss, eax
+    xor eax, eax
+    mov fs, eax
+    mov gs, eax
+    ; create pseudo interrupt to set cs
+    push QWORD 0x10             ; SS
+    push rsp                    ; RSP
+    add QWORD [rsp], 0x08       ; => value of rsp before the creation of a pseudo interrupt
+    pushfq                      ; RFLAGS
+    push QWORD 0x08             ; CS
+    push QWORD rollback         ; RIP
+    iretq
 
 ; The first 32 interrupt service routines (ISR) entries correspond to exceptions.
 ; Some exceptions will push an error code onto the stack which is specific to
@@ -674,7 +701,6 @@ align 64
 is_single_kernel:
     mov eax, DWORD [single_kernel]
     ret
-
 
 global sighandler_epilog
 sighandler_epilog:

@@ -30,4 +30,3 @@
 spinlock_t readwritev_spinlock = SPINLOCK_INIT;
 spinlock_irqsave_t lwip_lock = SPINLOCK_IRQSAVE_INIT;
 
-

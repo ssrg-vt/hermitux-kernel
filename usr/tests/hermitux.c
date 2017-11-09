@@ -25,36 +25,31 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef __PROXY_H__
-#define __PROXY_H__
-
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
-#include <unistd.h>
 #include <stdlib.h>
-#include <stdint.h>
-#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
 
-#define HERMIT_ELFOSABI	0x42
+// Linux applications are always located at address 0x400000
+#define tux_start_address	0x400000
 
-/* Pierre: this must be consistent with include/hermit/syscall.h !! */
-#define __HERMIT_exit	0
-#define __HERMIT_write	1
-#define __HERMIT_open	2
-#define __HERMIT_close	3
-#define __HERMIT_read	4
-#define __HERMIT_lseek	5
-#define __HERMIT_unlink 6
+extern const size_t tux_entry;
+extern const size_t tux_size;
 
-int uhyve_init(char** argv);
-int uhyve_loop(int argc, char **argv);
+int main(int argc, char** argv)
+{
+	printf("Hello from HermiTux loader\n\n");
 
-extern bool verbose;
+	if (tux_entry >= tux_start_address) {
+		printf("Found linux image at 0x%zx with a size of 0x%zx\n", tux_start_address, tux_size);
+		printf("Entry point is located at 0x%zx\n", tux_entry);
 
-// define some helper functions
-uint32_t get_cpufreq(void);
-ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset);
+		printf("Value of first byte at entry point: 0x%zx\n", (size_t) *((char*) tux_entry));
+	} else fprintf(stderr, "Unable to find a Linux image!!!\n");
 
-#endif
+	void (*entry)(void) = (void *)tux_entry;
+	printf("jumping\n");
+	entry();
+
+	return 0;
+}

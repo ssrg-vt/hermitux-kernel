@@ -258,7 +258,6 @@ void check_ticks(void);
  */
 void shutdown_system(void);
 
-
 extern volatile uint32_t go_down;
 static inline void check_workqueues_in_irqhandler(int irq)
 {
@@ -269,11 +268,10 @@ static inline void check_workqueues_in_irqhandler(int irq)
 
 	check_timers();
 
-	if (irq < 0) {
-		if (go_down)
-			shutdown_system();
+	if (go_down)
+		shutdown_system();
+	if (irq < 0)
 		check_scheduling();
-	}
 }
 
 static inline void check_workqueues(void)
