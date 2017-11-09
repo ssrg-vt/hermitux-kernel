@@ -76,7 +76,8 @@ int uhyve_elf_loader(const char* path)
 		|| hdr.e_ident[EI_MAG2] != ELFMAG2
 		|| hdr.e_ident[EI_MAG3] != ELFMAG3
 		|| hdr.e_ident[EI_CLASS] != ELFCLASS64
-		|| hdr.e_ident[EI_OSABI] != ELFOSABI_LINUX
+		|| (hdr.e_ident[EI_OSABI] != ELFOSABI_LINUX &&
+		hdr.e_ident[EI_OSABI] != ELFOSABI_NONE)
 		|| hdr.e_type != ET_EXEC || hdr.e_machine != EM_X86_64)
 	{
 		fprintf(stderr, "Inavlide elf file!\n");

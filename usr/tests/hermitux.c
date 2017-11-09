@@ -47,5 +47,9 @@ int main(int argc, char** argv)
 		printf("Value of first byte at entry point: 0x%zx\n", (size_t) *((char*) tux_entry));
 	} else fprintf(stderr, "Unable to find a Linux image!!!\n");
 
+	void (*entry)(void) = (void *)tux_entry;
+	printf("jumping\n");
+	entry();
+
 	return 0;
 }
