@@ -28,10 +28,11 @@ typedef enum {
 	UHYVE_PORT_READ		= 0x502,
 	UHYVE_PORT_EXIT		= 0x503,
 	UHYVE_PORT_LSEEK	= 0x504,
-	UHYVE_PORT_UNLINK	= 0x505,
-	UHYVE_PORT_FCNTL	= 0x506,
-	UHYVE_PORT_CMDSIZE	= 0x507,
-	UHYVE_PORT_CMDVAL	= 0x508
+	/* 0x505 to 0x508 are taken by uhyve network commands */
+	UHYVE_PORT_UNLINK	= 0x509,
+	UHYVE_PORT_FCNTL	= 0x510,
+	UHYVE_PORT_CMDSIZE	= 0x511,
+	UHYVE_PORT_CMDVAL	= 0x512
 } uhyve_syscall_t;
 
 typedef struct {
