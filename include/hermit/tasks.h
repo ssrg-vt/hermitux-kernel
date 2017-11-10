@@ -44,6 +44,10 @@
 extern "C" {
 #endif
 
+#define TLS_OFFSET	8
+
+uint32_t get_next_core_id(void);
+
 /** @brief System call to terminate a user level process */
 void NORETURN sys_exit(int);
 
@@ -254,7 +258,6 @@ void check_ticks(void);
  */
 void shutdown_system(void);
 
-
 extern volatile uint32_t go_down;
 static inline void check_workqueues_in_irqhandler(int irq)
 {
@@ -265,11 +268,10 @@ static inline void check_workqueues_in_irqhandler(int irq)
 
 	check_timers();
 
-	if (irq < 0) {
-		if (go_down)
-			shutdown_system();
+	if (go_down)
+		shutdown_system();
+	if (irq < 0)
 		check_scheduling();
-	}
 }
 
 static inline void check_workqueues(void)

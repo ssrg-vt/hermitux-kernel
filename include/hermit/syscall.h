@@ -38,6 +38,8 @@
 
 #ifdef __KERNEL__
 #include <hermit/stddef.h>
+#include <lwip/sockets.h>
+#include <hermit/hermitux_syscalls.h>
 #else
 #include <stdlib.h>
 #include <stdint.h>
@@ -92,6 +94,17 @@ int sys_rcce_fini(int session_id);
 void sys_yield(void);
 int sys_kill(tid_t dest, int signum);
 int sys_signal(signal_handler_t handler);
+
+/* Pierre */
+int sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg);
+int sys_writev(int fd, const struct iovec *iov, unsigned long vlen);
+int sys_readv(int fd, const struct iovec *iov, unsigned long vlen);
+int sys_clock_gettime(clockid_t clk_id, struct timespec *tp);
+int sys_gettimeofday(struct timeval *tv, struct timezone *tz);
+int sys_nanosleep(struct timespec *req, struct timespec *rem);
+ssize_t sys_brk(ssize_t val);
+int sys_fcntl(unsigned int fd, unsigned int cmd, unsigned long arg);
+int sys_unlink(const char *pathname);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;

@@ -24,6 +24,8 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#ifndef NO_SIGNAL
+
 #include <hermit/signal.h>
 #include <hermit/stddef.h>
 #include <hermit/spinlock.h>
@@ -35,11 +37,10 @@
 #include <asm/irq.h>
 #include <asm/atomic.h>
 
-#define SIGNAL_IRQ (32 + 82)
 #define SIGNAL_BUFFER_SIZE (16)
 
 // Per-core signal queue and buffer
-static dequeue_t signal_queue[MAX_CORES];
+dequeue_t signal_queue[MAX_CORES];
 static sig_t signal_buffer[MAX_CORES][SIGNAL_BUFFER_SIZE];
 
 static void _signal_irq_handler(struct state* s)
@@ -222,3 +223,5 @@ void signal_init(void)
 
 	irq_install_handler(SIGNAL_IRQ, _signal_irq_handler);
 }
+
+#endif /* NO_SIGNAL */

@@ -27,7 +27,12 @@ typedef enum {
 	UHYVE_PORT_CLOSE	= 0x501,
 	UHYVE_PORT_READ		= 0x502,
 	UHYVE_PORT_EXIT		= 0x503,
-	UHYVE_PORT_LSEEK	= 0x504
+	UHYVE_PORT_LSEEK	= 0x504,
+	/* 0x505 to 0x508 are taken by uhyve network commands */
+	UHYVE_PORT_UNLINK	= 0x509,
+	UHYVE_PORT_FCNTL	= 0x510,
+	UHYVE_PORT_CMDSIZE	= 0x511,
+	UHYVE_PORT_CMDVAL	= 0x512
 } uhyve_syscall_t;
 
 typedef struct {
@@ -35,6 +40,19 @@ typedef struct {
 	const char* buf;
 	size_t len;
 } __attribute__((packed)) uhyve_write_t;
+
+typedef struct {
+	const char* pathname;
+	int ret;
+} __attribute__((packed)) uhyve_unlink_t;
+
+typedef struct {
+	unsigned int fd;
+	unsigned int cmd;
+	unsigned long arg;
+	int ret;
+
+} __attribute__ ((packed)) uhyve_fcntl_t;
 
 typedef struct {
 	const char* name;
@@ -60,5 +78,17 @@ typedef struct {
 	off_t offset;
 	int whence;
 } __attribute__((packed)) uhyve_lseek_t;
+
+typedef struct {
+	int argc;
+	int argsz[128];
+	int envc;
+	int envsz[128];
+} __attribute__ ((packed)) uhyve_cmdsize_t;
+
+typedef struct {
+	char **argv;
+	char **envp;
+} __attribute__ ((packed)) uhyve_cmdval_t;
 
 #endif // UHYVE_SYSCALLS_H

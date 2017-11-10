@@ -11,7 +11,9 @@ add_custom_target(${X86_KERNEL_TARGET})
 
 # compiling kernel code here
 add_definitions(-D__KERNEL__)
-
+if(${NO_NET})
+	add_definitions(-DNO_NET)
+endif(${NO_NET})
 
 ### ASM sources ###
 

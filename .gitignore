@@ -1,3 +1,6 @@
+*.swp
+prefix
+tags
 *.pcap
 *.config
 *.creator
@@ -18,4 +21,4 @@ usr/tests
 usr/gdb/core
 cscope.out
 tools/.proxy.c.swp
-
+.vscode/

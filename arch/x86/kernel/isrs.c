@@ -211,36 +211,185 @@ static const char *exception_messages[] = {
 
 static void static_syscall_handler(struct state *s)
 {
-	LOG_INFO("DC: YOU'VE REACHED THE SYSCALL HANDLER\n");
-
 	// This is actually the reversed opcode
 	uint16_t *opcode = (uint16_t *)s->rip;
-		
+
 	/* syscall opcode = 0F05 */
 	if (*opcode == 0x50F) {
-		switch (s->rax) {
-		case 1:	/* write */
-			s->rax = sys_write(s->rdi, (char *)s->rsi, s->rdx);
-			break;
+		switch(s->rax) {
 
-		case 60: /* exit */
-			sys_exit(s->rdi);
-			break;
+#ifndef DISABLE_SYS_READ
+			case 0:
+				/* read */
+				s->rax = sys_read(s->rdi, (char *)s->rsi, s->rdx);
+				break;
+#endif /* DISABLE_SYS_READ */
 
-		default:
-			LOG_ERROR("System call %zu not supported\n", s->rax);
-			LOG_ERROR(" Exception on core %d at %#x:%#lx, fs = %#lx, gs = %#lx, error code = %#lx, task id = %u, rflags = %#x\n",
-				  CORE_ID, s->cs, s->rip, s->fs, s->gs, s->error, per_core(current_task)->id, s->rflags);
-			LOG_ERROR("rax %#lx, rbx %#lx, rcx %#lx, rdx %#lx, rbp, %#lx, rsp %#lx rdi %#lx, rsi %#lx, r8 %#lx, r9 %#lx, r10 %#lx, r11 %#lx, r12 %#lx, r13 %#lx, r14 %#lx, r15 %#lx\n",
-				  s->rax, s->rbx, s->rcx, s->rdx, s->rbp, s->rsp, s->rdi, s->rsi, s->r8, s->r9, s->r10, s->r11, s->r12, s->r13, s->r14, s->r15);
-			sys_exit(-EFAULT);
+#ifndef DISABLE_SYS_WRITE
+			case 1:
+				/* write */
+				s->rax = sys_write(s->rdi, (char *)s->rsi, s->rdx);
+				break;
+#endif /* DISABLE_SYS_WRITE */
+
+#ifndef DISABLE_SYS_OPEN
+			case 2:
+				/* open */
+				s->rax = sys_open((const char *)s->rdi, s->rsi, s->rdx);
+				break;
+#endif /* DISABLE_SYS_OPEN */
+
+#ifndef DISABLE_SYS_CLOSE
+			case 3:
+				/* close */
+				s->rax = sys_close(s->rdi);
+				break;
+#endif /* DISABLE_SYS_CLOSE */
+
+#ifndef DISABLE_SYS_LSEEK
+			case 8:
+				/* lseek */
+				s->rax = sys_lseek(s->rdi, s->rsi, s->rdx);
+				break;
+#endif /* DISABLE_SYS_LSEEK */
+
+#ifndef DISABLE_SYS_MMAP /* encompasses mmap and munmap */
+			case 9:
+				/* mmap */
+				/* TODO */
+				s->rax = -1; /* MAP_FAILED */
+				break;
+
+			case 11:
+				/* munmap */
+				/* TODO */
+				s->rax = -ENOSYS;
+				break;
+#endif /* DISABLE_SYS_MMAP */
+
+#ifndef DISABLE_SYS_BRK
+			case 12:
+				/* brk */
+				/* TODO */
+				s->rax = sys_brk(s->rdi);
+				break;
+#endif /* DISABLE_SYS_BRK */
+
+#ifndef DISABLE_SYS_IOCTL
+			case 16:
+				/* ioctl */
+				s->rax = sys_ioctl(s->rdi, s->rsi, s->rdx);
+				break;
+#endif /* DISABLE_SYS_IOCTL */
+
+#ifndef DISABLE_SYS_READV
+			case 19:
+				/* readv */
+				s->rax = sys_readv(s->rdi, (const struct iovec *)s->rsi,
+						s->rdx);
+				break;
+#endif /* DISABLE_SYS_READV */
+
+#ifndef DISABLE_SYS_WRITEV
+			case 20:
+				/* writev */
+				s->rax = sys_writev(s->rdi, (const struct iovec *)s->rsi, 
+						s->rdx);
+				break;
+#endif /* DISABLE_SYS_WRITEV */
+
+#ifndef DISABLE_SYS_NANOSLEEP
+			case 35:
+				/* nanosleep */
+				s->rax = sys_nanosleep((struct timespec *)s->rdi, 
+						(struct timespec *)s->rsi);
+#endif /* DISABLE_SYS_NANOSLEEP */
+
+#ifndef DISABLE_SYS_GETPID
+			case 39:
+				/* getpid */
+				s->rax = sys_getpid();
+				break;
+#endif /* DISABLE_SYS_GETPID */
+
+#ifndef DISABLE_SYS_EXIT
+			case 60:
+				/* exit */
+				sys_exit(s->rdi);
+				LOG_ERROR("Should not reach here after exit ... \n");
+				break;
+#endif /* DISABLE_SYS_EXIT */
+
+#ifndef DISABLE_SYS_FCNTL
+			case 72:
+				/* fcntl */
+				s->rax = sys_fcntl(s->rdi, s->rsi, s->rdx);
+				break;
+#endif /* DISABLE_SYS_FCNTL */
+
+#ifndef DISABLE_SYS_UNLINK
+			case 87:
+				/* unlink */
+				s->rax = sys_unlink((const char *)s->rdi);
+				break;
+#endif /* DISABLE_SYS_UNLINK */
+
+#ifndef DISABLE_SYS_GETTIMEOFDAY
+			case 96:
+				/* gettimeofday */
+				s->rax = sys_gettimeofday((struct timeval *)s->rdi, 
+						(struct timezone *)s->rsi);
+				break;
+#endif /* DISABLE_SYS_GETTIMEOFDAY */
+
+#ifndef DISABLE_SYS_GETPRIO
+			case 140:
+				/* getpriority */
+				s->rax = sys_getprio((unsigned int *)&(s->rsi));
+				break;
+#endif /* DISABLE_SYS_GETPRIO */
+
+#ifndef DISABLE_SYS_ARCH_PRCTL
+			case 158:
+				/* arch_prctl */
+				/* TODO */
+				s->rax = 0;
+				break;
+#endif /* DISABLE_SYS_ARCH_PRCTL */
+			
+#ifndef DISABLE_SYS_SET_TID_ADDRESS
+			case 218:
+				/* set_tid_address */
+				/* TODO */
+				s->rax = s->rdi;
+				break;
+#endif /* DISABLE_SYS_SET_TID_ADDRESS */
+
+#ifndef DISABLE_SYS_CLOCK_GETTIME
+			case 228:
+				/* clock_gettime */
+				s->rax = sys_clock_gettime(s->rdi, (struct timespec *)s->rsi);
+				break;
+#endif /* DISABLE_SYS_CLOCK_GETTIME */
+
+#ifndef DISABLE_SYS_EXIT_GROUP
+			case 231:
+				/* exit_group */
+				/* FIXME this will probably not work in multi-threaded 
+				 * environments */
+				sys_exit(s->rdi);
+				LOG_ERROR("Should not reach here after exit_group ... \n");
+				break;
+#endif /* DISABLE_SYS_EXIT_GROUP */
+
+			default:
+				LOG_ERROR("Unsuported Linux syscall: %d\n", s->rax);
+				arch_fault_handler(s);
 		}
-		
+
 		/* Make sure control returns to the instruction after syscall */
 		s->rip += 2;
-	}
-
-	else {
+	} else {
 		arch_fault_handler(s);
 	}
 }

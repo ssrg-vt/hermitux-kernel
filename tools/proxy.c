@@ -27,25 +27,24 @@
 
 #define _GNU_SOURCE
 
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <string.h>
 #include <arpa/inet.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/tcp.h>
+#include <net/if.h>
 #include <netinet/in.h>
 #include <sched.h>
 #include <signal.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/inotify.h>
+#include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/types.h>
-#include <sys/types.h>
 #include <sys/wait.h>
-#include <sys/ioctl.h>
-#include <net/if.h>
+#include <unistd.h>
 
 #include "proxy.h"
 
@@ -84,8 +83,10 @@ extern char **environ;
 
 static void stop_hermit(void);
 static void dump_log(void);
-static int multi_init(char *path);
-static int qemu_init(char *path);
+static int multi_init(const char *path);
+static int qemu_init(const char *path);
+
+bool verbose = false;
 
 static void qemu_fini(void)
 {
@@ -130,39 +131,23 @@ static void exit_handler(int sig)
 
 static char* get_append_string(void)
 {
-	char line[2048];
-	char* match;
-	char* point;
+	uint32_t freq = get_cpufreq();
+	if (freq == 0)
+		return "-freq0 -proxy";
 
-	FILE* fp = fopen("/proc/cpuinfo", "r");
-	if (!fp)
-		return "-freq0";
+	snprintf(cmdline, MAX_PATH, "\"-freq%u -proxy\"", freq);
 
-	while(fgets(line, 2048, fp)) {
-		if ((match = strstr(line, "cpu MHz")) == NULL)
-			continue;
-
-		// scan strinf for the next number
-		for(; (*match < 0x30) || (*match > 0x39); match++)
-			;
-
-		for(point = match; ((*point != '.') && (*point != '\0')); point++)
-			;
-		*point = '\0';
-
-		snprintf(cmdline, MAX_PATH, "\"-freq%s -proxy\"", match);
-		fclose(fp);
-
-		return cmdline;
-	}
-
-	return "-freq0";
+	return cmdline;
 }
 
-static int env_init(char *path)
+static int env_init(char** argv)
 {
 	char* str;
 	struct sigaction sINT, sTERM;
+
+	str = getenv("HERMIT_VERBOSE");
+	if (str && (strcmp(str, "0") != 0))
+		verbose = true;
 
 	// define action for SIGINT
 	sINT.sa_handler = exit_handler;
@@ -208,12 +193,12 @@ static int env_init(char *path)
 
 	if (monitor == QEMU) {
 		atexit(qemu_fini);
-		return qemu_init(path);
+		return qemu_init(argv[1]);
 	} else if (monitor == UHYVE) {
-		return uhyve_init(path);
+		return uhyve_init(argv);
 	} else {
 		atexit(multi_fini);
-		return multi_init(path);
+		return multi_init(argv[1]);
 	}
 }
 
@@ -242,7 +227,7 @@ static int is_hermit_available(void)
 	}
 
 	if (!file)
-		return 0;
+		goto err;
 
 	//PROXY_DEBUG("Open log file\n");
 
@@ -255,9 +240,10 @@ static int is_hermit_available(void)
 	}
 
 	fclose(file);
-	free(line);
 
-	return ret;
+    err:
+	   free(line);
+	   return ret;
 }
 
 // wait until HermitCore is sucessfully booted
@@ -305,7 +291,7 @@ static void wait_hermit_available(void)
 	close(fd);
 }
 
-static int qemu_init(char *path)
+static int qemu_init(const char *path)
 {
 	int kvm, i = 0;
 	char* str;
@@ -411,6 +397,7 @@ static int qemu_init(char *path)
 
 		// add flag to start gdbserver on TCP port 1234
 		qemu_argv[i] = "-s";
+		qemu_argv[i+1] = "-S";
 	}
 
 	str = getenv("HERMIT_CAPTURE_NET");
@@ -424,8 +411,7 @@ static int qemu_init(char *path)
 		qemu_argv[i+1] = "dump";
 	}
 
-	str = getenv("HERMIT_VERBOSE");
-	if (str && (strcmp(str, "0") != 0))
+	if (verbose)
 	{
 		printf("qemu startup command: ");
 
@@ -461,7 +447,7 @@ static int qemu_init(char *path)
 	return 0;
 }
 
-static int multi_init(char *path)
+static int multi_init(const char *path)
 {
 	int ret;
 	char* str;
@@ -529,11 +515,10 @@ static int multi_init(char *path)
 
 static void dump_log(void)
 {
-	char* str = getenv("HERMIT_VERBOSE");
 	FILE* file;
 	char line[2048];
 
-	if (!(str && (strcmp(str, "0") != 0)))
+	if (!verbose)
 		return;
 
 	if (monitor == BAREMETAL)
@@ -622,6 +607,46 @@ int handle_syscalls(int s)
 				fprintf(stderr, "Did HermitCore receive an exception?\n");
 			exit(arg);
 			break;
+		}
+		case __HERMIT_unlink: {
+			char *pathname;
+			int len;
+
+			j = 0;
+			while(j < sizeof(len)) {
+				sret = read(s, ((char *)&len)+j, sizeof(len)-j);
+				if(sret < 0)
+					goto out;
+				j += sret;
+			}
+
+			pathname = malloc(len);
+			if(!pathname) {
+				fprintf(stderr, "Proxy: not enough memory\n");
+				return 1;
+			}
+
+			j=0;
+			while(j < len)
+			{
+				sret = read(s, pathname+j, len-j);
+				if (sret < 0)
+					goto out;
+				j += sret;
+			}
+			
+			sret = unlink(pathname);
+			j = 0;
+			while(j < sizeof(sret))
+			{
+				int l = write(s, ((char*)&sret)+j, sizeof(sret)-j);
+				if (l < 0)
+					goto out;
+				j += l;
+			}
+		
+			free(pathname);
+			break;			  
 		}
 		case __HERMIT_write: {
 			int fd;
@@ -1041,14 +1066,14 @@ int main(int argc, char **argv)
 {
 	int ret;
 
-	ret = env_init(argv[1]);
+	ret = env_init(argv);
 	if (ret)
 		return ret;
 
 
 	switch(monitor) {
 	case UHYVE:
-		return uhyve_loop();
+		return uhyve_loop(argc, argv);
 
 	case BAREMETAL:
 	case QEMU:

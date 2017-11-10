@@ -33,11 +33,17 @@
 #include <hermit/errno.h>
 #include <hermit/logging.h>
 
+// Linux applications are always located at address 0x400000
+#define tux_start_address	0x400000
+
 /*
  * Note that linker symbols are not variables, they have no memory allocated for
  * maintaining a value, rather their address is their value.
  */
 extern const void kernel_start;
+
+extern uint64_t tux_entry;
+extern uint64_t tux_size;
 
 /*
  * Kernel space VMA list and lock
@@ -47,7 +53,7 @@ extern const void kernel_start;
  */
 static vma_t vma_boot = { VMA_MIN, VMA_MIN, VMA_HEAP };
 static vma_t* vma_list = &vma_boot;
-static spinlock_irqsave_t vma_lock = SPINLOCK_IRQSAVE_INIT;
+spinlock_irqsave_t hermit_mm_lock = SPINLOCK_IRQSAVE_INIT;
 
 int vma_init(void)
 {
@@ -64,10 +70,26 @@ int vma_init(void)
 	if (BUILTIN_EXPECT(ret, 0))
 		goto out;
 
-	// reserve space for the heap
-	ret = vma_add(HEAP_START, HEAP_START+HEAP_SIZE, VMA_NO_ACCESS);
-	if (BUILTIN_EXPECT(ret, 0))
-		goto out;
+	if (tux_size == 0) {
+		// reserve space for the heap
+		ret = vma_add(HEAP_START, HEAP_START+HEAP_SIZE, VMA_NO_ACCESS);
+		if (BUILTIN_EXPECT(ret, 0))
+			goto out;
+	} else {
+		// A linux app is already loaded => resereve the virtual address space
+		ret = vma_add(tux_start_address, PAGE_CEIL(tux_start_address + tux_size),
+			VMA_READ|VMA_WRITE|VMA_CACHEABLE|VMA_EXECUTE|VMA_USER);
+		if (BUILTIN_EXPECT(ret, 0))
+				goto out;
+
+		// reserve space for the heap
+		ret = vma_add(PAGE_CEIL(tux_start_address + tux_size),
+			HEAP_START+HEAP_SIZE, VMA_NO_ACCESS);
+		if (BUILTIN_EXPECT(ret, 0))
+			goto out;
+
+		vma_dump();
+	}
 
 	// we might move the architecture specific VMA regions to a
 	// seperate function vma_arch_init()
@@ -79,7 +101,7 @@ out:
 
 size_t vma_alloc(size_t size, uint32_t flags)
 {
-	spinlock_irqsave_t* lock = &vma_lock;
+	spinlock_irqsave_t* lock = &hermit_mm_lock;
 	vma_t** list = &vma_list;
 
 	LOG_DEBUG("vma_alloc: size = %#lx, flags = %#x\n", size, flags);
@@ -90,6 +112,8 @@ size_t vma_alloc(size_t size, uint32_t flags)
 	// boundaries for search
 	size_t base = VMA_MIN;
 	size_t limit = VMA_MAX;
+
+	size = PAGE_CEIL(size);
 
 	spinlock_irqsave_lock(lock);
 
@@ -144,7 +168,7 @@ found:
 
 int vma_free(size_t start, size_t end)
 {
-	spinlock_irqsave_t* lock = &vma_lock;
+	spinlock_irqsave_t* lock = &hermit_mm_lock;
 	vma_t* vma;
 	vma_t** list = &vma_list;
 
@@ -206,7 +230,7 @@ int vma_free(size_t start, size_t end)
 
 int vma_add(size_t start, size_t end, uint32_t flags)
 {
-	spinlock_irqsave_t* lock = &vma_lock;
+	spinlock_irqsave_t* lock = &hermit_mm_lock;
 	vma_t** list = &vma_list;
 	int ret = 0;
 
@@ -237,7 +261,7 @@ int vma_add(size_t start, size_t end, uint32_t flags)
 
 	if (pred && (pred->end == start) && (pred->flags == flags)) {
 		pred->end = end; // resize VMA
-		LOG_DEBUG("vma_alloc: resize vma, start 0x%zx, pred->start 0x%zx, pred->end 0x%zx\n", start, pred->start, pred->end);
+		LOG_DEBUG("vma_add: resize vma, start 0x%zx, pred->start 0x%zx, pred->end 0x%zx\n", start, pred->start, pred->end);
 	} else {
 		// insert new VMA
 		vma_t* new = kmalloc(sizeof(vma_t));
@@ -251,9 +275,11 @@ int vma_add(size_t start, size_t end, uint32_t flags)
 		new->flags = flags;
 		new->next = succ;
 		new->prev = pred;
+		LOG_DEBUG("vma_add: create new vma, new->start 0x%zx, new->end 0x%zx\n", new->start, new->end);
 
 		if (succ)
 			succ->prev = new;
+
 		if (pred)
 			pred->next = new;
 		else
@@ -266,21 +292,22 @@ fail:
 	return ret;
 }
 
+static void print_vma(vma_t *vma)
+{
+	while (vma) {
+		LOG_INFO("0x%lx - 0x%lx: size=0x%x, flags=%c%c%c%s\n", vma->start, vma->end, vma->end - vma->start,
+			(vma->flags & VMA_READ) ? 'r' : '-',
+			(vma->flags & VMA_WRITE) ? 'w' : '-',
+			(vma->flags & VMA_EXECUTE) ? 'x' : '-',
+			(vma->flags & VMA_CACHEABLE) ? "" : " (uncached)");
+		vma = vma->next;
+	}
+}
+
 void vma_dump(void)
 {
-	void print_vma(vma_t *vma) {
-		while (vma) {
-			LOG_INFO("0x%lx - 0x%lx: size=0x%x, flags=%c%c%c%s\n", vma->start, vma->end, vma->end - vma->start,
-				(vma->flags & VMA_READ) ? 'r' : '-',
-				(vma->flags & VMA_WRITE) ? 'w' : '-',
-				(vma->flags & VMA_EXECUTE) ? 'x' : '-',
-				(vma->flags & VMA_CACHEABLE) ? "" : " (uncached)");
-			vma = vma->next;
-		}
-	}
-
 	LOG_INFO("VMAs:\n");
-	spinlock_irqsave_lock(&vma_lock);
-	print_vma(&vma_boot);
-	spinlock_irqsave_unlock(&vma_lock);
+	spinlock_irqsave_lock(&hermit_mm_lock);
+	print_vma(vma_list);
+	spinlock_irqsave_unlock(&hermit_mm_lock);
 }

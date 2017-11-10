@@ -35,13 +35,19 @@
 #include <hermit/syscall.h>
 #include <hermit/memory.h>
 #include <hermit/spinlock.h>
+
+#ifndef NO_IRCCE
 #include <hermit/rcce.h>
+#endif /* NO_IRCCE */
+
 #include <hermit/logging.h>
 #include <asm/irq.h>
 #include <asm/page.h>
 #include <asm/uart.h>
 #include <asm/multiboot.h>
+#include <asm/uhyve.h>
 
+#ifndef NO_NET
 #include <lwip/init.h>
 #include <lwip/sys.h>
 #include <lwip/stats.h>
@@ -60,12 +66,16 @@
 #include <net/rtl8139.h>
 #include <net/e1000.h>
 #include <net/vioif.h>
+#include <net/uhyve-net.h>
+#endif /* NO_NET */
 
 #define HERMIT_PORT	0x494E
 #define HERMIT_MAGIC	0x7E317
 
+#ifndef NO_NET
 static struct netif	default_netif;
 static const int sobufsize = 131072;
+#endif /* NO_NET */
 
 /*
  * Note that linker symbols are not variables, they have no memory allocated for
@@ -94,11 +104,30 @@ extern int32_t isle;
 extern int32_t possible_isles;
 extern uint32_t boot_processor;
 extern volatile int libc_sd;
+extern uint8_t hcip[4];
+extern uint8_t hcgateway[4];
+extern uint8_t hcmask[4];
 
+typedef struct {
+	int argc;
+	int argsz[MAX_ARGC_ENVC];
+	int envc;
+	int envsz[MAX_ARGC_ENVC];
+} __attribute__ ((packed)) uhyve_cmdsize_t;
+
+typedef struct {
+	char **argv;
+	char **envp;
+} __attribute__ ((packed)) uhyve_cmdval_t;
+
+#ifndef NO_IRCCE
 islelock_t* rcce_lock = NULL;
 rcce_mpb_t* rcce_mpb = NULL;
+#endif /* NO_IRCCE */
 
+#ifndef NO_SIGNAL
 extern void signal_init();
+#endif /* NO_SIGNAL */
 
 static int hermit_init(void)
 {
@@ -118,7 +147,9 @@ static int hermit_init(void)
 	timer_init();
 	multitasking_init();
 	memory_init();
+#ifndef NO_SIGNAL
 	signal_init();
+#endif /* NO_SIGNAL */
 
 	return 0;
 }
@@ -132,6 +163,7 @@ static void print_status(void)
 	spinlock_unlock(&status_lock);
 }
 
+#ifndef NO_NET
 static void tcpip_init_done(void* arg)
 {
 	sys_sem_t* sem = (sys_sem_t*)arg;
@@ -152,9 +184,6 @@ static int init_netifs(void)
 	if(sys_sem_new(&sem, 0) != ERR_OK)
 		LWIP_ASSERT("Failed to create semaphore", 0);
 
-	// part of bss => memset not required
-	//memset(&default_netif, 0x00, sizeof(struct netif));
-
 	tcpip_init(tcpip_init_done, &sem);
 	sys_sem_wait(&sem);
 	LOG_INFO("TCP/IP initialized.\n");
@@ -162,11 +191,25 @@ static int init_netifs(void)
 
 	if (is_uhyve()) {
 		LOG_INFO("HermitCore is running on uhyve!\n");
-		return -ENODEV;
-	}
+		if (uhyve_net_stat()) {
+			/* Set network address variables */
+			IP_ADDR4(&gw, hcgateway[0], hcgateway[1], hcgateway[2], hcgateway[3]);
+			IP_ADDR4(&ipaddr, hcip[0], hcip[1], hcip[2], hcip[3]);
+			IP_ADDR4(&netmask, hcmask[0], hcmask[1], hcmask[2], hcmask[3]);
 
-	if (!is_single_kernel())
-	{
+			if ((err = netifapi_netif_add(&default_netif, ip_2_ip4(&ipaddr), ip_2_ip4(&netmask), ip_2_ip4(&gw), NULL, uhyve_netif_init, ethernet_input)) != ERR_OK) {
+				LOG_ERROR("Unable to add the uhyve_net network interface: err = %d\n", err);
+				return -ENODEV;
+			}
+			/*tell lqip all initialization is done and we want to set it up */
+			netifapi_netif_set_default(&default_netif);
+			LOG_INFO("set_default\n");
+			netifapi_netif_set_up(&default_netif);
+			LOG_INFO("set_up\n");
+		} else {
+			return -ENODEV;
+		}
+	} else if (!is_single_kernel()) {
 		LOG_INFO("HermitCore is running side-by-side to Linux!\n");
 
 		/* Set network address variables */
@@ -268,6 +311,8 @@ int network_shutdown(void)
 	return 0;
 }
 
+#endif /* NO_NET */
+
 #if MAX_CORES > 1
 int smp_main(void)
 {
@@ -291,6 +336,7 @@ int smp_main(void)
 }
 #endif
 
+#ifndef NO_IRCCE
 static int init_rcce(void)
 {
 	size_t addr, flags = PG_GLOBAL|PG_RW;
@@ -312,24 +358,36 @@ static int init_rcce(void)
 
 	return 0;
 }
+#endif /* NO_IRCCE */
 
 int libc_start(int argc, char** argv, char** env);
 
 // init task => creates all other tasks an initialize the LwIP
 static int initd(void* arg)
 {
-	int s = -1, c = -1;
-	int i, j, flag;
-	int len, err;
-	int magic = 0;
-	struct sockaddr_in6 server, client;
+	int c = -1;
+	int i;
+	int err = 0;
 	task_t* curr_task = per_core(current_task);
 	size_t heap = HEAP_START;
-	int argc, envc;
+	int argc = 1;
 	char** argv = NULL;
 	char **environ = NULL;
+#ifndef NO_NET
+	int envc, len, flag, j;
+	int s = -1;
+	int magic = 0;
+	struct sockaddr_in6 server, client;
+#endif /* NO_NET */
 
 	LOG_INFO("Initd is running\n");
+
+#ifdef NO_NET
+	if(!is_uhyve()) {
+		LOG_ERROR("Networking disabled and the isle is not uhyve, aborting\n");
+		return -1;
+	}
+#endif /* NO_NET */
 
 	// initialized bss section
 	memset((void*)&__bss_start, 0x00, (size_t) &kernel_start + image_size - (size_t) &__bss_start);
@@ -352,9 +410,42 @@ static int initd(void* arg)
 	vma_free(curr_task->heap->start, curr_task->heap->start+PAGE_SIZE);
 	vma_add(curr_task->heap->start, curr_task->heap->start+PAGE_SIZE, VMA_HEAP|VMA_USER);
 
+#ifndef NO_NET
 	// initialize network
 	err = init_netifs();
+#endif /* NO_NET */
 
+	if(is_uhyve()) {
+		int i;
+		uhyve_cmdsize_t uhyve_cmdsize;
+		uhyve_cmdval_t uhyve_cmdval;
+
+		uhyve_send(UHYVE_PORT_CMDSIZE,
+				(unsigned)virt_to_phys((size_t)&uhyve_cmdsize));
+
+		uhyve_cmdval.argv = kmalloc(uhyve_cmdsize.argc * sizeof(char *));
+		for(i=0; i<uhyve_cmdsize.argc; i++)
+			uhyve_cmdval.argv[i] = kmalloc(uhyve_cmdsize.argsz[i] * sizeof(char));
+		uhyve_cmdval.envp = kmalloc(uhyve_cmdsize.envc * sizeof(char *));
+		for(i=0; i<uhyve_cmdsize.envc; i++)
+			uhyve_cmdval.envp[i] = kmalloc(uhyve_cmdsize.envsz[i] * sizeof(char));
+
+		uhyve_send(UHYVE_PORT_CMDVAL,
+				(unsigned)virt_to_phys((size_t)&uhyve_cmdval));
+		
+		LOG_INFO("Boot time: %d ms\n", (get_clock_tick() * 1000) / TIMER_FREQ);
+		libc_start(uhyve_cmdsize.argc, uhyve_cmdval.argv, uhyve_cmdval.envp);
+
+		for(i=0; i<argc; i++)
+			kfree(uhyve_cmdval.argv[i]);
+		kfree(uhyve_cmdval.argv);
+		for(i=0; i<envc; i++)
+			kfree(uhyve_cmdval.envp[i]);
+		kfree(uhyve_cmdval.envp);
+
+		return 0;
+	}
+	
 	if ((err != 0) || !is_proxy())
 	{
 		char* dummy[] = {"app_name", NULL};
@@ -366,10 +457,13 @@ static int initd(void* arg)
 		return 0;
 	}
 
+#ifndef NO_IRCCE
 	// initialize iRCCE
 	if (!is_single_kernel())
 		init_rcce();
+#endif /* NO_IRCCE */
 
+#ifndef NO_NET
 	s = lwip_socket(AF_INET6, SOCK_STREAM , 0);
 	if (s < 0) {
 		LOG_ERROR("socket failed: %d\n", server);
@@ -483,11 +577,15 @@ static int initd(void* arg)
 		}
 	}
 
+#endif /* NO_NET */
+
 	// call user code
 	libc_sd = c;
 	libc_start(argc, argv, environ);
 
+#ifndef NO_NET
 out:
+#endif /*NO_NET */
 	if (argv) {
 		for(i=0; i<argc; i++) {
 			if (argv[i])
@@ -507,12 +605,16 @@ out:
 		kfree(environ);
 	}
 
+#ifndef NO_NET
+
 	if (c > 0)
 		lwip_close(c);
 	libc_sd = -1;
 
 	if (s > 0)
 		lwip_close(s);
+
+#endif /* NO_NET */
 
 	return 0;
 }

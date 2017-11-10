@@ -30,59 +30,67 @@
 KERNEL_STACK_SIZE equ 0x100
 kernel_start equ 0x800000
 
-[BITS 16]
-SECTION .text
-GLOBAL _start
-ORG 0x8000
+[BITS 16]			; Assembler should generate 16 bits code
+SECTION .text		; This code will be put in the .text section
+GLOBAL _start		; Will be accessible from outside this module
+ORG 0x800			; Address the pogram will be loaded in memory
 _start:
-	cli
-	lgdt [gdtr]
+	cli				; disable interrupts
+	lgdt [gdtr]		; load 32 bits gdt for protected mode
 
 	; switch to protected mode by setting PE bit
-	mov eax, cr0
-	or al, 0x1
-	mov cr0, eax
+	mov eax, cr0 	; eax <- cr0
+	or al, 0x1   	; set the first bit (PE == protection enable) to 1, al are the lower 8 bits of eax
+	mov cr0, eax 	; actually enable protected mode by setting the control register
 
 	; far jump to the 32bit code
 	jmp dword codesel : _pmstart
 
-[BITS 32]
-ALIGN 4
+[BITS 32]			; Assembler should generate 32 bits code from now on
+ALIGN 4 			; Align on 4 bytes boundary
 _pmstart:
-	xor eax, eax
-	mov ax, datasel
-	mov ds, ax
+	xor eax, eax		; fast way to put zero in eax
+	mov ax, datasel		; ax is the lower 16 bits of eax
+	mov ds, ax			; set all data segment to point to datasel
 	mov es, ax
 	mov fs, ax
 	mov gs, ax
 	mov ss, ax
 
-	mov esp, boot_stack+KERNEL_STACK_SIZE-16
+	mov esp, boot_stack+KERNEL_STACK_SIZE-16  ; Stack grows down (why -16?) so put stack pointer at the bottom
 	jmp short stublet
 	jmp $
 
-; GDT for the protected mode
+; GDT for the protected mode (32 bits)
+; http://wiki.osdev.org/Global_Descriptor_Table
 ALIGN 4
-gdtr:                           ; descritor table
-        dw gdt_end-gdt-1        ; limit
-        dd gdt                  ; base adresse
-gdt:
-        dd 0,0                  ; null descriptor
-codesel equ $-gdt
+gdtr:                           ; descritor table (descriptor for the table)
+        dw gdt_end-gdt-1        ; limit (table size)
+        dd gdt                  ; base adresse (address of the table itself)
+gdt:							; the actual table starts here
+        dd 0,0                  ; first entry: null descriptor (64 bits full of zeros)
+codesel equ $-gdt				; second entry: code selector
         dw 0xFFFF               ; segment size 0..15
         dw 0x0000               ; segment address 0..15
-        db 0x00                 ; segment address 16..23
+        db 0x00                 ; segment address 16..23 
         db 0x9A                 ; access permissions und type
-        db 0xCF                 ; additional information and segment size 16...19
-        db 0x00                 ; segment address 24..31
-datasel equ $-gdt
+        db 0xCF                 ; additional information and segment size 16...19, total segment size is 0xFFFFF 4KB pages (4GB)
+        db 0x00                 ; segment address 24..31 --> address the segment begins 0x00000000
+datasel equ $-gdt				; second entry: data selector
         dw 0xFFFF               ; segment size 0..15
         dw 0x0000               ; segment address 0..15
-        db 0x00                 ; segment address 16..23
+        db 0x00                 ; segment address 16..23 --> address the segment begins
         db 0x92                 ; access permissions and type
-        db 0xCF                 ; additional informationen and degment size 16...19
+        db 0xCF                 ; additional informationen and degment size 16...19, total size 4GB
         db 0x00                 ; segment address 24..31
 gdt_end:
+
+; Access for code: present, kernel level, executable, growing up, readable,
+; and not accessed yet
+; For data: present, kernel level, not executable, grows up, RW, and not
+; accessed yet
+; Flags for both page and data: 32 bits protected mode, and the unit of the
+; base address (segment address) is in 4KB pages (not in bytes)
 
 ALIGN 4
 GDTR64:
@@ -113,6 +121,13 @@ GDT64:                           ; Global Descriptor Table (64-bit).
     db 00000000b                 ; Granularity.
     db 0                         ; Base (high).
 GDT64_end:
+
+; GDT64:
+; - code:
+;  - limit (size) = 0x0 (is that a problem?)
+;  - base = 0x0
+;  - access: present, kernel level of privileges, executable, grows up,
+;  RW, not accessed yet
 
 ALIGN 4
 stublet:
@@ -194,7 +209,7 @@ cpu_init:
 
     jmp GDT64.Code:start64  ; Set the code segment and enter 64-bit long mode.
 
-[BITS 64]
+[BITS 64]			; Assembler should generate 64 bits code from now on
 ALIGN 8
 start64:
     push kernel_start
@@ -203,4 +218,4 @@ start64:
 ALIGN 16
 global boot_stack
 boot_stack:
-    TIMES (KERNEL_STACK_SIZE) DB 0xcd
+    TIMES (KERNEL_STACK_SIZE) DB 0xcd ; Fill this area with 0x100 times the byte 0xcd

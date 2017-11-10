@@ -41,6 +41,7 @@ extern "C" {
 #include <hermit/stddef.h>
 #include <hermit/semaphore_types.h>
 
+#define SIGNAL_IRQ (32 + 82)
 #define MAX_SIGNALS 32
 
 typedef void (*signal_handler_t)(int);

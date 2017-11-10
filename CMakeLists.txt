@@ -11,17 +11,26 @@ project (HermitCore)
 add_subdirectory(include/hermit)
 
 add_kernel_module_sources("kernel"		"kernel/*.c")
+add_kernel_module_sources("syscalls"	"kernel/syscalls/*.c")
 add_kernel_module_sources("libkern"		"libkern/*.c")
 add_kernel_module_sources("mm"			"mm/*.c")
-add_kernel_module_sources("drivers"		"drivers/net/*.c")
 
-set(LWIP_SRC lwip/src)
-add_kernel_module_sources("lwip"	"${LWIP_SRC}/api/*.c")
-add_kernel_module_sources("lwip"	"${LWIP_SRC}/arch/*.c")
-add_kernel_module_sources("lwip"	"${LWIP_SRC}/core/*.c")
-add_kernel_module_sources("lwip"	"${LWIP_SRC}/core/ipv4/*.c")
-add_kernel_module_sources("lwip"	"${LWIP_SRC}/core/ipv6/*.c")
-add_kernel_module_sources("lwip"	"${LWIP_SRC}/netif/*.c")
+if(NOT ${NO_NET})
+add_kernel_module_sources("drivers"		"drivers/net/*.c")
+endif(NOT ${NO_NET})
+
+if(NOT ${NO_NET})
+message("Enabling LWIP")
+	set(LWIP_SRC lwip/src)
+	add_kernel_module_sources("lwip"	"${LWIP_SRC}/api/*.c")
+	add_kernel_module_sources("lwip"	"${LWIP_SRC}/arch/*.c")
+	add_kernel_module_sources("lwip"	"${LWIP_SRC}/core/*.c")
+	add_kernel_module_sources("lwip"	"${LWIP_SRC}/core/ipv4/*.c")
+	add_kernel_module_sources("lwip"	"${LWIP_SRC}/core/ipv6/*.c")
+	add_kernel_module_sources("lwip"	"${LWIP_SRC}/netif/*.c")
+else(NOT ${NO_NET})
+	message("Disabling LWIP")
+endif(NOT ${NO_NET})
 
 get_kernel_modules(KERNEL_MODULES)
 foreach(MODULE ${KERNEL_MODULES})
@@ -35,6 +44,24 @@ foreach(MODULE ${KERNEL_MODULES})
 	# this is kernel code
 	target_compile_definitions(${MODULE}
 		PRIVATE -D__KERNEL__)
+
+	target_compile_definitions(${MODULE}
+		PRIVATE -DMAX_ARGC_ENVC=${MAX_ARGC_ENVC})
+
+	if(${NO_NET})
+		target_compile_definitions(${MODULE}
+			PRIVATE -DNO_NET)
+	endif(${NO_NET})
+
+	if(${NO_IRCCE})
+		target_compile_definitions(${MODULE}
+			PRIVATE -DNO_IRCCE)
+	endif(${NO_IRCCE})
+
+	if(${NO_SIGNAL})
+		target_compile_definitions(${MODULE}
+			PRIVATE -DNO_SIGNAL)
+	endif(${NO_SIGNAL})
 
 	target_compile_options(${MODULE}
 		PRIVATE ${HERMIT_KERNEL_FLAGS})
@@ -147,8 +174,10 @@ build_external(libiomp ${HERMIT_ROOT}/usr/libomp ""
 add_dependencies(hermit libiomp)
 
 ## iRCCE
+if(NOT ${NO_IRCCE})
 build_external(ircce ${HERMIT_ROOT}/usr/ircce "")
 add_dependencies(hermit ircce)
+endif(NOT ${NO_IRCCE})
 
 ## XRay profiler
 build_external(xray ${HERMIT_ROOT}/usr/xray "")
@@ -199,7 +228,7 @@ set(CPACK_SYSTEM_NAME all)
 
 set(CPACK_PACKAGE_VERSION_MAJOR 0)
 set(CPACK_PACKAGE_VERSION_MINOR 2)
-set(CPACK_PACKAGE_VERSION_PATCH 2)
+set(CPACK_PACKAGE_VERSION_PATCH 4)
 
 set(CPACK_PACKAGE_CONTACT "Stefan Lankes <slankes@eonerc.rwth-aachen.de>")
 
