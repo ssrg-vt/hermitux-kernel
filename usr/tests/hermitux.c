@@ -42,15 +42,12 @@
 extern const size_t tux_entry;
 extern const size_t tux_size;
 
-struct cmdline_t {
-	int argc;
-	char **argv;
-};
+extern char **environ;
 
 int main(int argc, char** argv)
 {
 	unsigned long long int libc_argc = argc -1;
-	int i;
+	int i, envc;
 
 	printf("Hello from HermiTux loader\n\n");
 
@@ -63,6 +60,11 @@ int main(int argc, char** argv)
 				(size_t) *((char*) tux_entry));
 	} else 
 		fprintf(stderr, "Unable to find a Linux image!!!\n");
+
+
+	/* count the number of environment variables */
+	envc = 0;
+	for (char **env = environ; *env; ++env) envc++;
 
 	/* Befre jumping to the entry point we need to construct the stack with 
 	 * argc, argv, envp, and auxv according to the linux convention. The layout
@@ -86,10 +88,19 @@ int main(int argc, char** argv)
 
 	/* We need to push the element on the stack in the inverse order they will 
 	 * be read by the C library (i.e. argc in the end) */
-	
+
+	/*envp */
+	unsigned long long int zero = (unsigned long long int)NULL;
+	asm volatile("pushq %0" : : "r" (zero));
+	for(i=(envc-1); i>=0; i--)
+		asm volatile("pushq %0" : : "r" (environ[i]));
+
 	/* argv */
+//	asm volatile("pushq %0" : : "r" (zero));
+//	Pierre: seems like there is no null ptr here??
 	for(i=libc_argc+1;i>0; i--)
 		asm volatile("pushq %0" : : "r" (argv[i]));
+	
 
 	/* argc */
 	asm volatile("pushq %0" : : "r" (libc_argc));
