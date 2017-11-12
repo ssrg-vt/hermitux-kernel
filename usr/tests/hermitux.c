@@ -90,17 +90,14 @@ int main(int argc, char** argv)
 	 * be read by the C library (i.e. argc in the end) */
 
 	/*envp */
-	unsigned long long int zero = (unsigned long long int)NULL;
-	asm volatile("pushq %0" : : "r" (zero));
-	for(i=(envc-1); i>=0; i--)
+	/* Note that this will push NULL to the stack first, which is expected */
+	for(i=(envc); i>=0; i--)
 		asm volatile("pushq %0" : : "r" (environ[i]));
 
 	/* argv */
-//	asm volatile("pushq %0" : : "r" (zero));
-//	Pierre: seems like there is no null ptr here??
+	/* Same as envp, pushing NULL first */
 	for(i=libc_argc+1;i>0; i--)
 		asm volatile("pushq %0" : : "r" (argv[i]));
-	
 
 	/* argc */
 	asm volatile("pushq %0" : : "r" (libc_argc));
