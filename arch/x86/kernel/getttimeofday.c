@@ -17,7 +17,7 @@ inline static unsigned long long gtod_rdtsc(void)
 
 void gettimeofday_init(void) {
 	start_tsc = gtod_rdtsc();
-	freq = get_cpufreq() * 1000000ULL;
+	freq = get_cpu_frequency() * 1000000ULL;
 }
 
 int sys_gettimeofday(struct timeval *tv, struct timezone *tz) {

@@ -72,6 +72,9 @@
 #define HERMIT_PORT	0x494E
 #define HERMIT_MAGIC	0x7E317
 
+/* gettimeofday init function */
+extern void gettimeofday_init(void);
+
 #ifndef NO_NET
 static struct netif	default_netif;
 static const int sobufsize = 131072;
@@ -414,6 +417,9 @@ static int initd(void* arg)
 	// initialize network
 	err = init_netifs();
 #endif /* NO_NET */
+
+	/* initialize gettimeofday */
+	gettimeofday_init();
 
 	if(is_uhyve()) {
 		int i;
