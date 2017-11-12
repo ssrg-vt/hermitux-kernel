@@ -30,14 +30,8 @@
 #include <string.h>
 #include <unistd.h>
 
-// Linux applications are always located at address 0x400000
+/* Linux applications are always located at address 0x400000 */
 #define tux_start_address	0x400000
-
-
-#define GET_REG( var, reg, size ) asm volatile("mov"size" %%"reg", %0" : "=m" (var) )
-#define GET_REG64( var, reg ) GET_REG( var, reg, "q")
-#define GET_RSP( var ) GET_REG64( var, "rsp" )
-#define SET_RIP_IMM( var ) asm volatile("movq %0, -0x8(%%rsp); jmpq *-0x8(%%rsp)" : : "m" (var) )
 
 extern const size_t tux_entry;
 extern const size_t tux_size;
@@ -80,14 +74,22 @@ int main(int argc, char** argv)
 	 *         ...
 	 *         [ envp[N] ]    (NULL) pointer, 8 bytes
 	 *
-	 *         TODO auxv: unclear for now
-	 *
+	 *         [ auxv[0] (Elf64_auxv_t] ] data structure, 16 bytes
+	 *         [ auxv[1] *Elf64_auxv_t) ] data structure, 16 bytes
+	 *         ...
+	 *         TODO termination
 	 *         Adapted from:
 	 *         http://articles.manugarg.com/aboutelfauxiliaryvectors
 	 */
 
 	/* We need to push the element on the stack in the inverse order they will 
 	 * be read by the C library (i.e. argc in the end) */
+
+	/* auxv */
+	/* TODO here, for now all the aux vectors data structures are filled
+	 * with zeros */
+	for(i=0; i<38*2; i++)
+		asm volatile("pushq %0" : : "i" (0x00));
 
 	/*envp */
 	/* Note that this will push NULL to the stack first, which is expected */
@@ -101,7 +103,6 @@ int main(int argc, char** argv)
 
 	/* argc */
 	asm volatile("pushq %0" : : "r" (libc_argc));
-	
 
 	printf("Jumping to 0x%x\n", tux_entry);
 	asm volatile("jmp *%0" : : "r" (tux_entry));
