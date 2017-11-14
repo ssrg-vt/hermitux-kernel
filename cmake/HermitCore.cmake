@@ -56,7 +56,7 @@ set(HERMIT_KERNEL_FLAGS
 					-fno-delete-null-pointer-checks
 					-falign-jumps=1 -falign-loops=1
 					-mno-80387 -mno-fp-ret-in-387 -mskip-rax-setup
-					-fno-common -Wframe-larger-than=1024
+					-fno-common #-Wframe-larger-than=1024
 					-fno-strict-aliasing -fno-asynchronous-unwind-tables
 					-fno-strict-overflow -maccumulate-outgoing-args -g)
 
