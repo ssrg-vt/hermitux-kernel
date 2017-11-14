@@ -654,7 +654,7 @@ global Lpatch2
 Lpatch2:
     jmp short Lwrfsgs    ; we patch later this jump to enable wrfsbase/wrgsbase
     pop r15
-    wrgsbase r15        ; currently, we don't use the gs register
+  ; wrgsbase r15        ; currently, we don't use the gs register
     pop r15
     wrfsbase r15
     jmp short Lgo3
