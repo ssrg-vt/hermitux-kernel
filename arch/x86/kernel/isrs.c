@@ -44,6 +44,8 @@
 #include <asm/idt.h>
 #include <asm/apic.h>
 
+//char *syscalls_names[250];
+
 #define SYSCALL_INT_NO 6
 
 
@@ -89,7 +91,22 @@ static void arch_fault_handler(struct state *s);
 static void arch_fpu_handler(struct state *s);
 extern void fpu_handler(void);
 static void static_syscall_handler(struct state *s);
-	
+
+/* void init_syscalls_names() {
+	syscalls_names[0] = "read";
+	syscalls_names[1] = "write";
+	syscalls_names[2] = "open";
+	syscalls_names[3] = "close";
+	syscalls_names[12] = "brk";
+	syscalls_names[16] = "ioctl";
+	syscalls_names[20] = "writev";
+	syscalls_names[63] = "uname";
+	syscalls_names[158] = "arch_prctl";
+	syscalls_names[218] = "set_tid_address";
+	syscalls_names[228] = "clock_gettime";
+	syscalls_names[231] = "exit_group";
+} */
+
 /*
  * This is a very repetitive function... it's not hard, it's
  * just annoying. As you can see, we set the first 32 entries
@@ -185,6 +202,8 @@ void isrs_install(void)
 	// For static syscalls
 	irq_uninstall_handler(SYSCALL_INT_NO);
 	irq_install_handler(SYSCALL_INT_NO, static_syscall_handler);
+
+	/* init_syscalls_names(); */
 	
 	// set hanlder for fpu exceptions
 	irq_uninstall_handler(7);
@@ -216,6 +235,10 @@ static void static_syscall_handler(struct state *s)
 
 	/* syscall opcode = 0F05 */
 	if (*opcode == 0x50F) {
+
+/* 		LOG_INFO("Caught syscall %d (%s) from cs:ip %#lx:%#lx\n", s->rax, 
+				syscalls_names[s->rax], s->cs, s->rip); */
+
 		switch(s->rax) {
 
 #ifndef DISABLE_SYS_READ
@@ -318,6 +341,13 @@ static void static_syscall_handler(struct state *s)
 				LOG_ERROR("Should not reach here after exit ... \n");
 				break;
 #endif /* DISABLE_SYS_EXIT */
+
+#ifndef DISABLE_SYS_UNAME
+			case 63:
+				/* uname */
+				sys_uname((void *)s->rdi);
+				break;
+#endif /* DISABLE_SYS_UNAME */
 
 #ifndef DISABLE_SYS_FCNTL
 			case 72:
@@ -422,7 +452,7 @@ static void arch_fault_handler(struct state *s)
 
 	LOG_ERROR(" Exception (%d) on core %d at %#x:%#lx, fs = %#lx, gs = %#lx, error code = %#lx, task id = %u, rflags = %#x\n",
 		s->int_no, CORE_ID, s->cs, s->rip, s->fs, s->gs, s->error, per_core(current_task)->id, s->rflags);
-	LOG_ERROR("rax %#lx, rbx %#lx, rcx %#lx, rdx %#lx, rbp, %#lx, rsp %#lx rdi %#lx, rsi %#lx, r8 %#lx, r9 %#lx, r10 %#lx, r11 %#lx, r12 %#lx, r13 %#lx, r14 %#lx, r15 %#lx\n",
+	LOG_ERROR("rax %#lx, rbx %#lx, rcx %#lx, rdx %#lx, rbp %#lx, rsp %#lx rdi %#lx, rsi %#lx, r8 %#lx, r9 %#lx, r10 %#lx, r11 %#lx, r12 %#lx, r13 %#lx, r14 %#lx, r15 %#lx\n",
 		s->rax, s->rbx, s->rcx, s->rdx, s->rbp, s->rsp, s->rdi, s->rsi, s->r8, s->r9, s->r10, s->r11, s->r12, s->r13, s->r14, s->r15);
 
 	apic_eoi(s->int_no);
