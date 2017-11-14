@@ -1,6 +1,7 @@
 #include <lwip/sockets.h>
 #include <hermit/hermitux_syscalls.h>
 #include <hermit/logging.h>
+#include <hermit/processor.h>
 
 extern unsigned int get_cpufreq(void);
 static unsigned long long start_tsc;

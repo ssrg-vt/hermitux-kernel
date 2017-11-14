@@ -270,7 +270,6 @@ static void static_syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_BRK
 			case 12:
 				/* brk */
-				/* TODO */
 				s->rax = sys_brk(s->rdi);
 				break;
 #endif /* DISABLE_SYS_BRK */
@@ -352,8 +351,7 @@ static void static_syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_ARCH_PRCTL
 			case 158:
 				/* arch_prctl */
-				/* TODO */
-				s->rax = 0;
+				s->rax = sys_arch_prctl(s->rdi, (unsigned long *)s->rsi);
 				break;
 #endif /* DISABLE_SYS_ARCH_PRCTL */
 			

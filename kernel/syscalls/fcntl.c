@@ -19,7 +19,8 @@ int sys_fcntl(unsigned int fd, unsigned int cmd, unsigned long arg) {
 	if(is_uhyve()) {
 		uhyve_fcntl_t uhyve_args = { fd, cmd, arg };
 		uhyve_send(UHYVE_PORT_FCNTL, (unsigned)virt_to_phys((size_t)&uhyve_args));
-		return uhyve_args.ret;
+		return -ENOSYS;
+		//return uhyve_args.ret;
 	}
 
 	/* qemu: TODO */

@@ -654,8 +654,11 @@ global Lpatch2
 Lpatch2:
     jmp short Lwrfsgs    ; we patch later this jump to enable wrfsbase/wrgsbase
     pop r15
-    ;wrgsbase r15        ; currently, we don't use the gs register
+    wrgsbase r15        ; currently, we don't use the gs register
     pop r15
+	rdfsbase rax
+	cmp rax, r15		; if FS was modified (i.e. arch_prctl SET_FS)
+	jne short Lgo3		; skip restoring FS TODO if this is also called on context switch it will break everything
     wrfsbase r15
     jmp short Lgo3
 Lwrfsgs:
@@ -666,7 +669,7 @@ Lwrfsgs:
     ;wrmsr               ; currently, we don't use the gs register
     mov ecx, MSR_FS_BASE
     mov edx, DWORD [rsp+4]
-    mov eax, DWORD [rsp]
+    mov eax, DWORD [rsp]		; TODO implement skip restore FS here
     add rsp, 8
     wrmsr
 Lgo3:
