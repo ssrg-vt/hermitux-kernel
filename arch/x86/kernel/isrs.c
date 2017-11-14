@@ -351,7 +351,7 @@ static void static_syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_ARCH_PRCTL
 			case 158:
 				/* arch_prctl */
-				s->rax = sys_arch_prctl(s->rdi, (unsigned long *)s->rsi);
+				s->rax = sys_arch_prctl(s->rdi, (unsigned long *)s->rsi, s);
 				break;
 #endif /* DISABLE_SYS_ARCH_PRCTL */
 			

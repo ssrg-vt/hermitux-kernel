@@ -16,8 +16,8 @@ int sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg) {
 				return 0;
 			}
 		default:
-			LOG_INFO("PIERRE: unsupported ioctl 0x%x\n", cmd);
-			return -1;
+			LOG_ERROR("unsupported ioctl command 0x%x\n", cmd);
+			return -ENOSYS;
 	}	
 
 	/* should not come here */

@@ -656,9 +656,6 @@ Lpatch2:
     pop r15
     wrgsbase r15        ; currently, we don't use the gs register
     pop r15
-	rdfsbase rax
-	cmp rax, r15		; if FS was modified (i.e. arch_prctl SET_FS)
-	jne short Lgo3		; skip restoring FS TODO if this is also called on context switch it will break everything
     wrfsbase r15
     jmp short Lgo3
 Lwrfsgs:
