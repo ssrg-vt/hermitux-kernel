@@ -308,6 +308,9 @@ int memory_init(void)
 	atomic_int64_add(&total_allocated_pages, PAGE_2M_CEIL(image_size) >> PAGE_BITS);
 	atomic_int64_sub(&total_available_pages, PAGE_2M_CEIL(image_size) >> PAGE_BITS);
 
+	LOG_INFO("tux_start_address: 0x%zx, tux_size: 0x%zx\n", tux_start_address,
+			tux_size);
+
 	if (tux_size > 0) {
 		LOG_INFO("Found linux ap at 0x%zx with a size of 0x%zx\n", tux_start_address,
 			tux_size);
