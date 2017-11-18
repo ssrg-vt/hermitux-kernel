@@ -116,6 +116,7 @@ int sys_uname(struct utsname *buf);
 int sys_fstat(int fd, struct stat *buf);
 int sys_stat(const char *pathname, struct stat *buf);
 int sys_lstat(const char *pathname, struct stat *buf);
+int sys_getcwd(char *buf, size_t size);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;

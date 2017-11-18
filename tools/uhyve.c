@@ -861,8 +861,18 @@ static int vcpu_loop(void)
 				
 					uhyve_fstat->ret = fstat(uhyve_fstat->fd, (struct stat *)(guest_mem+(size_t)uhyve_fstat->st));
 					break;
-
 				}
+
+			case UHYVE_PORT_GETCWD: {
+					unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+					uhyve_getcwd_t *uhyve_getcwd = (uhyve_getcwd_t *) (guest_mem+data);
+					getcwd((char *)(guest_mem+(size_t)uhyve_getcwd->buf), uhyve_getcwd->size);
+					break;
+
+
+					
+
+			}
 
 			case UHYVE_PORT_CMDSIZE: {
 					int i;

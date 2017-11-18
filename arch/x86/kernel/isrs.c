@@ -377,6 +377,13 @@ static void static_syscall_handler(struct state *s)
 				break;
 #endif /* DISABLE_SYS_FCNTL */
 
+#ifndef DISABLE_SYS_GETCWD
+			case 79:
+				/*getcwd */
+				s->rax = sys_getcwd((char *)s->rdi, s->rsi);
+				break;
+#endif /* DISABLE_SYS_GETCWD */
+
 #ifndef DISABLE_SYS_UNLINK
 			case 87:
 				/* unlink */

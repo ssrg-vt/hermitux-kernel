@@ -33,7 +33,8 @@ typedef enum {
 	UHYVE_PORT_FCNTL	= 0x510,
 	UHYVE_PORT_CMDSIZE	= 0x511,
 	UHYVE_PORT_CMDVAL	= 0x512,
-	UHYVE_PORT_FSTAT	= 0x513
+	UHYVE_PORT_FSTAT	= 0x513,
+	UHYVE_PORT_GETCWD	= 0x514
 } uhyve_syscall_t;
 
 typedef struct {
@@ -97,5 +98,11 @@ typedef struct {
 	int ret;
 	struct stat *st;
 } __attribute__ ((packed)) uhyve_fstat_t;
+
+typedef struct {
+	char *buf;
+	size_t size;
+	int ret;
+} __attribute__ ((packed)) uhyve_getcwd_t;
 
 #endif // UHYVE_SYSCALLS_H
