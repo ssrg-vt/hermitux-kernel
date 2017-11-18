@@ -97,6 +97,10 @@ int sys_signal(signal_handler_t handler);
 
 /* Pierre */
 struct utsname;
+struct stat;
+struct iovec;
+struct timespec;
+struct timeval;
 
 int sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg);
 int sys_writev(int fd, const struct iovec *iov, unsigned long vlen);
@@ -109,6 +113,9 @@ int sys_fcntl(unsigned int fd, unsigned int cmd, unsigned long arg);
 int sys_unlink(const char *pathname);
 int sys_arch_prctl(int option, unsigned long *arg2, struct state *s);
 int sys_uname(struct utsname *buf);
+int sys_fstat(int fd, struct stat *buf);
+int sys_stat(const char *pathname, struct stat *buf);
+int sys_lstat(const char *pathname, struct stat *buf);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;

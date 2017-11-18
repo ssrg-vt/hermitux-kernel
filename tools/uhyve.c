@@ -855,6 +855,14 @@ static int vcpu_loop(void)
 					uhyve_unlink->ret = unlink((const char *)guest_mem+(size_t)uhyve_unlink->pathname);
 					break;	
 				}
+			case UHYVE_PORT_FSTAT: {
+					unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+					uhyve_fstat_t *uhyve_fstat = (uhyve_fstat_t *) (guest_mem+data);
+				
+					uhyve_fstat->ret = fstat(uhyve_fstat->fd, (struct stat *)(guest_mem+(size_t)uhyve_fstat->st));
+					break;
+
+				}
 
 			case UHYVE_PORT_CMDSIZE: {
 					int i;

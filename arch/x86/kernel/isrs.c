@@ -269,6 +269,27 @@ static void static_syscall_handler(struct state *s)
 				break;
 #endif /* DISABLE_SYS_CLOSE */
 
+#ifndef DISABLE_SYS_STAT
+			case 4:
+				/* stat */
+				s->rax = sys_stat((const char *)s->rdi, (struct stat *)s->rsi);
+				break;
+#endif /* DISABLE_SYS_STAT */
+
+#ifndef DISABLE_SYS_FSTAT
+			case 5:
+				/* fstat */
+				s->rax = sys_fstat(s->rdi, (struct stat *)s->rsi);
+				break;
+#endif /* DISABLE_SYS_FSTAT */
+
+#ifndef DISABLE_SYS_LSTAT
+			case 6:
+				/* lstat */
+				s->rax = sys_lstat((const char *)s->rdi, (struct stat *)s->rsi);
+				break;
+#endif /* DISABLE_SYS_LSTAT */
+
 #ifndef DISABLE_SYS_LSEEK
 			case 8:
 				/* lseek */

@@ -73,6 +73,7 @@ extern uint64_t tux_size;
 #define UHYVE_PORT_FCNTL	0x510
 #define UHYVE_PORT_CMDSIZE	0x511
 #define UHYVE_PORT_CMDVAL	0x512
+#define UHYVE_PORT_FSTAT	0x513
 
 #define BUILTIN_EXPECT(exp, b)		__builtin_expect((exp), (b))
 //#define BUILTIN_EXPECT(exp, b)	(exp)

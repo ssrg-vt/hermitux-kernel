@@ -1,4 +1,7 @@
 #include <hermit/syscall.h>
+#include <asm/uhyve.h>
+#include <asm/page.h>
+#include <hermit/logging.h>
 
 typedef unsigned int dev_t;
 typedef unsigned int ino_t;
@@ -29,12 +32,26 @@ struct stat {
 	long __unused[3];
 };
 
-int sys_stat(const char* file, struct stat *st)
+typedef struct {
+	int fd;
+	int ret;
+	struct stat *st;
+} __attribute__ ((packed)) uhyve_fstat_t;
+
+int sys_fstat(int fd, struct stat *buf)
 {
-	int fd, ret;
-	/* 0 corresponds to O_RDONLY */
-	fd = sys_open(file, 0x0, 0x0);
-	ret = sys_fstat(fd, st);
-	return ret;
+	
+	if(is_uhyve()) {
+		uhyve_fstat_t uhyve_args = {fd, -1, 
+			(struct stat *)virt_to_phys((size_t)buf)};
+
+		uhyve_send(UHYVE_PORT_FSTAT, 
+				(unsigned)virt_to_phys((size_t)&uhyve_args));
+
+		return uhyve_args.ret;
+	}
+
+	/* qemu not supported yet */
+	return -ENOSYS;
 }
 
