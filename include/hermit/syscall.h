@@ -101,6 +101,8 @@ struct stat;
 struct iovec;
 struct timespec;
 struct timeval;
+struct sigaction;
+struct sockaddr;
 
 int sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg);
 int sys_writev(int fd, const struct iovec *iov, unsigned long vlen);
@@ -117,6 +119,13 @@ int sys_fstat(int fd, struct stat *buf);
 int sys_stat(const char *pathname, struct stat *buf);
 int sys_lstat(const char *pathname, struct stat *buf);
 int sys_getcwd(char *buf, size_t size);
+int sys_rt_sigaction(int signum, const struct sigaction *act, 
+		struct sigaction *oldact);
+int sys_socket(int domain, int type, int protocol);
+int sys_bind(int fd, struct sockaddr *addr, int addrlen);
+int sys_setsockopt(int fd, int level, int optname, char *optval, int optlen);
+int sys_mmap(unsigned long addr, unsigned long len, unsigned long prot, 
+		unsigned long flags, unsigned long fd, unsigned long off);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;

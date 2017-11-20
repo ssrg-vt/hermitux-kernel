@@ -300,8 +300,8 @@ static void static_syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_MMAP /* encompasses mmap and munmap */
 			case 9:
 				/* mmap */
-				/* TODO */
-				s->rax = -1; /* MAP_FAILED */
+				s->rax = sys_mmap(s->rdi, s->rsi, s->rdx, s->r10, s->r8,
+						s->r9);
 				break;
 
 			case 11:
@@ -317,6 +317,15 @@ static void static_syscall_handler(struct state *s)
 				s->rax = sys_brk(s->rdi);
 				break;
 #endif /* DISABLE_SYS_BRK */
+
+#ifndef DISABLE_SYS_RT_SIGACTION
+			case 13:
+				/* rt_sigaction */
+				s->rax = sys_rt_sigaction(s->rdi, 
+						(const struct sigaction *)s->rsi, 
+						(struct sigaction *)s->rdx);
+				break;
+#endif /* DISABLE_SYS_RT_SIGACTION */
 
 #ifndef DISABLE_SYS_IOCTL
 			case 16:
@@ -355,6 +364,20 @@ static void static_syscall_handler(struct state *s)
 				break;
 #endif /* DISABLE_SYS_GETPID */
 
+#ifndef DISABLE_SYS_SOCKET
+			case 41:
+				/* socket */
+				s->rax = sys_socket(s->rdi, s->rsi, s->rdx);
+				break;
+#endif /* DISABLE_SYS_SOCKET */
+
+#ifndef DISABLE_SYS_BIND
+			case 49:
+				/* bind */
+				s->rax = sys_bind(s->rdi, (struct sockaddr *)s->rsi, s->rdx);
+				break;
+#endif /* DISABLE_SYS_BIND */
+
 #ifndef DISABLE_SYS_EXIT
 			case 60:
 				/* exit */
@@ -362,6 +385,13 @@ static void static_syscall_handler(struct state *s)
 				LOG_ERROR("Should not reach here after exit ... \n");
 				break;
 #endif /* DISABLE_SYS_EXIT */
+
+#ifndef DISABLE_SYS_SETSOCKOPT
+			case 54:
+				/* setsockopt */
+				sys_setsockopt(s->rdi, s->rsi, s->rdx, (char *)s->r10, s->r8);
+				break;
+#endif /* DISABLE_SYS_SETSOCKOPT */
 
 #ifndef DISABLE_SYS_UNAME
 			case 63:
