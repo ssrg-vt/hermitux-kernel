@@ -129,6 +129,7 @@ int sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 		unsigned long flags, unsigned long fd, unsigned long off);
 int sys_mkdir(const char *pathname, umode_t mode);
 int sys_rmdir(const char *pathname);
+int sys_madvise(unsigned long start, size_t len_in, int behavior);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;

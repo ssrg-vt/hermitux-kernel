@@ -350,6 +350,13 @@ static void static_syscall_handler(struct state *s)
 				break;
 #endif /* DISABLE_SYS_WRITEV */
 
+#ifndef DISABLE_SYS_MADVISE
+			case 28:
+				/* madvise */
+				s->rax = sys_madvise(s->rdi, s->rsi, s->rdx);
+				break;
+#endif /* DISABLE_SYS_MADVISE */
+
 #ifndef DISABLE_SYS_NANOSLEEP
 			case 35:
 				/* nanosleep */
