@@ -815,19 +815,29 @@ static int vcpu_loop(void)
 			//printf("port 0x%x\n", run->io.port);
 			switch (run->io.port) {
 			case UHYVE_PORT_WRITE: {
-					unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
-					uhyve_write_t* uhyve_write = (uhyve_write_t*) (guest_mem+data);
+				int ret;
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_write_t* uhyve_write = (uhyve_write_t*) (guest_mem+data);
 
-					uhyve_write->len = write(uhyve_write->fd, guest_mem+(size_t)uhyve_write->buf, uhyve_write->len);
-					break;
+				ret = write(uhyve_write->fd, guest_mem+(size_t)uhyve_write->buf, uhyve_write->len);
+				if(ret == -1)
+					uhyve_write->len = -errno;
+				else
+					uhyve_write->len = ret;
+				break;
 				}
 
 			case UHYVE_PORT_READ: {
-					unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
-					uhyve_read_t* uhyve_read = (uhyve_read_t*) (guest_mem+data);
+				int ret;
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_read_t* uhyve_read = (uhyve_read_t*) (guest_mem+data);
 
-					uhyve_read->ret = read(uhyve_read->fd, guest_mem+(size_t)uhyve_read->buf, uhyve_read->len);
-					break;
+				ret = read(uhyve_read->fd, guest_mem+(size_t)uhyve_read->buf, uhyve_read->len);
+				if(ret == -1) 
+					uhyve_read->ret = -errno;
+				else
+					uhyve_read->ret = ret;
+				break;
 				}
 
 			case UHYVE_PORT_EXIT: {
@@ -841,37 +851,70 @@ static int vcpu_loop(void)
 				}
 
 			case UHYVE_PORT_OPEN: {
-					unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
-					uhyve_open_t* uhyve_open = (uhyve_open_t*) (guest_mem+data);
+				int ret;
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_open_t* uhyve_open = (uhyve_open_t*) (guest_mem+data);
 
-					uhyve_open->ret = open((const char*)guest_mem+(size_t)uhyve_open->name, uhyve_open->flags, uhyve_open->mode);
+				ret = open((const char*)guest_mem+(size_t)uhyve_open->name, uhyve_open->flags, uhyve_open->mode);
+				if(ret == -1)
+					uhyve_open->ret = -errno;
+				else
+					uhyve_open->ret = ret;
 					break;
 				}
 
 			case UHYVE_PORT_UNLINK: {
-					unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
-					uhyve_unlink_t *uhyve_unlink = (uhyve_unlink_t *) (guest_mem+data);
+				int ret;
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_unlink_t *uhyve_unlink = (uhyve_unlink_t *) (guest_mem+data);
 
-					uhyve_unlink->ret = unlink((const char *)guest_mem+(size_t)uhyve_unlink->pathname);
+				uhyve_unlink->ret = 
+				ret = unlink((const char *)guest_mem+(size_t)uhyve_unlink->pathname);
+				if(ret == -1)
+					uhyve_unlink->ret = -errno;
+				else
+					uhyve_unlink->ret = ret;
 					break;	
 				}
+
+			case UHYVE_PORT_MKDIR: {
+				int ret;
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_mkdir_t *uhyve_mkdir = (uhyve_mkdir_t *) (guest_mem+data);
+
+				ret = mkdir((const char *)(guest_mem+(size_t)uhyve_mkdir->pathname), uhyve_mkdir->mode);
+				uhyve_mkdir->ret = (ret == -1) ? -errno : ret;
+					break;
+
+			}
+								   
+			case UHYVE_PORT_RMDIR: {
+				int ret;
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_rmdir_t *uhyve_rmdir = (uhyve_rmdir_t *) (guest_mem+data);
+
+				ret = rmdir((const char *)(guest_mem+(size_t)uhyve_rmdir->pathname));
+				uhyve_rmdir->ret = (ret == -1) ? -errno : ret;
+				break;
+			}
+
 			case UHYVE_PORT_FSTAT: {
-					unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
-					uhyve_fstat_t *uhyve_fstat = (uhyve_fstat_t *) (guest_mem+data);
+				int ret;
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_fstat_t *uhyve_fstat = (uhyve_fstat_t *) (guest_mem+data);
 				
-					uhyve_fstat->ret = fstat(uhyve_fstat->fd, (struct stat *)(guest_mem+(size_t)uhyve_fstat->st));
+				ret = fstat(uhyve_fstat->fd, (struct stat *)(guest_mem+(size_t)uhyve_fstat->st));
+
+				uhyve_fstat->ret = (ret == -1) ? -errno : ret;
 					break;
 				}
 
 			case UHYVE_PORT_GETCWD: {
-					unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
-					uhyve_getcwd_t *uhyve_getcwd = (uhyve_getcwd_t *) (guest_mem+data);
-					getcwd((char *)(guest_mem+(size_t)uhyve_getcwd->buf), uhyve_getcwd->size);
-					break;
-
-
-					
-
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_getcwd_t *uhyve_getcwd = (uhyve_getcwd_t *) (guest_mem+data);
+				
+				getcwd((char *)(guest_mem+(size_t)uhyve_getcwd->buf), uhyve_getcwd->size);
+				break;
 			}
 
 			case UHYVE_PORT_CMDSIZE: {
@@ -943,14 +986,17 @@ static int vcpu_loop(void)
 			}
 
 			case UHYVE_PORT_CLOSE: {
-					unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
-					uhyve_close_t* uhyve_close = (uhyve_close_t*) (guest_mem+data);
+				int ret;
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_close_t* uhyve_close = (uhyve_close_t*) (guest_mem+data);
 
-					if (uhyve_close->fd > 2)
-						uhyve_close->ret = close(uhyve_close->fd);
-					else
-						uhyve_close->ret = 0;
-					break;
+				if (uhyve_close->fd > 2) {
+					ret = close(uhyve_close->fd);
+					uhyve_close->ret = (ret == -1) ? -errno : ret;
+				}
+				else
+					uhyve_close->ret = 0;
+				break;
 				}
 
 			case UHYVE_PORT_NETINFO: {

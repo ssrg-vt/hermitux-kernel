@@ -25,13 +25,15 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdlib.h>
+/* #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
+#include <unistd.h> */
 
 /* Linux applications are always located at address 0x400000 */
 #define tux_start_address	0x400000
+
+typedef unsigned long long size_t;
 
 extern const size_t tux_entry;
 extern const size_t tux_size;
@@ -43,7 +45,7 @@ int main(int argc, char** argv)
 	unsigned long long int libc_argc = argc -1;
 	int i, envc;
 
-	printf("Hello from HermiTux loader\n\n");
+/*	printf("Hello from HermiTux loader\n\n");
 
 	if (tux_entry >= tux_start_address) {
 		printf("Found linux image at 0x%zx with a size of 0x%zx\n", 
@@ -53,7 +55,7 @@ int main(int argc, char** argv)
 		printf("Value of first byte at entry point: 0x%zx\n", 
 				(size_t) *((char*) tux_entry));
 	} else 
-		fprintf(stderr, "Unable to find a Linux image!!!\n");
+		fprintf(stderr, "Unable to find a Linux image!!!\n"); */
 
 
 	/* count the number of environment variables */
@@ -104,7 +106,7 @@ int main(int argc, char** argv)
 	/* argc */
 	asm volatile("pushq %0" : : "r" (libc_argc));
 
-	printf("Jumping to 0x%x\n", tux_entry);
+//	printf("Jumping to 0x%x\n", tux_entry);
 	asm volatile("jmp *%0" : : "r" (tux_entry));
 
 	return 0;

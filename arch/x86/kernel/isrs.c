@@ -414,6 +414,20 @@ static void static_syscall_handler(struct state *s)
 				break;
 #endif /* DISABLE_SYS_GETCWD */
 
+#ifndef DISABLE_SYS_MKDIR
+			case 83:
+				/* mkdir */
+				s->rax = sys_mkdir((const char *)s->rdi, s->rsi);
+				break;
+#endif /* DISABLE_SYS_MKDIR */
+
+#ifndef DISABLE_SYS_RMDIR
+			case 84:
+				/* rmdir */
+				s->rax = sys_rmdir((const char *)s->rdi);
+				break;
+#endif /* DISABLE_SYS_RMDIR */
+
 #ifndef DISABLE_SYS_UNLINK
 			case 87:
 				/* unlink */

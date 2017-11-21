@@ -11,7 +11,6 @@ typedef struct {
 } __attribute__ ((packed)) uhyve_fcntl_t;
 
 int sys_fcntl(unsigned int fd, unsigned int cmd, unsigned long arg) {
-	LOG_INFO("fcntl fd: %u, cmd: %u, arg: %lu\n");
 
 	/* uhyve: TODO -> when arg is a pointer or not, and
 	 * which size ..... */

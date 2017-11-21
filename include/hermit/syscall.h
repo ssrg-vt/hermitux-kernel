@@ -103,6 +103,7 @@ struct timespec;
 struct timeval;
 struct sigaction;
 struct sockaddr;
+typedef unsigned short umode_t;
 
 int sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg);
 int sys_writev(int fd, const struct iovec *iov, unsigned long vlen);
@@ -126,6 +127,8 @@ int sys_bind(int fd, struct sockaddr *addr, int addrlen);
 int sys_setsockopt(int fd, int level, int optname, char *optval, int optlen);
 int sys_mmap(unsigned long addr, unsigned long len, unsigned long prot, 
 		unsigned long flags, unsigned long fd, unsigned long off);
+int sys_mkdir(const char *pathname, umode_t mode);
+int sys_rmdir(const char *pathname);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;
