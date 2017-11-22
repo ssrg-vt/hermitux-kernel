@@ -46,6 +46,7 @@
 #include <signal.h>
 #include <limits.h>
 #include <pthread.h>
+#include <semaphore.h>
 #include <elf.h>
 #include <err.h>
 #include <poll.h>
@@ -188,6 +189,7 @@ static pthread_barrier_t barrier;
 static __thread struct kvm_run *run = NULL;
 static __thread int vcpufd = -1;
 static __thread uint32_t cpuid = 0;
+static sem_t net_sem;
 uint8_t* guest_mem = NULL;
 
 int uhyve_argc = -1;
@@ -746,6 +748,7 @@ static void* wait_for_packet(void* arg)
 		else if (ret) {
 			uint64_t event_counter = 1;
 			write(efd, &event_counter, sizeof(event_counter));
+			sem_wait(&net_sem);
 		}
 	}
 
@@ -762,6 +765,8 @@ static inline void check_network(void)
 		irqfd.fd = efd;
 		irqfd.gsi = UHYVE_IRQ;
 		kvm_ioctl(vmfd, KVM_IRQFD, &irqfd);
+
+		sem_init(&net_sem, 0, 0);
 
 		if (pthread_create(&net_thread, NULL, wait_for_packet, NULL))
 			err(1, "unable to create thread");
@@ -917,65 +922,6 @@ static int vcpu_loop(void)
 				break;
 			}
 
-			case UHYVE_PORT_CMDSIZE: {
-					int i;
-					unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
-					uhyve_cmdsize_t *val = (uhyve_cmdsize_t *) (guest_mem+data);
-					
-					val->argc = uhyve_argc;
-					for(i=0; i<uhyve_argc; i++)
-						val->argsz[i] = strlen(uhyve_argv[i]);
-
-					val->envc = uhyve_envc;
-					for(i=0; i<uhyve_envc; i++)
-						val->envsz[i] = strlen(uhyve_envp[i]);
-
-					break;			 
-				}
-
-			case UHYVE_PORT_CMDVAL: {
-					int i;
-					char **argv_ptr, **env_ptr;
-					struct kvm_translation kt;
-					unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
-					uhyve_cmdval_t *val = (uhyve_cmdval_t *) (guest_mem+data);
-					
-					/* buffers inside uhyve_cmdval are not directlty mapped
-					 * (they are allocated through kmalloc) so we cannot 
-					 * used a simple offset as the guest to host, we have to
-					 * walk the guest page table to find the physical address,
-					 * then we can use the offset
-					 */
-					
-					/* argv */
-					kt.linear_address = (unsigned long long)val->argv;
-					kvm_ioctl(vcpufd, KVM_TRANSLATE, &kt);
-					argv_ptr = (char **)(guest_mem + 
-							(size_t)kt.physical_address);
-	
-					for(i=0; i<uhyve_argc; i++) {
-						kt.linear_address = (unsigned long long)argv_ptr[i];
-						kvm_ioctl(vcpufd, KVM_TRANSLATE, &kt);
-						strcpy(guest_mem + (size_t)kt.physical_address, 
-								uhyve_argv[i]);
-					}
-
-					/* env */
-					kt.linear_address = (unsigned long long)val->envp;
-					kvm_ioctl(vcpufd, KVM_TRANSLATE, &kt);
-					env_ptr = (char **)(guest_mem + 
-							(size_t)kt.physical_address);
-	
-					for(i=0; i<uhyve_envc; i++) {
-						kt.linear_address = (unsigned long long)env_ptr[i];
-						kvm_ioctl(vcpufd, KVM_TRANSLATE, &kt);
-						strcpy(guest_mem + (size_t)kt.physical_address, 
-								uhyve_envp[i]);
-					}
-
-					break;
-				}
-
 			case UHYVE_PORT_FCNTL: {
 					unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
 					uhyve_fcntl_t *uhyve_fcntl = (uhyve_fcntl_t *) (guest_mem+data);
@@ -1029,7 +975,10 @@ static int vcpu_loop(void)
 					if (ret > 0) {
 						uhyve_netread->len = ret;
 						uhyve_netread->ret = 0;
-					} else uhyve_netread->ret = -1;
+					} else {
+						uhyve_netread->ret = -1;
+						sem_post(&net_sem);
+					}
 					break;
 				}
 
@@ -1049,6 +998,41 @@ static int vcpu_loop(void)
 					uhyve_lseek_t* uhyve_lseek = (uhyve_lseek_t*) (guest_mem+data);
 
 					uhyve_lseek->offset = lseek(uhyve_lseek->fd, uhyve_lseek->offset, uhyve_lseek->whence);
+					break;
+				}
+
+			case UHYVE_PORT_CMDSIZE: {
+					int i;
+					unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+					uhyve_cmdsize_t *val = (uhyve_cmdsize_t *) (guest_mem+data);
+
+					val->argc = uhyve_argc;
+					for(i=0; i<uhyve_argc; i++)
+						val->argsz[i] = strlen(uhyve_argv[i]) + 1;
+
+					val->envc = uhyve_envc;
+					for(i=0; i<uhyve_envc; i++)
+						val->envsz[i] = strlen(uhyve_envp[i]) + 1;
+
+					break;
+				}
+
+			case UHYVE_PORT_CMDVAL: {
+					int i;
+					char **argv_ptr, **env_ptr;
+					unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+					uhyve_cmdval_t *val = (uhyve_cmdval_t *) (guest_mem+data);
+
+					/* argv */
+					argv_ptr = (char **)(guest_mem + (size_t)val->argv);
+					for(i=0; i<uhyve_argc; i++)
+						strcpy(guest_mem + (size_t)argv_ptr[i], uhyve_argv[i]);
+
+					/* env */
+					env_ptr = (char **)(guest_mem + (size_t)val->envp);
+					for(i=0; i<uhyve_envc; i++)
+						strcpy(guest_mem + (size_t)env_ptr[i], uhyve_envp[i]);
+
 					break;
 				}
 
@@ -1690,6 +1674,23 @@ int uhyve_loop(int argc, char **argv)
 	while(uhyve_envp[i] != NULL)
 		i++;
 	uhyve_envc = i;
+
+	if (uhyve_argc > MAX_ARGC_ENVC) {
+		fprintf(stderr, "uhyve downsiize envc from %d to %d\n", uhyve_argc, MAX_ARGC_ENVC);
+		uhyve_argc = MAX_ARGC_ENVC;
+	}
+
+	if (uhyve_envc > MAX_ARGC_ENVC-1) {
+		fprintf(stderr, "uhyve downsiize envc from %d to %d\n", uhyve_envc, MAX_ARGC_ENVC-1);
+		uhyve_envc = MAX_ARGC_ENVC-1;
+	}
+
+	if(uhyve_argc > MAX_ARGC_ENVC || uhyve_envc > MAX_ARGC_ENVC) {
+		fprintf(stderr, "uhyve cannot forward more than %d command line "
+			"arguments or environment variables, please consider increasing "
+				"the MAX_ARGC_ENVP cmake argument\n", MAX_ARGC_ENVC);
+		return -1;
+	}
 
 	if (hermit_check)
 		ts = atoi(hermit_check);
