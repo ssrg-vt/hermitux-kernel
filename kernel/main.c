@@ -78,6 +78,7 @@ extern void gettimeofday_init(void);
 #ifndef NO_NET
 static struct netif	default_netif;
 static const int sobufsize = 131072;
+extern volatile int libc_sd;
 #endif /* NO_NET */
 
 /*
@@ -106,7 +107,6 @@ extern atomic_int32_t possible_cpus;
 extern int32_t isle;
 extern int32_t possible_isles;
 extern uint32_t boot_processor;
-extern volatile int libc_sd;
 extern uint8_t hcip[4];
 extern uint8_t hcgateway[4];
 extern uint8_t hcmask[4];
@@ -599,10 +599,10 @@ static int initd(void* arg)
 		}
 	}
 
+	libc_sd = c;
 #endif /* NO_NET */
 
 	// call user code
-	libc_sd = c;
 	libc_start(argc, argv, environ);
 
 #ifndef NO_NET
