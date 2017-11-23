@@ -385,6 +385,18 @@ static void static_syscall_handler(struct state *s)
 				break;
 #endif
 
+#ifndef DISABLE_SYS_ACCEPT
+			case 43:
+				/* accept */
+				s->rax = accept(s->rdi, (struct sockaddr *) s->rsi, s->rdx);
+				break;
+#endif
+
+			case 45:
+				/* recvfrom */
+				s->rax = recvfrom(s->rdi, s->rsi, s->rdx, s->r10, s->r8, s->r9);
+				break;
+
 #ifndef DISABLE_SYS_BIND
 			case 49:
 				/* bind */
