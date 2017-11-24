@@ -799,6 +799,7 @@ static void* wait_for_packet(void* arg)
 							.events = POLLIN,
 							.revents  = 0};
 
+	usleep(30000);
 	while(1)
 	{
 		fds.revents = 0;
