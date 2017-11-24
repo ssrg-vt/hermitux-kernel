@@ -327,6 +327,14 @@ static void static_syscall_handler(struct state *s)
 				break;
 #endif /* DISABLE_SYS_RT_SIGACTION */
 
+#ifndef DISABLE_SYS_RT_SIGPROCMASK
+			case 14:
+				/* rt_sigprocmask */
+				/* FIXME */
+				s->rax = 0;
+				break;
+#endif /* DISABLE_SYS_RT_SIGPROCMASK */
+
 #ifndef DISABLE_SYS_IOCTL
 			case 16:
 				/* ioctl */
@@ -508,7 +516,21 @@ static void static_syscall_handler(struct state *s)
 				s->rax = sys_arch_prctl(s->rdi, (unsigned long *)s->rsi, s);
 				break;
 #endif /* DISABLE_SYS_ARCH_PRCTL */
-			
+		
+#ifndef DISABLE_SYS_GETTID
+			case 186:
+				/* gettid */
+				s->rax = sys_getpid();
+				break;
+#endif /* DISABLE_SYS_GETTID */
+
+#ifndef DISABLE_SYS_TKILL
+			case 200:
+				/* tkill */
+				s->rax = sys_kill(s->rdi, s->rsi);
+				break;
+#endif /* DISABLE_SYS_TKILL */
+
 #ifndef DISABLE_SYS_SET_TID_ADDRESS
 			case 218:
 				/* set_tid_address */
