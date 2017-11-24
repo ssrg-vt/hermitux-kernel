@@ -92,7 +92,7 @@ static void arch_fpu_handler(struct state *s);
 extern void fpu_handler(void);
 static void static_syscall_handler(struct state *s);
 
-/* void init_syscalls_names() {
+/*static void init_syscalls_names() {
 	syscalls_names[0] = "read";
 	syscalls_names[1] = "write";
 	syscalls_names[2] = "open";
@@ -236,8 +236,8 @@ static void static_syscall_handler(struct state *s)
 	/* syscall opcode = 0F05 */
 	if (*opcode == 0x50F) {
 
-/* 		LOG_INFO("Caught syscall %d (%s) from cs:ip %#lx:%#lx\n", s->rax, 
-				syscalls_names[s->rax], s->cs, s->rip); */
+		/*LOG_INFO("Caught syscall %d (%s) from cs:ip %#lx:%#lx\n", s->rax,
+				syscalls_names[s->rax], s->cs, s->rip);*/
 
 		switch(s->rax) {
 
@@ -378,12 +378,45 @@ static void static_syscall_handler(struct state *s)
 				break;
 #endif /* DISABLE_SYS_SOCKET */
 
+#ifndef DISABLE_SYS_CONNECT
+			case 42:
+				/* connect */
+				s->rax = connect(s->rdi, (const struct sockaddr*) s->rsi, s->rdx);
+				break;
+#endif
+
+#ifndef DISABLE_SYS_ACCEPT
+			case 43:
+				/* accept */
+				s->rax = accept(s->rdi, (struct sockaddr *) s->rsi, s->rdx);
+				break;
+#endif
+
+			case 45:
+				/* recvfrom */
+				s->rax = recvfrom(s->rdi, s->rsi, s->rdx, s->r10, s->r8, s->r9);
+				break;
+
 #ifndef DISABLE_SYS_BIND
 			case 49:
 				/* bind */
 				s->rax = sys_bind(s->rdi, (struct sockaddr *)s->rsi, s->rdx);
 				break;
 #endif /* DISABLE_SYS_BIND */
+
+#ifndef DISABLE_SYS_LISTEN
+			case 50:
+				/* lsiten */
+				s->rax = listen(s->rdi, s->rsi);
+				break;
+#endif
+
+#ifndef DISABLE_SYS_GETSOCKNAME
+			case 51:
+				/* getsockname */
+				s->rax = getsockname(s->rdi, (struct sockaddr *)s->rsi, s->rdx);
+				break;
+#endif
 
 #ifndef DISABLE_SYS_EXIT
 			case 60:
@@ -396,7 +429,7 @@ static void static_syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_SETSOCKOPT
 			case 54:
 				/* setsockopt */
-				sys_setsockopt(s->rdi, s->rsi, s->rdx, (char *)s->r10, s->r8);
+				s->rax = sys_setsockopt(s->rdi, s->rsi, s->rdx, (char *)s->r10, s->r8);
 				break;
 #endif /* DISABLE_SYS_SETSOCKOPT */
 
