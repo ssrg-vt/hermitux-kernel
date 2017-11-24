@@ -262,7 +262,7 @@ void syscall_handler(struct state *s)
 		case 1:
 			/* write */
 			s->rax = sys_write(s->rdi, (char *)s->rsi, s->rdx);
-				break;
+			break;
 #endif /* DISABLE_SYS_WRITE */
 
 #ifndef DISABLE_SYS_OPEN
@@ -421,6 +421,15 @@ void syscall_handler(struct state *s)
 			s->rax = recvfrom(s->rdi, s->rsi, s->rdx, s->r10, s->r8, s->r9);
 			break;
 #endif /* DISABLE_SYS_RECVFROM */
+#endif /* NO_NET */
+
+#ifndef NO_NET
+#ifndef DISABLE_SYS_SHUTDOWN
+		case 48:
+			/* shutdown */
+			s->rax = shutdown(s->rdi, s->rsi);
+			break;
+#endif /* DISABLE_SYS_SHUTDOWN */
 #endif /* NO_NET */
 
 #ifndef NO_NET
