@@ -378,24 +378,32 @@ static void static_syscall_handler(struct state *s)
 				break;
 #endif /* DISABLE_SYS_SOCKET */
 
+#ifndef NO_NET
 #ifndef DISABLE_SYS_CONNECT
 			case 42:
 				/* connect */
 				s->rax = connect(s->rdi, (const struct sockaddr*) s->rsi, s->rdx);
 				break;
 #endif
+#endif /* NO_NET */
 
+#ifndef NO_NET
 #ifndef DISABLE_SYS_ACCEPT
 			case 43:
 				/* accept */
 				s->rax = accept(s->rdi, (struct sockaddr *) s->rsi, s->rdx);
 				break;
-#endif
+#endif /* DISABLE_SYS_ACCEPT */
+#endif /* NO_NET */
 
+#ifndef NO_NET
+#ifndef DISABLE_SYS_RECVFROM
 			case 45:
 				/* recvfrom */
 				s->rax = recvfrom(s->rdi, s->rsi, s->rdx, s->r10, s->r8, s->r9);
 				break;
+#endif /* DISABLE_SYS_RECVFROM */
+#endif /* NO_NET */
 
 #ifndef DISABLE_SYS_BIND
 			case 49:
@@ -404,19 +412,23 @@ static void static_syscall_handler(struct state *s)
 				break;
 #endif /* DISABLE_SYS_BIND */
 
+#ifndef NO_NET
 #ifndef DISABLE_SYS_LISTEN
 			case 50:
 				/* lsiten */
 				s->rax = listen(s->rdi, s->rsi);
 				break;
 #endif
+#endif /* NO_NET */
 
+#ifndef NO_NET
 #ifndef DISABLE_SYS_GETSOCKNAME
 			case 51:
 				/* getsockname */
 				s->rax = getsockname(s->rdi, (struct sockaddr *)s->rsi, s->rdx);
 				break;
 #endif
+#endif /* NO_NET */
 
 #ifndef DISABLE_SYS_EXIT
 			case 60:
