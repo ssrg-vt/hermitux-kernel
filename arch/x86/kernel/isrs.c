@@ -44,6 +44,8 @@
 #include <asm/idt.h>
 #include <asm/apic.h>
 
+//char *syscalls_names[250];
+
 #define SYSCALL_INT_NO 6
 
 
@@ -89,7 +91,22 @@ static void arch_fault_handler(struct state *s);
 static void arch_fpu_handler(struct state *s);
 extern void fpu_handler(void);
 static void static_syscall_handler(struct state *s);
-	
+
+/* void init_syscalls_names() {
+	syscalls_names[0] = "read";
+	syscalls_names[1] = "write";
+	syscalls_names[2] = "open";
+	syscalls_names[3] = "close";
+	syscalls_names[12] = "brk";
+	syscalls_names[16] = "ioctl";
+	syscalls_names[20] = "writev";
+	syscalls_names[63] = "uname";
+	syscalls_names[158] = "arch_prctl";
+	syscalls_names[218] = "set_tid_address";
+	syscalls_names[228] = "clock_gettime";
+	syscalls_names[231] = "exit_group";
+} */
+
 /*
  * This is a very repetitive function... it's not hard, it's
  * just annoying. As you can see, we set the first 32 entries
@@ -185,6 +202,8 @@ void isrs_install(void)
 	// For static syscalls
 	irq_uninstall_handler(SYSCALL_INT_NO);
 	irq_install_handler(SYSCALL_INT_NO, static_syscall_handler);
+
+	/* init_syscalls_names(); */
 	
 	// set hanlder for fpu exceptions
 	irq_uninstall_handler(7);
@@ -216,6 +235,10 @@ static void static_syscall_handler(struct state *s)
 
 	/* syscall opcode = 0F05 */
 	if (*opcode == 0x50F) {
+
+/* 		LOG_INFO("Caught syscall %d (%s) from cs:ip %#lx:%#lx\n", s->rax, 
+				syscalls_names[s->rax], s->cs, s->rip); */
+
 		switch(s->rax) {
 
 #ifndef DISABLE_SYS_READ
@@ -246,6 +269,27 @@ static void static_syscall_handler(struct state *s)
 				break;
 #endif /* DISABLE_SYS_CLOSE */
 
+#ifndef DISABLE_SYS_STAT
+			case 4:
+				/* stat */
+				s->rax = sys_stat((const char *)s->rdi, (struct stat *)s->rsi);
+				break;
+#endif /* DISABLE_SYS_STAT */
+
+#ifndef DISABLE_SYS_FSTAT
+			case 5:
+				/* fstat */
+				s->rax = sys_fstat(s->rdi, (struct stat *)s->rsi);
+				break;
+#endif /* DISABLE_SYS_FSTAT */
+
+#ifndef DISABLE_SYS_LSTAT
+			case 6:
+				/* lstat */
+				s->rax = sys_lstat((const char *)s->rdi, (struct stat *)s->rsi);
+				break;
+#endif /* DISABLE_SYS_LSTAT */
+
 #ifndef DISABLE_SYS_LSEEK
 			case 8:
 				/* lseek */
@@ -256,8 +300,8 @@ static void static_syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_MMAP /* encompasses mmap and munmap */
 			case 9:
 				/* mmap */
-				/* TODO */
-				s->rax = -1; /* MAP_FAILED */
+				s->rax = sys_mmap(s->rdi, s->rsi, s->rdx, s->r10, s->r8,
+						s->r9);
 				break;
 
 			case 11:
@@ -270,10 +314,18 @@ static void static_syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_BRK
 			case 12:
 				/* brk */
-				/* TODO */
 				s->rax = sys_brk(s->rdi);
 				break;
 #endif /* DISABLE_SYS_BRK */
+
+#ifndef DISABLE_SYS_RT_SIGACTION
+			case 13:
+				/* rt_sigaction */
+				s->rax = sys_rt_sigaction(s->rdi, 
+						(const struct sigaction *)s->rsi, 
+						(struct sigaction *)s->rdx);
+				break;
+#endif /* DISABLE_SYS_RT_SIGACTION */
 
 #ifndef DISABLE_SYS_IOCTL
 			case 16:
@@ -298,6 +350,13 @@ static void static_syscall_handler(struct state *s)
 				break;
 #endif /* DISABLE_SYS_WRITEV */
 
+#ifndef DISABLE_SYS_MADVISE
+			case 28:
+				/* madvise */
+				s->rax = sys_madvise(s->rdi, s->rsi, s->rdx);
+				break;
+#endif /* DISABLE_SYS_MADVISE */
+
 #ifndef DISABLE_SYS_NANOSLEEP
 			case 35:
 				/* nanosleep */
@@ -312,6 +371,20 @@ static void static_syscall_handler(struct state *s)
 				break;
 #endif /* DISABLE_SYS_GETPID */
 
+#ifndef DISABLE_SYS_SOCKET
+			case 41:
+				/* socket */
+				s->rax = sys_socket(s->rdi, s->rsi, s->rdx);
+				break;
+#endif /* DISABLE_SYS_SOCKET */
+
+#ifndef DISABLE_SYS_BIND
+			case 49:
+				/* bind */
+				s->rax = sys_bind(s->rdi, (struct sockaddr *)s->rsi, s->rdx);
+				break;
+#endif /* DISABLE_SYS_BIND */
+
 #ifndef DISABLE_SYS_EXIT
 			case 60:
 				/* exit */
@@ -320,12 +393,47 @@ static void static_syscall_handler(struct state *s)
 				break;
 #endif /* DISABLE_SYS_EXIT */
 
+#ifndef DISABLE_SYS_SETSOCKOPT
+			case 54:
+				/* setsockopt */
+				sys_setsockopt(s->rdi, s->rsi, s->rdx, (char *)s->r10, s->r8);
+				break;
+#endif /* DISABLE_SYS_SETSOCKOPT */
+
+#ifndef DISABLE_SYS_UNAME
+			case 63:
+				/* uname */
+				sys_uname((void *)s->rdi);
+				break;
+#endif /* DISABLE_SYS_UNAME */
+
 #ifndef DISABLE_SYS_FCNTL
 			case 72:
 				/* fcntl */
 				s->rax = sys_fcntl(s->rdi, s->rsi, s->rdx);
 				break;
 #endif /* DISABLE_SYS_FCNTL */
+
+#ifndef DISABLE_SYS_GETCWD
+			case 79:
+				/*getcwd */
+				s->rax = sys_getcwd((char *)s->rdi, s->rsi);
+				break;
+#endif /* DISABLE_SYS_GETCWD */
+
+#ifndef DISABLE_SYS_MKDIR
+			case 83:
+				/* mkdir */
+				s->rax = sys_mkdir((const char *)s->rdi, s->rsi);
+				break;
+#endif /* DISABLE_SYS_MKDIR */
+
+#ifndef DISABLE_SYS_RMDIR
+			case 84:
+				/* rmdir */
+				s->rax = sys_rmdir((const char *)s->rdi);
+				break;
+#endif /* DISABLE_SYS_RMDIR */
 
 #ifndef DISABLE_SYS_UNLINK
 			case 87:
@@ -352,8 +460,7 @@ static void static_syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_ARCH_PRCTL
 			case 158:
 				/* arch_prctl */
-				/* TODO */
-				s->rax = 0;
+				s->rax = sys_arch_prctl(s->rdi, (unsigned long *)s->rsi, s);
 				break;
 #endif /* DISABLE_SYS_ARCH_PRCTL */
 			
@@ -424,7 +531,7 @@ static void arch_fault_handler(struct state *s)
 
 	LOG_ERROR(" Exception (%d) on core %d at %#x:%#lx, fs = %#lx, gs = %#lx, error code = %#lx, task id = %u, rflags = %#x\n",
 		s->int_no, CORE_ID, s->cs, s->rip, s->fs, s->gs, s->error, per_core(current_task)->id, s->rflags);
-	LOG_ERROR("rax %#lx, rbx %#lx, rcx %#lx, rdx %#lx, rbp, %#lx, rsp %#lx rdi %#lx, rsi %#lx, r8 %#lx, r9 %#lx, r10 %#lx, r11 %#lx, r12 %#lx, r13 %#lx, r14 %#lx, r15 %#lx\n",
+	LOG_ERROR("rax %#lx, rbx %#lx, rcx %#lx, rdx %#lx, rbp %#lx, rsp %#lx rdi %#lx, rsi %#lx, r8 %#lx, r9 %#lx, r10 %#lx, r11 %#lx, r12 %#lx, r13 %#lx, r14 %#lx, r15 %#lx\n",
 		s->rax, s->rbx, s->rcx, s->rdx, s->rbp, s->rsp, s->rdi, s->rsi, s->r8, s->r9, s->r10, s->r11, s->r12, s->r13, s->r14, s->r15);
 
 	apic_eoi(s->int_no);

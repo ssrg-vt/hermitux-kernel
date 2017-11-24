@@ -72,6 +72,9 @@
 #define HERMIT_PORT	0x494E
 #define HERMIT_MAGIC	0x7E317
 
+/* gettimeofday init function */
+extern void gettimeofday_init(void);
+
 #ifndef NO_NET
 static struct netif	default_netif;
 static const int sobufsize = 131072;
@@ -366,7 +369,7 @@ int libc_start(int argc, char** argv, char** env);
 static int initd(void* arg)
 {
 	int c = -1;
-	int i;
+	int i, envc = -1;
 	int err = 0;
 	task_t* curr_task = per_core(current_task);
 	size_t heap = HEAP_START;
@@ -374,7 +377,7 @@ static int initd(void* arg)
 	char** argv = NULL;
 	char **environ = NULL;
 #ifndef NO_NET
-	int envc, len, flag, j;
+	int len, flag, j;
 	int s = -1;
 	int magic = 0;
 	struct sockaddr_in6 server, client;
@@ -415,10 +418,14 @@ static int initd(void* arg)
 	err = init_netifs();
 #endif /* NO_NET */
 
+	/* initialize gettimeofday */
+	gettimeofday_init();
+
 	if(is_uhyve()) {
 		int i;
 		uhyve_cmdsize_t uhyve_cmdsize;
 		uhyve_cmdval_t uhyve_cmdval;
+		uhyve_cmdval_t uhyve_cmdval_phys;
 
 		uhyve_send(UHYVE_PORT_CMDSIZE,
 				(unsigned)virt_to_phys((size_t)&uhyve_cmdsize));
@@ -430,9 +437,22 @@ static int initd(void* arg)
 		for(i=0; i<uhyve_cmdsize.envc; i++)
 			uhyve_cmdval.envp[i] = kmalloc(uhyve_cmdsize.envsz[i] * sizeof(char));
 
+		// create a similar structure with guest physical addresses
+		char** argv_virt = uhyve_cmdval_phys.argv = kmalloc(uhyve_cmdsize.argc * sizeof(char *));
+		for(i=0; i<uhyve_cmdsize.argc; i++)
+			uhyve_cmdval_phys.argv[i] = (char*) virt_to_phys((size_t) uhyve_cmdval.argv[i]);
+		uhyve_cmdval_phys.argv = (char**) virt_to_phys((size_t) uhyve_cmdval_phys.argv);
+
+		char** envp_virt = uhyve_cmdval_phys.envp = kmalloc(uhyve_cmdsize.envc * sizeof(char *));
+		for(i=0; i<uhyve_cmdsize.envc-1; i++)
+			uhyve_cmdval_phys.envp[i] = (char*) virt_to_phys((size_t) uhyve_cmdval.envp[i]);
+		// the last element is always NULL
+		uhyve_cmdval_phys.envp[uhyve_cmdsize.envc-1] = NULL;
+		uhyve_cmdval_phys.envp = (char**) virt_to_phys((size_t) uhyve_cmdval_phys.envp);
+
 		uhyve_send(UHYVE_PORT_CMDVAL,
-				(unsigned)virt_to_phys((size_t)&uhyve_cmdval));
-		
+				(unsigned)virt_to_phys((size_t)&uhyve_cmdval_phys));
+
 		LOG_INFO("Boot time: %d ms\n", (get_clock_tick() * 1000) / TIMER_FREQ);
 		libc_start(uhyve_cmdsize.argc, uhyve_cmdval.argv, uhyve_cmdval.envp);
 
@@ -442,10 +462,12 @@ static int initd(void* arg)
 		for(i=0; i<envc; i++)
 			kfree(uhyve_cmdval.envp[i]);
 		kfree(uhyve_cmdval.envp);
+		kfree(argv_virt);
+		kfree(envp_virt);
 
 		return 0;
 	}
-	
+
 	if ((err != 0) || !is_proxy())
 	{
 		char* dummy[] = {"app_name", NULL};

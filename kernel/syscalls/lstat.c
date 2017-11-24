@@ -29,10 +29,11 @@ struct stat {
 	long __unused[3];
 };
 
-int sys_stat(const char* file, struct stat *st)
+int sys_lstat(const char* file, struct stat *st)
 {
+	/* FIXME take care of the symbolic link */
 	int fd, ret;
-	/* 0 corresponds to O_RDONLY */
+	/* 0 is O_RDONLY */
 	fd = sys_open(file, 0x0, 0x0);
 	ret = sys_fstat(fd, st);
 	return ret;

@@ -25,31 +25,89 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdlib.h>
+/* #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
+#include <unistd.h> */
 
-// Linux applications are always located at address 0x400000
+/* Linux applications are always located at address 0x400000 */
 #define tux_start_address	0x400000
+
+typedef unsigned long long size_t;
 
 extern const size_t tux_entry;
 extern const size_t tux_size;
 
+extern char **environ;
+
 int main(int argc, char** argv)
 {
-	printf("Hello from HermiTux loader\n\n");
+	unsigned long long int libc_argc = argc -1;
+	int i, envc;
+
+/*	printf("Hello from HermiTux loader\n\n");
 
 	if (tux_entry >= tux_start_address) {
-		printf("Found linux image at 0x%zx with a size of 0x%zx\n", tux_start_address, tux_size);
+		printf("Found linux image at 0x%zx with a size of 0x%zx\n", 
+				tux_start_address, tux_size);
 		printf("Entry point is located at 0x%zx\n", tux_entry);
 
-		printf("Value of first byte at entry point: 0x%zx\n", (size_t) *((char*) tux_entry));
-	} else fprintf(stderr, "Unable to find a Linux image!!!\n");
+		printf("Value of first byte at entry point: 0x%zx\n", 
+				(size_t) *((char*) tux_entry));
+	} else 
+		fprintf(stderr, "Unable to find a Linux image!!!\n"); */
 
-	void (*entry)(void) = (void *)tux_entry;
-	printf("jumping\n");
-	entry();
+
+	/* count the number of environment variables */
+	envc = 0;
+	for (char **env = environ; *env; ++env) envc++;
+
+	/* Befre jumping to the entry point we need to construct the stack with 
+	 * argc, argv, envp, and auxv according to the linux convention. The layout
+	 * shoud be:
+	 * rsp --> [ argc ]       integer, 8 bytes
+	 *         [ argv[0] ]    pointer, 8 bytes
+	 *         [ argv[1] ]    pointer, 8 bytes
+	 *         ...
+	 *         [ argv[argc] ] (NULL) pointer, 8 bytes
+	 *
+	 *         [ envp[0] ]    pointer, 8 bytes
+	 *         [ envp[1] ]    pointer, 8 bytes
+	 *         ...
+	 *         [ envp[N] ]    (NULL) pointer, 8 bytes
+	 *
+	 *         [ auxv[0] (Elf64_auxv_t] ] data structure, 16 bytes
+	 *         [ auxv[1] *Elf64_auxv_t) ] data structure, 16 bytes
+	 *         ...
+	 *         TODO termination
+	 *         Adapted from:
+	 *         http://articles.manugarg.com/aboutelfauxiliaryvectors
+	 */
+
+	/* We need to push the element on the stack in the inverse order they will 
+	 * be read by the C library (i.e. argc in the end) */
+
+	/* auxv */
+	/* TODO here, for now all the aux vectors data structures are filled
+	 * with zeros */
+	for(i=0; i<38*2; i++)
+		asm volatile("pushq %0" : : "i" (0x00));
+
+	/*envp */
+	/* Note that this will push NULL to the stack first, which is expected */
+	for(i=(envc); i>=0; i--)
+		asm volatile("pushq %0" : : "r" (environ[i]));
+
+	/* argv */
+	/* Same as envp, pushing NULL first */
+	for(i=libc_argc+1;i>0; i--)
+		asm volatile("pushq %0" : : "r" (argv[i]));
+
+	/* argc */
+	asm volatile("pushq %0" : : "r" (libc_argc));
+
+//	printf("Jumping to 0x%x\n", tux_entry);
+	asm volatile("jmp *%0" : : "r" (tux_entry));
 
 	return 0;
 }

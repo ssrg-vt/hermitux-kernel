@@ -45,10 +45,13 @@ extern "C" {
 // size of the whole application
 extern const size_t image_size;
 
+/* Linux binary size */
+extern uint64_t tux_size;
+
 #define TIMER_FREQ	100 /* in HZ */
 #define CLOCK_TICK_RATE	1193182 /* 8254 chip's internal oscillator frequency */
 #define CACHE_LINE	64
-#define HEAP_START	(PAGE_2M_CEIL((size_t)&kernel_start + image_size) + 4*PAGE_SIZE)
+#define HEAP_START	(PAGE_2M_CEIL((size_t)&kernel_start + image_size) + 4*PAGE_SIZE + PAGE_CEIL(tux_size))
 #define HEAP_SIZE	(1ULL << 32)
 #define KMSG_SIZE	0x1000
 #define INT_SYSCALL	0x80
@@ -70,6 +73,10 @@ extern const size_t image_size;
 #define UHYVE_PORT_FCNTL	0x510
 #define UHYVE_PORT_CMDSIZE	0x511
 #define UHYVE_PORT_CMDVAL	0x512
+#define UHYVE_PORT_FSTAT	0x513
+#define UHYVE_PORT_GETCWD	0x514
+#define UHYVE_PORT_MKDIR	0x515
+#define UHYVE_PORT_RMDIR	0x516
 
 #define BUILTIN_EXPECT(exp, b)		__builtin_expect((exp), (b))
 //#define BUILTIN_EXPECT(exp, b)	(exp)

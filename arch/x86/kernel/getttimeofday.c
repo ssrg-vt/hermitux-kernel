@@ -1,6 +1,7 @@
 #include <lwip/sockets.h>
 #include <hermit/hermitux_syscalls.h>
 #include <hermit/logging.h>
+#include <hermit/processor.h>
 
 extern unsigned int get_cpufreq(void);
 static unsigned long long start_tsc;
@@ -17,7 +18,7 @@ inline static unsigned long long gtod_rdtsc(void)
 
 void gettimeofday_init(void) {
 	start_tsc = gtod_rdtsc();
-	freq = get_cpufreq() * 1000000ULL;
+	freq = get_cpu_frequency() * 1000000ULL;
 }
 
 int sys_gettimeofday(struct timeval *tv, struct timezone *tz) {
