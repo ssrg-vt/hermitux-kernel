@@ -247,7 +247,7 @@ static void static_syscall_handler(struct state *s)
 
 void syscall_handler(struct state *s)
 {
-	LOG_INFO("Caught syscall %d (%s) %#lx:%#lx\n", s->rax, syscalls_names[s->rax]);
+//	LOG_INFO("Caught syscall %d (%s) %#lx:%#lx\n", s->rax, syscalls_names[s->rax]);
 
 	switch(s->rax) {
 
