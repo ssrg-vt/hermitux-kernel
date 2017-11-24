@@ -46,7 +46,7 @@ extern void* Lpatch1;
 extern void* Lpatch2;
 extern atomic_int32_t current_boot_id;
 
-extern void isrsyscall(void);
+extern void isyscall(void);
 
 cpu_info_t cpu_info = { 0, 0, 0, 0, 0};
 static char cpu_vendor[13] = {[0 ... 12] = 0};
@@ -515,11 +515,11 @@ int cpu_detection(void) {
 	}
 
 	// libos => currently no support of syscalls
-#if 0
+#if 1
 	if (cpu_info.feature3 & CPU_FEATURE_SYSCALL) {
 		wrmsr(MSR_EFER, rdmsr(MSR_EFER) | EFER_LMA | EFER_LME | EFER_SCE);
-		wrmsr(MSR_STAR, (0x1BULL << 48) | (0x08ULL << 32));
-		wrmsr(MSR_LSTAR, (size_t) &isrsyscall);
+		wrmsr(MSR_STAR, (/*0x1BULL*/ 0x08ULL << 48) | (0x08ULL << 32));
+		wrmsr(MSR_LSTAR, (size_t) &isyscall);
 		//  clear IF flag during an interrupt
 		wrmsr(MSR_SYSCALL_MASK, EFLAGS_TF|EFLAGS_DF|EFLAGS_IF|EFLAGS_AC|EFLAGS_NT);
 	} else kprintf("Processor doesn't support syscalls\n");
