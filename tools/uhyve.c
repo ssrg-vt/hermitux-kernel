@@ -71,6 +71,9 @@
 #include "uhyve-elf.h"
 #include "proxy.h"
 
+#include "miniz.h"
+#include "mini_gzip.h"
+
 // define this macro to create checkpoints with KVM's dirty log
 //#define USE_DIRTY_LOG
 
@@ -308,6 +311,47 @@ static int load_kernel(uint8_t* mem, const char* path)
 	size_t total_size = 0;
 	int fd, ret;
 	int first_load = 1;
+	char *compr_in, *compr_out;
+	const char *gz_extension = path + strlen(path) - 3;
+	int  is_compressed = !(strcmp(gz_extension, ".gz"));
+
+	if(is_compressed) {
+		struct mini_gzip gz;
+		struct stat st;
+		int fd, ret;
+		int output_file_size = 5*1024*1024;
+
+		printf("COMPRESSED\n");
+		
+		fd = open(path, O_RDONLY);
+		if(fd == -1) {
+			fprintf(stderr, "open %s: %s\n", path, strerror(errno));
+			return -1;
+		}
+
+		ret = fstat(fd, &st);
+		if(ret) {
+			fprintf(stderr, "stat %s: %s\n", path, strerror(errno));
+			return -1;
+		}
+
+		compr_in = malloc(st.st_size);
+		compr_out = malloc(output_file_size);
+
+		ret = read(fd, compr_in, st.st_size);
+		if(ret != st.st_size) {
+			fprintf(stderr, "read %s: %s\n", path, strerror(errno));
+			close(fd); goto out;
+		}
+
+		ret = mini_gz_start(&gz, compr_in, st.st_size);
+		if(ret != 0) {
+			fprintf(stderr, "error init uncompressing %s\n", path);
+			close(fd); goto out;
+		}
+		
+		mini_gz_unpack(&gz, compr_out, 5*1024*1024);
+	}
 
 	fd = open(path, O_RDONLY);
 	if (fd == -1)
@@ -316,9 +360,13 @@ static int load_kernel(uint8_t* mem, const char* path)
 		return -1;
 	}
 
-	ret = pread_in_full(fd, &hdr, sizeof(hdr), 0);
-	if (ret < 0)
-		goto out;
+	if(is_compressed)
+		memcpy(&hdr, compr_out, sizeof(hdr));
+	else {
+		ret = pread_in_full(fd, &hdr, sizeof(hdr), 0);
+		if (ret < 0)
+			goto out;
+	}
 
 	//  check if the program is a HermitCore file
 	if (hdr.e_ident[EI_MAG0] != ELFMAG0
@@ -335,15 +383,21 @@ static int load_kernel(uint8_t* mem, const char* path)
 	elf_entry = hdr.e_entry;
 
 	buflen = hdr.e_phentsize * hdr.e_phnum;
-	phdr = malloc(buflen);
-	if (!phdr) {
-		fprintf(stderr, "Not enough memory\n");
-		goto out;
-	}
 
-	ret = pread_in_full(fd, phdr, buflen, hdr.e_phoff);
-	if (ret < 0)
-		goto out;
+	if(is_compressed)
+		phdr = compr_out + hdr.e_phoff;
+	else {
+
+		phdr = malloc(buflen);
+		if (!phdr) {
+			fprintf(stderr, "Not enough memory\n");
+			goto out;
+		}
+
+		ret = pread_in_full(fd, phdr, buflen, hdr.e_phoff);
+		if (ret < 0)
+			goto out;
+	}
 
 	/*
 	 * Load all segments with type "LOAD" from the file at offset
@@ -361,9 +415,14 @@ static int load_kernel(uint8_t* mem, const char* path)
 
 		//printf("Kernel location 0x%zx, file size 0x%zx, memory size 0x%zx\n", paddr, filesz, memsz);
 
-		ret = pread_in_full(fd, mem+paddr-GUEST_OFFSET, filesz, offset);
-		if (ret < 0)
-			goto out;
+		if(is_compressed)
+			memcpy(mem+paddr-GUEST_OFFSET, compr_out+offset, filesz);
+		else {
+			ret = pread_in_full(fd, mem+paddr-GUEST_OFFSET, filesz, offset);
+			if (ret < 0)
+				goto out;
+		}
+
 		if (!klog)
 			klog = mem+paddr+0x5000-GUEST_OFFSET;
 		if (!mboot)
@@ -420,10 +479,16 @@ static int load_kernel(uint8_t* mem, const char* path)
 	}
 
 out:
-	if (phdr)
+	if (phdr && !is_compressed)
 		free(phdr);
 
-	close(fd);
+	if(is_compressed) {
+		free(compr_in);
+		free(compr_out);
+	}
+
+	if(!is_compressed)
+		close(fd);
 
 	//if (verbose)
 	//	fprintf(stderr, "Memory size of the image: %zd KiB\n", total_size / 1024);

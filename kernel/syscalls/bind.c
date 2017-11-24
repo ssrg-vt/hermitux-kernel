@@ -10,10 +10,10 @@ int sys_bind(int fd, struct sockaddr *addr, int addrlen) {
 
 	memset((char *) &sa_server, 0x00, sizeof(sa_server));
 	sa_server.sin_family = AF_INET;
-	sa_server.sin_port = htons(8000);
 	sa_server.sin_addr = addr_local;
 
 #ifndef NO_NET
+	sa_server.sin_port = htons(8000);
 	return bind(fd, (struct sockaddr *) &sa_server, sizeof(sa_server));
 	//return bind(fd, addr, addrlen);
 #else

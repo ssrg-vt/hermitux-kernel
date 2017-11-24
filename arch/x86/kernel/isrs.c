@@ -337,6 +337,14 @@ void syscall_handler(struct state *s)
 			break;
 #endif /* DISABLE_SYS_RT_SIGACTION */
 
+#ifndef DISABLE_SYS_RT_SIGPROCMASK
+			case 14:
+				/* rt_sigprocmask */
+				/* FIXME */
+				s->rax = 0;
+				break;
+#endif /* DISABLE_SYS_RT_SIGPROCMASK */
+
 #ifndef DISABLE_SYS_IOCTL
 		case 16:
 			/* ioctl */
@@ -388,45 +396,59 @@ void syscall_handler(struct state *s)
 			break;
 #endif /* DISABLE_SYS_SOCKET */
 
+#ifndef NO_NET
 #ifndef DISABLE_SYS_CONNECT
 		case 42:
 			/* connect */
 			s->rax = connect(s->rdi, (const struct sockaddr*) s->rsi, s->rdx);
 			break;
 #endif
+#endif /* NO_NET */
 
+#ifndef NO_NET
 #ifndef DISABLE_SYS_ACCEPT
 		case 43:
 			/* accept */
 			s->rax = accept(s->rdi, (struct sockaddr *) s->rsi, s->rdx);
 			break;
-#endif
+#endif /* DISABLE_SYS_ACCEPT */
+#endif /* NO_NET */
 
+#ifndef NO_NET
+#ifndef DISABLE_SYS_RECVFROM
 		case 45:
 			/* recvfrom */
 			s->rax = recvfrom(s->rdi, s->rsi, s->rdx, s->r10, s->r8, s->r9);
 			break;
+#endif /* DISABLE_SYS_RECVFROM */
+#endif /* NO_NET */
 
+#ifndef NO_NET
 #ifndef DISABLE_SYS_BIND
 		case 49:
 			/* bind */
 			s->rax = sys_bind(s->rdi, (struct sockaddr *)s->rsi, s->rdx);
 			break;
 #endif /* DISABLE_SYS_BIND */
+#endif /* NO_NET */
 
+#ifndef NO_NET
 #ifndef DISABLE_SYS_LISTEN
 		case 50:
 			/* lsiten */
 			s->rax = listen(s->rdi, s->rsi);
 			break;
 #endif
+#endif /* NO_NET */
 
+#ifndef NO_NET
 #ifndef DISABLE_SYS_GETSOCKNAME
 		case 51:
 			/* getsockname */
 			s->rax = getsockname(s->rdi, (struct sockaddr *)s->rsi, s->rdx);
 			break;
 #endif
+#endif /* NO_NET */
 
 #ifndef DISABLE_SYS_EXIT
 		case 60:
@@ -506,7 +528,21 @@ void syscall_handler(struct state *s)
 			s->rax = sys_arch_prctl(s->rdi, (unsigned long *)s->rsi, s);
 			break;
 #endif /* DISABLE_SYS_ARCH_PRCTL */
-			
+		
+#ifndef DISABLE_SYS_GETTID
+			case 186:
+				/* gettid */
+				s->rax = sys_getpid();
+				break;
+#endif /* DISABLE_SYS_GETTID */
+
+#ifndef DISABLE_SYS_TKILL
+			case 200:
+				/* tkill */
+				s->rax = sys_kill(s->rdi, s->rsi);
+				break;
+#endif /* DISABLE_SYS_TKILL */
+
 #ifndef DISABLE_SYS_SET_TID_ADDRESS
 		case 218:
 			/* set_tid_address */
