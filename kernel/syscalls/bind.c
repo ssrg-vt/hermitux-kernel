@@ -3,6 +3,7 @@
 #include <hermit/logging.h>
 
 int sys_bind(int fd, struct sockaddr *addr, int addrlen) {
+#ifndef NO_NET
 	struct sockaddr_in sa_server;
 	struct in_addr addr_local;
 
@@ -12,7 +13,6 @@ int sys_bind(int fd, struct sockaddr *addr, int addrlen) {
 	sa_server.sin_family = AF_INET;
 	sa_server.sin_addr = addr_local;
 
-#ifndef NO_NET
 	sa_server.sin_port = htons(8000);
 	return bind(fd, (struct sockaddr *) &sa_server, sizeof(sa_server));
 	//return bind(fd, addr, addrlen);
