@@ -31,6 +31,7 @@
 #include <hermit/errno.h>
 #include <hermit/syscall.h>
 #include <hermit/logging.h>
+#include "syscall.h"
 
 void __startcontext(void);
 
@@ -96,4 +97,295 @@ int swapcontext(ucontext_t *oucp, const ucontext_t *ucp)
 
 	LOG_WARNING("sys_swapcontext is currently not implemented: %p <=> %p\n", oucp, ucp);
 	return -ENOSYS;
+}
+
+
+void fast_syscall_handler(void)
+{
+	uint64_t rax, rdi, rsi, rdx, r10, r8, r9, ret;
+    
+    	asm volatile  (	"mov	%%rax,%0\n\t"
+			"mov	%%rdi,%1\n\t"
+			"mov	%%rsi,%2\n\t"
+			"mov 	%%rdx,%3\n\t"
+			"mov 	%%r10,%4\n\t"
+			"mov 	%%r8,%5\n\t"
+			"mov 	%%r9,%6\n\t"
+		        : "=r" (rax), "=r" (rdi), "=r" (rsi), "=r" (rdx), "=r" (r10),
+			  "=r" (r8), "=r" (r9)
+			:
+			:
+		);
+	
+	ret = redirect_syscall(rax, rdi, rsi, rdx, r10, r8, r9, NULL);
+
+	asm volatile ( "mov  %0,%%rax\n\t"
+		       :
+		       : "r" (ret)
+		       : "%rax"
+		);
+}
+
+
+uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx,
+			  uint64_t r10, uint64_t r8, uint64_t r9, struct state *s)
+{
+	uint64_t ret;
+	
+	switch(rax) {
+
+#ifndef DISABLE_SYS_READ
+	case 0:
+		/* read */
+		ret = sys_read(rdi, (char *)rsi, rdx);
+		break;
+#endif /* DISABLE_SYS_READ */
+
+#ifndef DISABLE_SYS_WRITE
+	case 1:
+		/* write */
+		ret = sys_write(rdi, (char *)rsi, rdx);
+		break;
+#endif /* DISABLE_SYS_WRITE */
+
+#ifndef DISABLE_SYS_OPEN
+	case 2:
+		/* open */
+		ret = sys_open((const char *)rdi, rsi, rdx);
+		break;
+#endif /* DISABLE_SYS_OPEN */
+
+#ifndef DISABLE_SYS_CLOSE
+	case 3:
+		/* close */
+		ret = sys_close(rdi);
+		break;
+#endif /* DISABLE_SYS_CLOSE */
+
+#ifndef DISABLE_SYS_STAT
+	case 4:
+		/* stat */
+		ret = sys_stat((const char *)rdi, (struct stat *)rsi);
+		break;
+#endif /* DISABLE_SYS_STAT */
+
+#ifndef DISABLE_SYS_FSTAT
+	case 5:
+		/* fstat */
+		ret = sys_fstat(rdi, (struct stat *)rsi);
+		break;
+#endif /* DISABLE_SYS_FSTAT */
+
+#ifndef DISABLE_SYS_LSTAT
+	case 6:
+		/* lstat */
+		ret = sys_lstat((const char *)rdi, (struct stat *)rsi);
+		break;
+#endif /* DISABLE_SYS_LSTAT */
+
+#ifndef DISABLE_SYS_LSEEK
+	case 8:
+		/* lseek */
+		ret = sys_lseek(rdi, rsi, rdx);
+		break;
+#endif /* DISABLE_SYS_LSEEK */
+
+#ifndef DISABLE_SYS_MMAP /* encompasses mmap and munmap */
+	case 9:
+		/* mmap */
+		ret = sys_mmap(rdi, rsi, rdx, r10, r8,
+			       r9);
+		break;
+
+	case 11:
+		/* munmap */
+		/* TODO */
+		ret = -ENOSYS;
+		break;
+#endif /* DISABLE_SYS_MMAP */
+
+#ifndef DISABLE_SYS_BRK
+	case 12:
+		/* brk */
+		ret = sys_brk(rdi);
+		break;
+#endif /* DISABLE_SYS_BRK */
+
+#ifndef DISABLE_SYS_RT_SIGACTION
+	case 13:
+		/* rt_sigaction */
+		ret = sys_rt_sigaction(rdi, 
+				       (const struct sigaction *)rsi, 
+				       (struct sigaction *)rdx);
+		break;
+#endif /* DISABLE_SYS_RT_SIGACTION */
+
+#ifndef DISABLE_SYS_IOCTL
+	case 16:
+		/* ioctl */
+		ret = sys_ioctl(rdi, rsi, rdx);
+		break;
+#endif /* DISABLE_SYS_IOCTL */
+
+#ifndef DISABLE_SYS_READV
+	case 19:
+		/* readv */
+		ret = sys_readv(rdi, (const struct iovec *)rsi,
+				rdx);
+		break;
+#endif /* DISABLE_SYS_READV */
+
+#ifndef DISABLE_SYS_WRITEV
+	case 20:
+		/* writev */
+		ret = sys_writev(rdi, (const struct iovec *)rsi, 
+				 rdx);
+		break;
+#endif /* DISABLE_SYS_WRITEV */
+
+#ifndef DISABLE_SYS_MADVISE
+	case 28:
+		/* madvise */
+		ret = sys_madvise(rdi, rsi, rdx);
+		break;
+#endif /* DISABLE_SYS_MADVISE */
+
+#ifndef DISABLE_SYS_NANOSLEEP
+	case 35:
+		/* nanosleep */
+		ret = sys_nanosleep((struct timespec *)rdi, 
+				    (struct timespec *)rsi);
+#endif /* DISABLE_SYS_NANOSLEEP */
+
+#ifndef DISABLE_SYS_GETPID
+	case 39:
+		/* getpid */
+		ret = sys_getpid();
+		break;
+#endif /* DISABLE_SYS_GETPID */
+
+#ifndef DISABLE_SYS_SOCKET
+	case 41:
+		/* socket */
+		ret = sys_socket(rdi, rsi, rdx);
+		break;
+#endif /* DISABLE_SYS_SOCKET */
+
+#ifndef DISABLE_SYS_BIND
+	case 49:
+		/* bind */
+		ret = sys_bind(rdi, (struct sockaddr *)rsi, rdx);
+		break;
+#endif /* DISABLE_SYS_BIND */
+
+#ifndef DISABLE_SYS_EXIT
+	case 60:
+		/* exit */
+		sys_exit(rdi);
+		LOG_ERROR("Should not reach here after exit ... \n");
+		break;
+#endif /* DISABLE_SYS_EXIT */
+
+#ifndef DISABLE_SYS_SETSOCKOPT
+	case 54:
+		/* setsockopt */
+		sys_setsockopt(rdi, rsi, rdx, (char *)r10, r8);
+		break;
+#endif /* DISABLE_SYS_SETSOCKOPT */
+
+#ifndef DISABLE_SYS_UNAME
+	case 63:
+		/* uname */
+		sys_uname((void *)rdi);
+		break;
+#endif /* DISABLE_SYS_UNAME */
+
+#ifndef DISABLE_SYS_FCNTL
+	case 72:
+		/* fcntl */
+		ret = sys_fcntl(rdi, rsi, rdx);
+		break;
+#endif /* DISABLE_SYS_FCNTL */
+
+#ifndef DISABLE_SYS_GETCWD
+	case 79:
+		/*getcwd */
+		ret = sys_getcwd((char *)rdi, rsi);
+		break;
+#endif /* DISABLE_SYS_GETCWD */
+
+#ifndef DISABLE_SYS_MKDIR
+	case 83:
+		/* mkdir */
+		ret = sys_mkdir((const char *)rdi, rsi);
+		break;
+#endif /* DISABLE_SYS_MKDIR */
+
+#ifndef DISABLE_SYS_RMDIR
+	case 84:
+		/* rmdir */
+		ret = sys_rmdir((const char *)rdi);
+		break;
+#endif /* DISABLE_SYS_RMDIR */
+
+#ifndef DISABLE_SYS_UNLINK
+	case 87:
+		/* unlink */
+		ret = sys_unlink((const char *)rdi);
+		break;
+#endif /* DISABLE_SYS_UNLINK */
+
+#ifndef DISABLE_SYS_GETTIMEOFDAY
+	case 96:
+		/* gettimeofday */
+		ret = sys_gettimeofday((struct timeval *)rdi, 
+				       (struct timezone *)rsi);
+		break;
+#endif /* DISABLE_SYS_GETTIMEOFDAY */
+
+#ifndef DISABLE_SYS_GETPRIO
+	case 140:
+		/* getpriority */
+		ret = sys_getprio((unsigned int *)&(rsi));
+		break;
+#endif /* DISABLE_SYS_GETPRIO */
+
+#ifndef DISABLE_SYS_ARCH_PRCTL
+	case 158:
+		/* arch_prctl */
+		ret = sys_arch_prctl(rdi, (unsigned long *)rsi, s);
+		break;
+#endif /* DISABLE_SYS_ARCH_PRCTL */
+			
+#ifndef DISABLE_SYS_SET_TID_ADDRESS
+	case 218:
+		/* set_tid_address */
+		/* TODO */
+		ret = rdi;
+		break;
+#endif /* DISABLE_SYS_SET_TID_ADDRESS */
+
+#ifndef DISABLE_SYS_CLOCK_GETTIME
+	case 228:
+		/* clock_gettime */
+		ret = sys_clock_gettime(rdi, (struct timespec *)rsi);
+		break;
+#endif /* DISABLE_SYS_CLOCK_GETTIME */
+
+#ifndef DISABLE_SYS_EXIT_GROUP
+	case 231:
+		/* exit_group */
+		/* FIXME this will probably not work in multi-threaded 
+		 * environments */
+		sys_exit(rdi);
+		LOG_ERROR("Should not reach here after exit_group ... \n");
+		break;
+#endif /* DISABLE_SYS_EXIT_GROUP */
+
+	default:
+		LOG_ERROR("Unsuported Linux syscall: %d\n", rax);
+		sys_exit(-EFAULT);
+	}
+
+	return ret;
 }
