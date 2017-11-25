@@ -7,12 +7,7 @@ set_parent(X86_KERNEL_TARGET		${PROJECT_NAME})
 set_parent(X86_KERNEL_ASM_TARGET	${X86_KERNEL_TARGET}_asm)
 set_parent(X86_KERNEL_C_TARGET		${X86_KERNEL_TARGET}_c)
 
-set(X86_KERNEL_S_SRC "${CMAKE_CURRENT_LIST_DIR}/kernel/syscall-veneer.s")
-set(_VENEER_BUILD_DIR "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_FILES_DIRECTORY}")
-set(_VENEER_BUILD_DIR "${_VENEER_BUILD_DIR}/${X86_KERNEL_ASM_TARGET}.dir/")
-set_parent(X86_KERNEL_S_OBJECT "${_VENEER_BUILD_DIR}/syscall-veneer.s.obj")
-
-add_custom_target(${X86_KERNEL_TARGET} ALL DEPENDS ${X86_KERNEL_S_OBJECT})
+add_custom_target(${X86_KERNEL_TARGET})
 
 # compiling kernel code here
 add_definitions(-D__KERNEL__)
@@ -92,16 +87,4 @@ add_custom_command(
 		echo "};" >> boot.h
 	WORKING_DIRECTORY
 		${GENERATED_CONFIG_DIR}/hermit/
-	VERBATIM USES_TERMINAL)
-
-# assemble syscall-veneer.s
-add_custom_command(
-	OUTPUT
-		${X86_KERNEL_S_OBJECT}
-	DEPENDS
-		${X86_KERNEL_S_SRC}
-	COMMAND
-		${CMAKE_C_COMPILER} -c -o ${X86_KERNEL_S_OBJECT} ${X86_KERNEL_S_SRC}
-	WORKING_DIRECTORY
-		${_VENEER_BUILD_DIR}
 	VERBATIM USES_TERMINAL)

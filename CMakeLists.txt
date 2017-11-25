@@ -1,4 +1,4 @@
- cmake_minimum_required(VERSION 3.7)
+cmake_minimum_required(VERSION 3.7)
 
 include(ExternalProject)
 include(cmake/HermitCore.cmake)
@@ -82,14 +82,7 @@ endforeach()
 add_subdirectory(arch/x86)
 list(APPEND KERNEL_OBJECTS
 	$<TARGET_OBJECTS:${X86_KERNEL_ASM_TARGET}>
-	$<TARGET_OBJECTS:${X86_KERNEL_C_TARGET}>
-	${X86_KERNEL_S_OBJECT})
-
-set_source_files_properties(
-        ${X86_KERNEL_S_OBJECT}
-        PROPERTIES
-        EXTERNAL_OBJECT true
-        GENERATED true)
+	$<TARGET_OBJECTS:${X86_KERNEL_C_TARGET}>)
 
 # finally build libhermit.a
 add_library(hermit-bootstrap STATIC ${KERNEL_OBJECTS})
