@@ -44,7 +44,7 @@
 #include <asm/idt.h>
 #include <asm/apic.h>
 
-//char *syscalls_names[250];
+char *syscalls_names[250];
 
 #define SYSCALL_INT_NO 6
 
@@ -92,7 +92,7 @@ static void arch_fpu_handler(struct state *s);
 extern void fpu_handler(void);
 static void static_syscall_handler(struct state *s);
 
-/* void init_syscalls_names() {
+static void init_syscalls_names() {
 	syscalls_names[0] = "read";
 	syscalls_names[1] = "write";
 	syscalls_names[2] = "open";
@@ -105,7 +105,7 @@ static void static_syscall_handler(struct state *s);
 	syscalls_names[218] = "set_tid_address";
 	syscalls_names[228] = "clock_gettime";
 	syscalls_names[231] = "exit_group";
-} */
+}
 
 /*
  * This is a very repetitive function... it's not hard, it's
@@ -203,7 +203,7 @@ void isrs_install(void)
 	irq_uninstall_handler(SYSCALL_INT_NO);
 	irq_install_handler(SYSCALL_INT_NO, static_syscall_handler);
 
-	/* init_syscalls_names(); */
+	init_syscalls_names();
 	
 	// set hanlder for fpu exceptions
 	irq_uninstall_handler(7);
@@ -227,6 +227,7 @@ static const char *exception_messages[] = {
 	"Reserved", "Reserved", "Reserved", "Reserved", "Reserved", "Reserved",
 	"Reserved", "Reserved" };
 
+void syscall_handler(struct state *s);
 
 static void static_syscall_handler(struct state *s)
 {
@@ -235,269 +236,350 @@ static void static_syscall_handler(struct state *s)
 
 	/* syscall opcode = 0F05 */
 	if (*opcode == 0x50F) {
+		syscall_handler(s);
 
-/* 		LOG_INFO("Caught syscall %d (%s) from cs:ip %#lx:%#lx\n", s->rax, 
-				syscalls_names[s->rax], s->cs, s->rip); */
+		/* Make sure control returns to the instruction after syscall */
+                s->rip += 2;
+        } else {
+                arch_fault_handler(s);
+        }
+}
 
-		switch(s->rax) {
+void syscall_handler(struct state *s)
+{
+//	LOG_INFO("Caught syscall %d (%s) %#lx:%#lx\n", s->rax, syscalls_names[s->rax]);
+
+	switch(s->rax) {
 
 #ifndef DISABLE_SYS_READ
-			case 0:
-				/* read */
-				s->rax = sys_read(s->rdi, (char *)s->rsi, s->rdx);
-				break;
+		case 0:
+			/* read */
+			s->rax = sys_read(s->rdi, (char *)s->rsi, s->rdx);
+			break;
 #endif /* DISABLE_SYS_READ */
 
 #ifndef DISABLE_SYS_WRITE
-			case 1:
-				/* write */
-				s->rax = sys_write(s->rdi, (char *)s->rsi, s->rdx);
-				break;
+		case 1:
+			/* write */
+			s->rax = sys_write(s->rdi, (char *)s->rsi, s->rdx);
+			break;
 #endif /* DISABLE_SYS_WRITE */
 
 #ifndef DISABLE_SYS_OPEN
-			case 2:
-				/* open */
-				s->rax = sys_open((const char *)s->rdi, s->rsi, s->rdx);
-				break;
+		case 2:
+			/* open */
+			s->rax = sys_open((const char *)s->rdi, s->rsi, s->rdx);
+			break;
 #endif /* DISABLE_SYS_OPEN */
 
 #ifndef DISABLE_SYS_CLOSE
-			case 3:
-				/* close */
-				s->rax = sys_close(s->rdi);
-				break;
+		case 3:
+			/* close */
+			s->rax = sys_close(s->rdi);
+			break;
 #endif /* DISABLE_SYS_CLOSE */
 
 #ifndef DISABLE_SYS_STAT
-			case 4:
-				/* stat */
-				s->rax = sys_stat((const char *)s->rdi, (struct stat *)s->rsi);
-				break;
+		case 4:
+			/* stat */
+			s->rax = sys_stat((const char *)s->rdi, (struct stat *)s->rsi);
+			break;
 #endif /* DISABLE_SYS_STAT */
 
 #ifndef DISABLE_SYS_FSTAT
-			case 5:
-				/* fstat */
-				s->rax = sys_fstat(s->rdi, (struct stat *)s->rsi);
-				break;
+		case 5:
+			/* fstat */
+			s->rax = sys_fstat(s->rdi, (struct stat *)s->rsi);
+			break;
 #endif /* DISABLE_SYS_FSTAT */
 
 #ifndef DISABLE_SYS_LSTAT
-			case 6:
-				/* lstat */
-				s->rax = sys_lstat((const char *)s->rdi, (struct stat *)s->rsi);
-				break;
+		case 6:
+			/* lstat */
+			s->rax = sys_lstat((const char *)s->rdi, (struct stat *)s->rsi);
+			break;
 #endif /* DISABLE_SYS_LSTAT */
 
 #ifndef DISABLE_SYS_LSEEK
-			case 8:
-				/* lseek */
-				s->rax = sys_lseek(s->rdi, s->rsi, s->rdx);
-				break;
+		case 8:
+			/* lseek */
+			s->rax = sys_lseek(s->rdi, s->rsi, s->rdx);
+			break;
 #endif /* DISABLE_SYS_LSEEK */
 
 #ifndef DISABLE_SYS_MMAP /* encompasses mmap and munmap */
-			case 9:
-				/* mmap */
-				s->rax = sys_mmap(s->rdi, s->rsi, s->rdx, s->r10, s->r8,
-						s->r9);
-				break;
+		case 9:
+			/* mmap */
+			s->rax = sys_mmap(s->rdi, s->rsi, s->rdx, s->r10, s->r8,
+					s->r9);
+			break;
 
-			case 11:
-				/* munmap */
-				/* TODO */
-				s->rax = -ENOSYS;
-				break;
+		case 11:
+			/* munmap */
+			/* TODO */
+			s->rax = -ENOSYS;
+			break;
 #endif /* DISABLE_SYS_MMAP */
 
 #ifndef DISABLE_SYS_BRK
-			case 12:
-				/* brk */
-				s->rax = sys_brk(s->rdi);
-				break;
+		case 12:
+			/* brk */
+			s->rax = sys_brk(s->rdi);
+			break;
 #endif /* DISABLE_SYS_BRK */
 
 #ifndef DISABLE_SYS_RT_SIGACTION
-			case 13:
-				/* rt_sigaction */
-				s->rax = sys_rt_sigaction(s->rdi, 
-						(const struct sigaction *)s->rsi, 
-						(struct sigaction *)s->rdx);
-				break;
+		case 13:
+			/* rt_sigaction */
+			s->rax = sys_rt_sigaction(s->rdi, 
+					(const struct sigaction *)s->rsi, 
+					(struct sigaction *)s->rdx);
+			break;
 #endif /* DISABLE_SYS_RT_SIGACTION */
 
-#ifndef DISABLE_SYS_IOCTL
-			case 16:
-				/* ioctl */
-				s->rax = sys_ioctl(s->rdi, s->rsi, s->rdx);
+#ifndef DISABLE_SYS_RT_SIGPROCMASK
+			case 14:
+				/* rt_sigprocmask */
+				/* FIXME */
+				s->rax = 0;
 				break;
+#endif /* DISABLE_SYS_RT_SIGPROCMASK */
+
+#ifndef DISABLE_SYS_IOCTL
+		case 16:
+			/* ioctl */
+			s->rax = sys_ioctl(s->rdi, s->rsi, s->rdx);
+			break;
 #endif /* DISABLE_SYS_IOCTL */
 
 #ifndef DISABLE_SYS_READV
-			case 19:
-				/* readv */
-				s->rax = sys_readv(s->rdi, (const struct iovec *)s->rsi,
-						s->rdx);
-				break;
+		case 19:
+			/* readv */
+			s->rax = sys_readv(s->rdi, (const struct iovec *)s->rsi,
+					s->rdx);
+			break;
 #endif /* DISABLE_SYS_READV */
 
 #ifndef DISABLE_SYS_WRITEV
-			case 20:
-				/* writev */
-				s->rax = sys_writev(s->rdi, (const struct iovec *)s->rsi, 
-						s->rdx);
-				break;
+		case 20:
+			/* writev */
+			s->rax = sys_writev(s->rdi, (const struct iovec *)s->rsi, 
+					s->rdx);
+			break;
 #endif /* DISABLE_SYS_WRITEV */
 
 #ifndef DISABLE_SYS_MADVISE
-			case 28:
-				/* madvise */
-				s->rax = sys_madvise(s->rdi, s->rsi, s->rdx);
-				break;
+		case 28:
+			/* madvise */
+			s->rax = sys_madvise(s->rdi, s->rsi, s->rdx);
+			break;
 #endif /* DISABLE_SYS_MADVISE */
 
 #ifndef DISABLE_SYS_NANOSLEEP
-			case 35:
-				/* nanosleep */
-				s->rax = sys_nanosleep((struct timespec *)s->rdi, 
-						(struct timespec *)s->rsi);
+		case 35:
+			/* nanosleep */
+			s->rax = sys_nanosleep((struct timespec *)s->rdi, 
+					(struct timespec *)s->rsi);
 #endif /* DISABLE_SYS_NANOSLEEP */
 
 #ifndef DISABLE_SYS_GETPID
-			case 39:
-				/* getpid */
-				s->rax = sys_getpid();
-				break;
+		case 39:
+			/* getpid */
+			s->rax = sys_getpid();
+			break;
 #endif /* DISABLE_SYS_GETPID */
 
 #ifndef DISABLE_SYS_SOCKET
-			case 41:
-				/* socket */
-				s->rax = sys_socket(s->rdi, s->rsi, s->rdx);
-				break;
+		case 41:
+			/* socket */
+			s->rax = sys_socket(s->rdi, s->rsi, s->rdx);
+			break;
 #endif /* DISABLE_SYS_SOCKET */
 
+#ifndef NO_NET
+#ifndef DISABLE_SYS_CONNECT
+		case 42:
+			/* connect */
+			s->rax = connect(s->rdi, (const struct sockaddr*) s->rsi, s->rdx);
+			break;
+#endif
+#endif /* NO_NET */
+
+#ifndef NO_NET
+#ifndef DISABLE_SYS_ACCEPT
+		case 43:
+			/* accept */
+			s->rax = accept(s->rdi, (struct sockaddr *) s->rsi, s->rdx);
+			break;
+#endif /* DISABLE_SYS_ACCEPT */
+#endif /* NO_NET */
+
+#ifndef NO_NET
+#ifndef DISABLE_SYS_RECVFROM
+		case 45:
+			/* recvfrom */
+			s->rax = recvfrom(s->rdi, s->rsi, s->rdx, s->r10, s->r8, s->r9);
+			break;
+#endif /* DISABLE_SYS_RECVFROM */
+#endif /* NO_NET */
+
+#ifndef NO_NET
+#ifndef DISABLE_SYS_SHUTDOWN
+		case 48:
+			/* shutdown */
+			s->rax = shutdown(s->rdi, s->rsi);
+			break;
+#endif /* DISABLE_SYS_SHUTDOWN */
+#endif /* NO_NET */
+
+#ifndef NO_NET
 #ifndef DISABLE_SYS_BIND
-			case 49:
-				/* bind */
-				s->rax = sys_bind(s->rdi, (struct sockaddr *)s->rsi, s->rdx);
-				break;
+		case 49:
+			/* bind */
+			s->rax = sys_bind(s->rdi, (struct sockaddr *)s->rsi, s->rdx);
+			break;
 #endif /* DISABLE_SYS_BIND */
+#endif /* NO_NET */
+
+#ifndef NO_NET
+#ifndef DISABLE_SYS_LISTEN
+		case 50:
+			/* lsiten */
+			s->rax = listen(s->rdi, s->rsi);
+			break;
+#endif
+#endif /* NO_NET */
+
+#ifndef NO_NET
+#ifndef DISABLE_SYS_GETSOCKNAME
+		case 51:
+			/* getsockname */
+			s->rax = getsockname(s->rdi, (struct sockaddr *)s->rsi, s->rdx);
+			break;
+#endif
+#endif /* NO_NET */
 
 #ifndef DISABLE_SYS_EXIT
-			case 60:
-				/* exit */
-				sys_exit(s->rdi);
-				LOG_ERROR("Should not reach here after exit ... \n");
-				break;
+		case 60:
+			/* exit */
+			sys_exit(s->rdi);
+			LOG_ERROR("Should not reach here after exit ... \n");
+			break;
 #endif /* DISABLE_SYS_EXIT */
 
 #ifndef DISABLE_SYS_SETSOCKOPT
-			case 54:
-				/* setsockopt */
-				sys_setsockopt(s->rdi, s->rsi, s->rdx, (char *)s->r10, s->r8);
-				break;
+		case 54:
+			/* setsockopt */
+			s->rax = sys_setsockopt(s->rdi, s->rsi, s->rdx, (char *)s->r10, s->r8);
+			break;
 #endif /* DISABLE_SYS_SETSOCKOPT */
 
 #ifndef DISABLE_SYS_UNAME
-			case 63:
-				/* uname */
-				sys_uname((void *)s->rdi);
-				break;
+		case 63:
+			/* uname */
+			sys_uname((void *)s->rdi);
+			break;
 #endif /* DISABLE_SYS_UNAME */
 
 #ifndef DISABLE_SYS_FCNTL
-			case 72:
-				/* fcntl */
-				s->rax = sys_fcntl(s->rdi, s->rsi, s->rdx);
-				break;
+		case 72:
+			/* fcntl */
+			s->rax = sys_fcntl(s->rdi, s->rsi, s->rdx);
+			break;
 #endif /* DISABLE_SYS_FCNTL */
 
 #ifndef DISABLE_SYS_GETCWD
-			case 79:
-				/*getcwd */
-				s->rax = sys_getcwd((char *)s->rdi, s->rsi);
-				break;
+		case 79:
+			/*getcwd */
+			s->rax = sys_getcwd((char *)s->rdi, s->rsi);
+			break;
 #endif /* DISABLE_SYS_GETCWD */
 
 #ifndef DISABLE_SYS_MKDIR
-			case 83:
-				/* mkdir */
-				s->rax = sys_mkdir((const char *)s->rdi, s->rsi);
-				break;
+		case 83:
+			/* mkdir */
+			s->rax = sys_mkdir((const char *)s->rdi, s->rsi);
+			break;
 #endif /* DISABLE_SYS_MKDIR */
 
 #ifndef DISABLE_SYS_RMDIR
-			case 84:
-				/* rmdir */
-				s->rax = sys_rmdir((const char *)s->rdi);
-				break;
+		case 84:
+			/* rmdir */
+			s->rax = sys_rmdir((const char *)s->rdi);
+			break;
 #endif /* DISABLE_SYS_RMDIR */
 
 #ifndef DISABLE_SYS_UNLINK
-			case 87:
-				/* unlink */
-				s->rax = sys_unlink((const char *)s->rdi);
-				break;
+		case 87:
+			/* unlink */
+			s->rax = sys_unlink((const char *)s->rdi);
+			break;
 #endif /* DISABLE_SYS_UNLINK */
 
 #ifndef DISABLE_SYS_GETTIMEOFDAY
-			case 96:
-				/* gettimeofday */
-				s->rax = sys_gettimeofday((struct timeval *)s->rdi, 
-						(struct timezone *)s->rsi);
-				break;
+		case 96:
+			/* gettimeofday */
+			s->rax = sys_gettimeofday((struct timeval *)s->rdi, 
+					(struct timezone *)s->rsi);
+			break;
 #endif /* DISABLE_SYS_GETTIMEOFDAY */
 
 #ifndef DISABLE_SYS_GETPRIO
-			case 140:
-				/* getpriority */
-				s->rax = sys_getprio((unsigned int *)&(s->rsi));
-				break;
+		case 140:
+			/* getpriority */
+			s->rax = sys_getprio((unsigned int *)&(s->rsi));
+			break;
 #endif /* DISABLE_SYS_GETPRIO */
 
 #ifndef DISABLE_SYS_ARCH_PRCTL
-			case 158:
-				/* arch_prctl */
-				s->rax = sys_arch_prctl(s->rdi, (unsigned long *)s->rsi, s);
-				break;
+		case 158:
+			/* arch_prctl */
+			s->rax = sys_arch_prctl(s->rdi, (unsigned long *)s->rsi, s);
+			break;
 #endif /* DISABLE_SYS_ARCH_PRCTL */
-			
-#ifndef DISABLE_SYS_SET_TID_ADDRESS
-			case 218:
-				/* set_tid_address */
-				/* TODO */
-				s->rax = s->rdi;
+		
+#ifndef DISABLE_SYS_GETTID
+			case 186:
+				/* gettid */
+				s->rax = sys_getpid();
 				break;
+#endif /* DISABLE_SYS_GETTID */
+
+#ifndef DISABLE_SYS_TKILL
+			case 200:
+				/* tkill */
+				s->rax = sys_kill(s->rdi, s->rsi);
+				break;
+#endif /* DISABLE_SYS_TKILL */
+
+#ifndef DISABLE_SYS_SET_TID_ADDRESS
+		case 218:
+			/* set_tid_address */
+			/* TODO */
+			s->rax = s->rdi;
+			break;
 #endif /* DISABLE_SYS_SET_TID_ADDRESS */
 
 #ifndef DISABLE_SYS_CLOCK_GETTIME
-			case 228:
-				/* clock_gettime */
-				s->rax = sys_clock_gettime(s->rdi, (struct timespec *)s->rsi);
-				break;
+		case 228:
+			/* clock_gettime */
+			s->rax = sys_clock_gettime(s->rdi, (struct timespec *)s->rsi);
+			break;
 #endif /* DISABLE_SYS_CLOCK_GETTIME */
 
 #ifndef DISABLE_SYS_EXIT_GROUP
-			case 231:
-				/* exit_group */
-				/* FIXME this will probably not work in multi-threaded 
-				 * environments */
-				sys_exit(s->rdi);
-				LOG_ERROR("Should not reach here after exit_group ... \n");
-				break;
+		case 231:
+			/* exit_group */
+			/* FIXME this will probably not work in multi-threaded 
+			 * environments */
+			sys_exit(s->rdi);
+			LOG_ERROR("Should not reach here after exit_group ... \n");
+			break;
 #endif /* DISABLE_SYS_EXIT_GROUP */
 
-			default:
-				LOG_ERROR("Unsuported Linux syscall: %d\n", s->rax);
-				arch_fault_handler(s);
-		}
-
-		/* Make sure control returns to the instruction after syscall */
-		s->rip += 2;
-	} else {
-		arch_fault_handler(s);
+		default:
+			LOG_ERROR("Unsuported Linux syscall: %d\n", s->rax);
+			sys_exit(-EFAULT);
 	}
 }
 	

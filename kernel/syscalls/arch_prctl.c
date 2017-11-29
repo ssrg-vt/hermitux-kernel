@@ -18,11 +18,13 @@ int sys_arch_prctl(int option, unsigned long *arg2, struct state *s) {
 
 	switch(option) {
 		case ARCH_SET_GS:
-			s->gs = (uint64_t)arg2;
+//			s->gs = (uint64_t)arg2;
+			writegs((uint64_t)arg2);
 			return 0;
 
 		case ARCH_SET_FS:
-			s->fs = (uint64_t)arg2;
+//			s->fs = (uint64_t)arg2;
+			writefs((uint64_t)arg2);
 			return 0;
 
 		case ARCH_GET_GS: {

@@ -26,20 +26,11 @@ typedef struct {
 
 ssize_t sys_read(int fd, char* buf, size_t len)
 {
-	if (is_uhyve()) {
-                uhyve_read_t uhyve_args = {fd, (char*) virt_to_phys((size_t) buf), len, -1};
-
-                uhyve_send(UHYVE_PORT_READ, (unsigned)virt_to_phys((size_t)&uhyve_args));
-
-                return uhyve_args.ret;
-	}
-
-#ifndef NO_NET
-
 	sys_read_t sysargs = {__NR_read, fd, len};
 	ssize_t j, ret;
 	int s;
 
+#ifndef NO_NET
 	// do we have an LwIP file descriptor?
 	if (fd & LWIP_FD_BIT) {
 		ret = lwip_read(fd & ~LWIP_FD_BIT, buf, len);
@@ -48,7 +39,17 @@ ssize_t sys_read(int fd, char* buf, size_t len)
 
 		return ret;
 	}
+#endif
 
+	if (is_uhyve()) {
+		uhyve_read_t uhyve_args = {fd, (char*) virt_to_phys((size_t) buf), len, -1};
+
+		uhyve_send(UHYVE_PORT_READ, (unsigned)virt_to_phys((size_t)&uhyve_args));
+
+		return uhyve_args.ret;
+	}
+
+#ifndef NO_NET
 	spinlock_irqsave_lock(&lwip_lock);
 	if (libc_sd < 0) {
 		spinlock_irqsave_unlock(&lwip_lock);
