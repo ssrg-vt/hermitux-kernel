@@ -493,6 +493,8 @@ isyscall:
     pop rdx
     pop rcx
     pop rax
+	push r11
+	popfq
     sti
 
     jmp rcx
