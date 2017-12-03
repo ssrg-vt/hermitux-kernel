@@ -47,7 +47,19 @@
 char *syscalls_names[250];
 
 #define SYSCALL_INT_NO 6
+#define NO_SYSCALLS 328
 
+static void dummy_handler(void)
+{
+	size_t rax;
+
+	asm volatile ("movq %%rax, %0" : "=r"(rax));
+
+	LOG_INFO("Caught unhandled syscall %zd\n", rax);
+	sys_exit(-EFAULT);
+}
+
+size_t sys_handlers[NO_SYSCALLS] = { [0 ... NO_SYSCALLS-1] = (size_t) dummy_handler };
 
 /*
  * These are function prototypes for all of the exception
@@ -91,6 +103,41 @@ static void arch_fault_handler(struct state *s);
 static void arch_fpu_handler(struct state *s);
 extern void fpu_handler(void);
 static void static_syscall_handler(struct state *s);
+
+int connect(int s, size_t name, size_t namelen);
+int listen(int s, int backlog);
+int recvfrom(int s, size_t mem, size_t len, int flags, size_t from, size_t fromlen);
+int send(int s, size_t dataptr, size_t size, int flags);
+int accept(int s, size_t addr, size_t addrlen);
+int bind(int s, size_t name, size_t namelen);
+int getsockopt(int s, int level, int optname, size_t optval, size_t optlen);
+int setsockopt(int s, int level, int optname, size_t optval, size_t optlen);
+int shutdown(int socket, int how);
+int getsockname(int s, size_t ame, size_t namelen);
+
+size_t sys_set_tid_address(size_t tid)
+{
+	/* TODO */
+	return tid;
+}
+
+size_t sys_munmap(void)
+{
+	/* TODO */
+	return -ENOSYS;
+}
+
+size_t sys_t_sigprocmask(void)
+{
+	return 0;
+}
+
+int sys_readlink(const char* arg)
+{
+	/* readlink */
+	kprintf("readlink path %s\n", arg);
+	return -1;
+}
 
 static void init_syscalls_names() {
 	syscalls_names[0] = "read";
@@ -204,7 +251,242 @@ void isrs_install(void)
 	irq_install_handler(SYSCALL_INT_NO, static_syscall_handler);
 
 	init_syscalls_names();
-	
+
+	// init syscall handlers
+
+#ifndef DISABLE_SYS_READ
+	/* read */
+	sys_handlers[0] = (size_t) sys_read;
+#endif /* DISABLE_SYS_READ */
+
+#ifndef DISABLE_SYS_WRITE
+	/* write */
+	sys_handlers[1] = (size_t) sys_write;
+#endif /* DISABLE_SYS_WRITE */
+
+#ifndef DISABLE_SYS_OPEN
+	/* open */
+	sys_handlers[2] = (size_t) sys_open;
+#endif /* DISABLE_SYS_OPEN */
+
+#ifndef DISABLE_SYS_CLOSE
+	/* close */
+	sys_handlers[3] = (size_t) sys_close;
+#endif /* DISABLE_SYS_CLOSE */
+
+#ifndef DISABLE_SYS_STAT
+	/* stat */
+	sys_handlers[4] = (size_t)sys_stat;
+#endif /* DISABLE_SYS_STAT */
+
+#ifndef DISABLE_SYS_FSTAT
+	/* fstat */
+	sys_handlers[5] = (size_t) sys_fstat;
+#endif /* DISABLE_SYS_FSTAT */
+
+#ifndef DISABLE_SYS_LSTAT
+	/* lstat */
+	sys_handlers[6] = (size_t) sys_lstat;
+#endif /* DISABLE_SYS_LSTAT */
+
+#ifndef DISABLE_SYS_LSEEK
+	/* lseek */
+	sys_handlers[8] = (size_t) sys_lseek;
+#endif /* DISABLE_SYS_LSEEK */
+
+#ifndef DISABLE_SYS_MMAP /* encompasses mmap and munmap */
+	/* mmap */
+	sys_handlers[9] = (size_t) sys_mmap;
+
+	/* munmap */
+	sys_handlers[11] = (size_t) sys_munmap;
+#endif /* DISABLE_SYS_MMAP */
+
+#ifndef DISABLE_SYS_BRK
+	/* brk */
+	sys_handlers[12] = (size_t) sys_brk;
+#endif /* DISABLE_SYS_BRK */
+
+#ifndef DISABLE_SYS_RT_SIGACTION
+	/* rt_sigaction */
+	sys_handlers[13] = (size_t) sys_rt_sigaction;
+#endif /* DISABLE_SYS_RT_SIGACTION */
+
+#ifndef DISABLE_SYS_RT_SIGPROCMASK
+	/* rt_sigprocmask */
+	sys_handlers[14] = sys_t_sigprocmask;
+#endif
+
+#ifndef DISABLE_SYS_IOCTL
+	/* ioctl */
+	sys_handlers[16] = (size_t) sys_ioctl;
+#endif /* DISABLE_SYS_IOCTL */
+
+#ifndef DISABLE_SYS_READV
+	/* readv */
+	sys_handlers[19] = (size_t) sys_readv;
+#endif /* DISABLE_SYS_READV */
+
+#ifndef DISABLE_SYS_WRITEV
+	/* writev */
+	sys_handlers[20] = (size_t) sys_writev;
+#endif /* DISABLE_SYS_WRITEV */
+
+#ifndef DISABLE_SYS_MADVISE
+	/* madvise */
+	sys_handlers[28] = (size_t) sys_madvise;
+#endif /* DISABLE_SYS_MADVISE */
+
+#ifndef DISABLE_SYS_NANOSLEEP
+	/* nanosleep */
+	sys_handlers[35] = (size_t) sys_nanosleep;
+#endif /* DISABLE_SYS_NANOSLEEP */
+
+#ifndef DISABLE_SYS_GETPID
+	/* getpid */
+	sys_handlers[39] = (size_t) sys_getpid;
+#endif /* DISABLE_SYS_GETPID */
+
+#ifndef DISABLE_SYS_SOCKET
+	/* socket */
+	sys_handlers[41] = (size_t) sys_socket;
+#endif /* DISABLE_SYS_SOCKET */
+
+#ifndef NO_NET
+#ifndef DISABLE_SYS_CONNECT
+	/* connect */
+	sys_handlers[42] = (size_t) connect;
+#endif
+#endif /* NO_NET */
+
+#ifndef NO_NET
+#ifndef DISABLE_SYS_ACCEPT
+	/* accept */
+	sys_handlers[43] = (size_t) accept;
+#endif /* DISABLE_SYS_ACCEPT */
+#endif /* NO_NET */
+
+#ifndef NO_NET
+#ifndef DISABLE_SYS_RECVFROM
+	/* recvfrom */
+	sys_handlers[45] = (size_t) recvfrom;
+#endif /* DISABLE_SYS_RECVFROM */
+#endif /* NO_NET */
+
+#ifndef NO_NET
+#ifndef DISABLE_SYS_SHUTDOWN
+	/* shutdown */
+	sys_handlers[48] = (size_t) shutdown;
+#endif /* DISABLE_SYS_SHUTDOWN */
+#endif /* NO_NET */
+
+#ifndef NO_NET
+#ifndef DISABLE_SYS_BIND
+	/* bind */
+	sys_handlers[49] = (size_t)sys_bind;
+#endif /* DISABLE_SYS_BIND */
+#endif /* NO_NET */
+
+#ifndef NO_NET
+#ifndef DISABLE_SYS_LISTEN
+	/* lsiten */
+	sys_handlers[50] = (size_t) listen;
+#endif
+#endif /* NO_NET */
+
+#ifndef NO_NET
+#ifndef DISABLE_SYS_GETSOCKNAME
+	/* getsockname */
+	sys_handlers[51] = (size_t) getsockname;
+#endif
+#endif /* NO_NET */
+
+#ifndef DISABLE_SYS_SETSOCKOPT
+	/* setsockopt */
+	sys_handlers[54] = (size_t) sys_setsockopt;
+#endif /* DISABLE_SYS_SETSOCKOPT */
+
+#ifndef DISABLE_SYS_EXIT
+	/* exit */
+	sys_handlers[60] = (size_t) sys_exit;
+#endif /* DISABLE_SYS_EXIT */
+
+#ifndef DISABLE_SYS_UNAME
+	/* uname */
+	sys_handlers[63] = (size_t) sys_uname;
+#endif /* DISABLE_SYS_UNAME */
+
+#ifndef DISABLE_SYS_FCNTL
+	/* fcntl */
+	sys_handlers[72] = (size_t) sys_fcntl;
+#endif /* DISABLE_SYS_FCNTL */
+
+#ifndef DISABLE_SYS_GETCWD
+	/*getcwd */
+	sys_handlers[79] = (size_t) sys_getcwd;
+#endif /* DISABLE_SYS_GETCWD */
+
+#ifndef DISABLE_SYS_MKDIR
+	/* mkdir */
+	sys_handlers[83] = (size_t) sys_mkdir;
+#endif /* DISABLE_SYS_MKDIR */
+
+#ifndef DISABLE_SYS_RMDIR
+	/* rmdir */
+	sys_handlers[84] = (size_t) sys_rmdir;
+#endif /* DISABLE_SYS_RMDIR */
+
+#ifndef DISABLE_SYS_UNLINK
+	/* unlink */
+	sys_handlers[87] = (size_t) sys_unlink;
+#endif /* DISABLE_SYS_UNLINK */
+
+	/* readlink */
+	sys_handlers[89] = (size_t) sys_readlink;
+
+#ifndef DISABLE_SYS_GETTIMEOFDAY
+	/* gettimeofday */
+	sys_handlers[96] = (size_t) sys_gettimeofday;
+#endif /* DISABLE_SYS_GETTIMEOFDAY */
+
+#ifndef DISABLE_SYS_GETPRIO
+	/* getpriority */
+	sys_handlers[140] = (size_t) sys_getprio;
+#endif /* DISABLE_SYS_GETPRIO */
+
+#ifndef DISABLE_SYS_ARCH_PRCTL
+	/* arch_prctl */
+	sys_handlers[158] = (size_t) sys_arch_prctl;
+#endif /* DISABLE_SYS_ARCH_PRCTL */
+
+#ifndef DISABLE_SYS_GETTID
+	/* gettid */
+	sys_handlers[186] = (size_t)sys_getpid;
+#endif /* DISABLE_SYS_GETTID */
+
+#ifndef DISABLE_SYS_TKILL
+	/* tkill */
+	sys_handlers[200] = (size_t) sys_kill;
+#endif /* DISABLE_SYS_TKILL */
+
+#ifndef DISABLE_SYS_SET_TID_ADDRESS
+	/* set_tid_address */
+	sys_handlers[218] = (size_t) sys_set_tid_address;
+#endif /* DISABLE_SYS_SET_TID_ADDRESS */
+
+#ifndef DISABLE_SYS_CLOCK_GETTIME
+	/* clock_gettime */
+	sys_handlers[228] = (size_t) sys_clock_gettime;
+#endif /* DISABLE_SYS_CLOCK_GETTIME */
+
+#ifndef DISABLE_SYS_EXIT_GROUP
+	/* exit_group */
+	/* FIXME this will probably not work in multi-threaded
+	 * environments */
+	sys_handlers[231] = (size_t) sys_exit;
+#endif /* DISABLE_SYS_EXIT_GROUP */
+
+
 	// set hanlder for fpu exceptions
 	irq_uninstall_handler(7);
 	irq_install_handler(7, arch_fpu_handler);
@@ -317,7 +599,7 @@ void syscall_handler(struct state *s)
 		case 11:
 			/* munmap */
 			/* TODO */
-			s->rax = -ENOSYS;
+			s->rax = sys_munmap();
 			break;
 #endif /* DISABLE_SYS_MMAP */
 
@@ -331,8 +613,8 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_RT_SIGACTION
 		case 13:
 			/* rt_sigaction */
-			s->rax = sys_rt_sigaction(s->rdi, 
-					(const struct sigaction *)s->rsi, 
+			s->rax = sys_rt_sigaction(s->rdi,
+					(const struct sigaction *)s->rsi,
 					(struct sigaction *)s->rdx);
 			break;
 #endif /* DISABLE_SYS_RT_SIGACTION */
@@ -340,8 +622,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_RT_SIGPROCMASK
 			case 14:
 				/* rt_sigprocmask */
-				/* FIXME */
-				s->rax = 0;
+				s->rax = sys_t_sigprocmask();
 				break;
 #endif /* DISABLE_SYS_RT_SIGPROCMASK */
 
@@ -363,7 +644,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_WRITEV
 		case 20:
 			/* writev */
-			s->rax = sys_writev(s->rdi, (const struct iovec *)s->rsi, 
+			s->rax = sys_writev(s->rdi, (const struct iovec *)s->rsi,
 					s->rdx);
 			break;
 #endif /* DISABLE_SYS_WRITEV */
@@ -378,7 +659,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_NANOSLEEP
 		case 35:
 			/* nanosleep */
-			s->rax = sys_nanosleep((struct timespec *)s->rdi, 
+			s->rax = sys_nanosleep((struct timespec *)s->rdi,
 					(struct timespec *)s->rsi);
 #endif /* DISABLE_SYS_NANOSLEEP */
 
@@ -400,7 +681,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_CONNECT
 		case 42:
 			/* connect */
-			s->rax = connect(s->rdi, (const struct sockaddr*) s->rsi, s->rdx);
+			s->rax = connect(s->rdi, s->rsi, s->rdx);
 			break;
 #endif
 #endif /* NO_NET */
@@ -409,7 +690,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_ACCEPT
 		case 43:
 			/* accept */
-			s->rax = accept(s->rdi, (struct sockaddr *) s->rsi, s->rdx);
+			s->rax = accept(s->rdi, s->rsi, s->rdx);
 			break;
 #endif /* DISABLE_SYS_ACCEPT */
 #endif /* NO_NET */
@@ -436,7 +717,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_BIND
 		case 49:
 			/* bind */
-			s->rax = sys_bind(s->rdi, (struct sockaddr *)s->rsi, s->rdx);
+			s->rax = bind(s->rdi, s->rsi, s->rdx);
 			break;
 #endif /* DISABLE_SYS_BIND */
 #endif /* NO_NET */
@@ -454,7 +735,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_GETSOCKNAME
 		case 51:
 			/* getsockname */
-			s->rax = getsockname(s->rdi, (struct sockaddr *)s->rsi, s->rdx);
+			s->rax = getsockname(s->rdi, s->rsi, s->rdx);
 			break;
 #endif
 #endif /* NO_NET */
@@ -516,10 +797,15 @@ void syscall_handler(struct state *s)
 			break;
 #endif /* DISABLE_SYS_UNLINK */
 
+		case 89:
+			/* readlink */
+			s->rax = sys_readlink((const char*) s->rdi);
+			break;
+
 #ifndef DISABLE_SYS_GETTIMEOFDAY
 		case 96:
 			/* gettimeofday */
-			s->rax = sys_gettimeofday((struct timeval *)s->rdi, 
+			s->rax = sys_gettimeofday((struct timeval *)s->rdi,
 					(struct timezone *)s->rsi);
 			break;
 #endif /* DISABLE_SYS_GETTIMEOFDAY */
@@ -534,10 +820,10 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_ARCH_PRCTL
 		case 158:
 			/* arch_prctl */
-			s->rax = sys_arch_prctl(s->rdi, (unsigned long *)s->rsi, s);
+			s->rax = sys_arch_prctl(s->rdi, (unsigned long *)s->rsi);
 			break;
 #endif /* DISABLE_SYS_ARCH_PRCTL */
-		
+
 #ifndef DISABLE_SYS_GETTID
 			case 186:
 				/* gettid */
@@ -555,8 +841,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_SET_TID_ADDRESS
 		case 218:
 			/* set_tid_address */
-			/* TODO */
-			s->rax = s->rdi;
+			s->rax = sys_set_tid_address(s->rdi);
 			break;
 #endif /* DISABLE_SYS_SET_TID_ADDRESS */
 
@@ -570,7 +855,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_EXIT_GROUP
 		case 231:
 			/* exit_group */
-			/* FIXME this will probably not work in multi-threaded 
+			/* FIXME this will probably not work in multi-threaded
 			 * environments */
 			sys_exit(s->rdi);
 			LOG_ERROR("Should not reach here after exit_group ... \n");
@@ -582,8 +867,8 @@ void syscall_handler(struct state *s)
 			sys_exit(-EFAULT);
 	}
 }
-	
-     
+
+
 
 /* interrupt handler to save / restore the FPU context */
 static void arch_fpu_handler(struct state *s)
