@@ -521,7 +521,7 @@ int cpu_detection(void) {
 		wrmsr(MSR_STAR, (/*0x1BULL*/ 0x08ULL << 48) | (0x08ULL << 32));
 		wrmsr(MSR_LSTAR, (size_t) &isyscall);
 		//  clear IF flag during an interrupt
-		wrmsr(MSR_SYSCALL_MASK, EFLAGS_TF|EFLAGS_DF|EFLAGS_IF|EFLAGS_AC|EFLAGS_NT);
+		wrmsr(MSR_SYSCALL_MASK, EFLAGS_IF); //EFLAGS_TF|EFLAGS_DF|EFLAGS_IF|EFLAGS_AC|EFLAGS_NT);
 	} else kprintf("Processor doesn't support syscalls\n");
 #endif
 
