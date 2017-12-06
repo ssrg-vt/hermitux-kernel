@@ -45,7 +45,7 @@
 #include <asm/apic.h>
 #include "syscall.h"
 
-//char *syscalls_names[250];
+char *syscalls_names[250];
 
 #define SYSCALL_INT_NO 6
 
@@ -93,7 +93,7 @@ static void arch_fpu_handler(struct state *s);
 extern void fpu_handler(void);
 static void static_syscall_handler(struct state *s);
 
-/* void init_syscalls_names() {
+static void init_syscalls_names() {
 	syscalls_names[0] = "read";
 	syscalls_names[1] = "write";
 	syscalls_names[2] = "open";
@@ -106,7 +106,7 @@ static void static_syscall_handler(struct state *s);
 	syscalls_names[218] = "set_tid_address";
 	syscalls_names[228] = "clock_gettime";
 	syscalls_names[231] = "exit_group";
-} */
+}
 
 /*
  * This is a very repetitive function... it's not hard, it's
@@ -128,72 +128,72 @@ void isrs_install(void)
 	 * protect the common stack by the usage of IST number 1.
 	 */
 	idt_set_gate(0, (size_t)isr0, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 	idt_set_gate(1, (size_t)isr1, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 	// NMI Exception gets its own stack (ist2)
 	idt_set_gate(2, (size_t)isr2, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 2);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 2);
 	idt_set_gate(3, (size_t)isr3, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 	idt_set_gate(4, (size_t)isr4, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 	idt_set_gate(5, (size_t)isr5, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 	idt_set_gate(6, (size_t)isr6, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 	idt_set_gate(7, (size_t)isr7, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 	// Double Fault Exception gets its own stack (ist3)
 	idt_set_gate(8, (size_t)isr8, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 3);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 3);
 	idt_set_gate(9, (size_t)isr9, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 	idt_set_gate(10, (size_t)isr10, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 	idt_set_gate(11, (size_t)isr11, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 	idt_set_gate(12, (size_t)isr12, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 	idt_set_gate(13, (size_t)isr13, KERNEL_CODE_SELECTOR,
-		 IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 	idt_set_gate(14, (size_t)isr14, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 	idt_set_gate(15, (size_t)isr15, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 	idt_set_gate(16, (size_t)isr16, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 	idt_set_gate(17, (size_t)isr17, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 	// Machine Check Exception gets its own stack (ist4)
 	idt_set_gate(18, (size_t)isr18, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 4);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 4);
 	idt_set_gate(19, (size_t)isr19, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 	idt_set_gate(20, (size_t)isr20, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 	idt_set_gate(21, (size_t)isr21, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 	idt_set_gate(22, (size_t)isr22, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 	idt_set_gate(23, (size_t)isr23, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 	idt_set_gate(24, (size_t)isr24, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 	idt_set_gate(25, (size_t)isr25, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 	idt_set_gate(26, (size_t)isr26, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 	idt_set_gate(27, (size_t)isr27, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 	idt_set_gate(28, (size_t)isr28, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 	idt_set_gate(29, (size_t)isr29, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 	idt_set_gate(30, (size_t)isr30, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 	idt_set_gate(31, (size_t)isr31, KERNEL_CODE_SELECTOR,
-		IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
+		     IDT_FLAG_PRESENT|IDT_FLAG_RING0|IDT_FLAG_32BIT|IDT_FLAG_INTTRAP, 1);
 
 
 	// install the default handler
@@ -201,10 +201,10 @@ void isrs_install(void)
 		irq_install_handler(i, arch_fault_handler);
 
 	// For static syscalls
-	irq_uninstall_handler(SYSCALL_INT_NO);
-	irq_install_handler(SYSCALL_INT_NO, static_syscall_handler);
+	//irq_uninstall_handler(SYSCALL_INT_NO);
+	//irq_install_handler(SYSCALL_INT_NO, static_syscall_handler);
 
-	/* init_syscalls_names(); */
+	init_syscalls_names();
 	
 	// set hanlder for fpu exceptions
 	irq_uninstall_handler(7);
@@ -229,29 +229,13 @@ static const char *exception_messages[] = {
 	"Reserved", "Reserved" };
 
 
-static void static_syscall_handler(struct state *s)
+void syscall_handler(struct state *s)
 {
-	// This is actually the reversed opcode
-	uint16_t *opcode = (uint16_t *)s->rip;
-
-	/* syscall opcode = 0F05 */
-	if (*opcode == 0x50F) {
-		s->rax = redirect_syscall(s->rax, s->rdi, s->rsi, s->rdx,
-					  s->r10, s->r8, s->r9, s);
-
-         /* 	LOG_INFO("Caught syscall %d (%s) from cs:ip %#lx:%#lx\n", s->rax, 
-		syscalls_names[s->rax], s->cs, s->rip); */
-
-
-		/* Make sure control returns to the instruction after syscall */
-		s->rip += 2;
-	} else {
-		arch_fault_handler(s);
-	}
+	s->rax = redirect_syscall(s->rax, s->rdi, s->rsi, s->rdx,
+				  s->r10, s->r8, s->r9);
 }
 	
      
-
 /* interrupt handler to save / restore the FPU context */
 static void arch_fpu_handler(struct state *s)
 {
@@ -279,9 +263,9 @@ static void arch_fault_handler(struct state *s)
 		LOG_WARNING("Unknown exception %d\n", s->int_no);
 
 	LOG_ERROR(" Exception (%d) on core %d at %#x:%#lx, fs = %#lx, gs = %#lx, error code = %#lx, task id = %u, rflags = %#x\n",
-		s->int_no, CORE_ID, s->cs, s->rip, s->fs, s->gs, s->error, per_core(current_task)->id, s->rflags);
+		  s->int_no, CORE_ID, s->cs, s->rip, s->fs, s->gs, s->error, per_core(current_task)->id, s->rflags);
 	LOG_ERROR("rax %#lx, rbx %#lx, rcx %#lx, rdx %#lx, rbp %#lx, rsp %#lx rdi %#lx, rsi %#lx, r8 %#lx, r9 %#lx, r10 %#lx, r11 %#lx, r12 %#lx, r13 %#lx, r14 %#lx, r15 %#lx\n",
-		s->rax, s->rbx, s->rcx, s->rdx, s->rbp, s->rsp, s->rdi, s->rsi, s->r8, s->r9, s->r10, s->r11, s->r12, s->r13, s->r14, s->r15);
+		  s->rax, s->rbx, s->rcx, s->rdx, s->rbp, s->rsp, s->rdi, s->rsi, s->r8, s->r9, s->r10, s->r11, s->r12, s->r13, s->r14, s->r15);
 
 	apic_eoi(s->int_no);
 	//do_abort();

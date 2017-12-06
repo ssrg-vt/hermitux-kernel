@@ -114,7 +114,7 @@ int sys_nanosleep(struct timespec *req, struct timespec *rem);
 ssize_t sys_brk(ssize_t val);
 int sys_fcntl(unsigned int fd, unsigned int cmd, unsigned long arg);
 int sys_unlink(const char *pathname);
-int sys_arch_prctl(int option, unsigned long *arg2, struct state *s);
+int sys_arch_prctl(int option, unsigned long *arg2);
 int sys_uname(struct utsname *buf);
 int sys_fstat(int fd, struct stat *buf);
 int sys_stat(const char *pathname, struct stat *buf);

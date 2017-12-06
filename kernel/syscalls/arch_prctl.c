@@ -14,21 +14,15 @@
 #define ARCH_MAP_VDSO_32	0x2002
 #define ARCH_MAP_VDSO_64	0x2003
 
-int sys_arch_prctl(int option, unsigned long *arg2, struct state *s) {
+int sys_arch_prctl(int option, unsigned long *arg2) {
 
 	switch(option) {
 		case ARCH_SET_GS:
-			if (s)
-				s->gs = (uint64_t)arg2;
-			else
-				writegs((uint64_t)arg2);
+			writegs((uint64_t)arg2);
 			return 0;
 
 		case ARCH_SET_FS:
-			if (s)
-				s->fs = (uint64_t)arg2;
-			else
-				writefs((uint64_t)arg2);
+			writefs((uint64_t)arg2);
 			return 0;
 
 		case ARCH_GET_GS: {

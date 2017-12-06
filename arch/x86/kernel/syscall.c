@@ -117,7 +117,7 @@ void fast_syscall_handler(void)
 			:
 		);
 	
-	ret = redirect_syscall(rax, rdi, rsi, rdx, r10, r8, r9, NULL);
+	ret = redirect_syscall(rax, rdi, rsi, rdx, r10, r8, r9);
 
 	asm volatile ( "mov  %0,%%rax\n\t"
 		       :
@@ -128,7 +128,7 @@ void fast_syscall_handler(void)
 
 
 uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx,
-			  uint64_t r10, uint64_t r8, uint64_t r9, struct state *s)
+			  uint64_t r10, uint64_t r8, uint64_t r9)
 {
 	uint64_t ret;
 	
@@ -353,7 +353,7 @@ uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx
 #ifndef DISABLE_SYS_ARCH_PRCTL
 	case 158:
 		/* arch_prctl */
-		ret = sys_arch_prctl(rdi, (unsigned long *)rsi, s);
+		ret = sys_arch_prctl(rdi, (unsigned long *)rsi);
 		break;
 #endif /* DISABLE_SYS_ARCH_PRCTL */
 			

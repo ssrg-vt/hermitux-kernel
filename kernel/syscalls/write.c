@@ -29,6 +29,22 @@ ssize_t sys_write(int fd, const char* buf, size_t len)
 	if (BUILTIN_EXPECT(!buf, 0))
 		return -1;
 
+	ssize_t i, ret;
+	int s;
+	sys_write_t sysargs = {__NR_write, fd, len};
+
+
+#ifndef NO_NET
+	// do we have an LwIP file descriptor?
+	if (fd & LWIP_FD_BIT) {
+		ret = lwip_write(fd & ~LWIP_FD_BIT, buf, len);
+		if (ret < 0)
+			return -errno;
+
+		return ret;
+	}
+#endif
+
 	if (is_uhyve()) {
 		uhyve_write_t uhyve_args = {fd, (const char*) virt_to_phys((size_t) buf), len};
 
@@ -38,20 +54,6 @@ ssize_t sys_write(int fd, const char* buf, size_t len)
 	}
 
 #ifndef NO_NET
-
-	ssize_t i, ret;
-	int s;
-	sys_write_t sysargs = {__NR_write, fd, len};
-
-	// do we have an LwIP file descriptor?
-	if (fd & LWIP_FD_BIT) {
-		ret = lwip_write(fd & ~LWIP_FD_BIT, buf, len);
-		if (ret < 0)
-			return -errno;
-
-		return ret;
-	}
-
 	spinlock_irqsave_lock(&lwip_lock);
 	if (libc_sd < 0)
 	{
