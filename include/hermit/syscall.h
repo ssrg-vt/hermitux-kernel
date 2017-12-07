@@ -130,6 +130,17 @@ int sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 int sys_mkdir(const char *pathname, umode_t mode);
 int sys_rmdir(const char *pathname);
 int sys_madvise(unsigned long start, size_t len_in, int behavior);
+int sys_geteuid(void);
+int sys_getuid(void);
+int sys_getgid(void);
+int sys_getegid(void);
+int sys_openat(int dirfd, const char *pathname, int flags, int mode);
+int sys_tgkill(int tgid, int tid, int sig);
+int sys_readlink(const char *path, char *buf, int bufsiz);
+int sys_access(const char *pathname, int mode);
+int sys_time(long *tloc);
+int sys_sched_setaffinity(int pid, unsigned int len, 
+		unsigned long *user_mask_ptr);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;
