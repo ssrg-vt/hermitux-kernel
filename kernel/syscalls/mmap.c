@@ -3,7 +3,7 @@
 #include <asm/page.h>
 #include <hermit/spinlock.h>
 
-int sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
+size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 		unsigned long flags, unsigned long fd, unsigned long off) {
 	ssize_t ret;
 	size_t phyaddr, viraddr, bits;
@@ -40,7 +40,5 @@ int sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 		return NULL;
 	}
 	
-	LOG_INFO("mmap allocation for 0x%x at %p\n", len, (viraddr+PAGE_SIZE));
-
 	return (void*) (viraddr+PAGE_SIZE);
 }

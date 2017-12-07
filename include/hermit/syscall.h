@@ -125,7 +125,7 @@ int sys_rt_sigaction(int signum, const struct sigaction *act,
 int sys_socket(int domain, int type, int protocol);
 int sys_bind(int fd, struct sockaddr *addr, int addrlen);
 int sys_setsockopt(int fd, int level, int optname, char *optval, int optlen);
-int sys_mmap(unsigned long addr, unsigned long len, unsigned long prot, 
+size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot, 
 		unsigned long flags, unsigned long fd, unsigned long off);
 int sys_mkdir(const char *pathname, umode_t mode);
 int sys_rmdir(const char *pathname);
