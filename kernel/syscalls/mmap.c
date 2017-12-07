@@ -3,48 +3,44 @@
 #include <asm/page.h>
 #include <hermit/spinlock.h>
 
-extern const void kernel_start;
-
 int sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 		unsigned long flags, unsigned long fd, unsigned long off) {
 	ssize_t ret;
-	vma_t* heap = per_core(current_task)->heap;
-	static spinlock_t heap_lock = SPINLOCK_INIT;
+	size_t phyaddr, viraddr, bits;
+	uint32_t npages = PAGE_CEIL(len) >> PAGE_BITS;
+	int err;
 
-	/* simple implementation just for memory allocation for now */
-	if(addr != 0 || fd != -1)
+	if(addr != 0) {
+		LOG_ERROR("Request mmap to specific address\n");
 		return -ENOSYS;
-
-	if (BUILTIN_EXPECT(!heap, 0)) {
-		LOG_ERROR("sys_sbrk: missing heap!\n");
-		do_abort();
 	}
 
-	spinlock_lock(&heap_lock);
+	if (BUILTIN_EXPECT(!len, 0))
+		return NULL;
 
-	size_t val = heap->end + len;
-	LOG_INFO("new heap request: %#x\n", len);
-	ret = heap->end;
+	// get free virtual address space
+	viraddr = vma_alloc((npages+2)*PAGE_SIZE, VMA_READ|VMA_WRITE|VMA_CACHEABLE);
+	if (BUILTIN_EXPECT(!viraddr, 0))
+		return NULL;
 
-	// check heapp boundaries
-	if ((val >= HEAP_START) && (val < HEAP_START + HEAP_SIZE)) {
-		heap->end = val;
+	// get continous physical pages
+	phyaddr = get_pages(npages);
+	if (BUILTIN_EXPECT(!phyaddr, 0)) {
+		vma_free(viraddr, viraddr+(npages+2)*PAGE_SIZE);
+		return NULL;
+	}
 
-		// reserve VMA regions
-		if (PAGE_FLOOR(heap->end) > PAGE_FLOOR(ret)) {
-			// region is already reserved for the heap, we have to change the
-			// property
-			vma_free(PAGE_FLOOR(ret), PAGE_CEIL(heap->end));
-			vma_add(PAGE_FLOOR(ret), PAGE_CEIL(heap->end), VMA_HEAP|VMA_USER);
-		}
+	bits = PG_RW|PG_GLOBAL|PG_NX;
 
-	} else ret = -ENOMEM;
+	// map physical pages to VMA
+	err = page_map(viraddr+PAGE_SIZE, phyaddr, npages, bits);
+	if (BUILTIN_EXPECT(err, 0)) {
+		vma_free(viraddr, viraddr+(npages+2)*PAGE_SIZE);
+		put_pages(phyaddr, npages);
+		return NULL;
+	}
+	
+	LOG_INFO("mmap allocation for 0x%x at %p\n", len, (viraddr+PAGE_SIZE));
 
-	// allocation and mapping of new pages for the heap
-	// is catched by the pagefault handler
-
-	spinlock_unlock(&heap_lock);
-
-	return ret;
-
+	return (void*) (viraddr+PAGE_SIZE);
 }

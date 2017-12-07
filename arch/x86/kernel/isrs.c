@@ -316,8 +316,7 @@ void syscall_handler(struct state *s)
 
 		case 11:
 			/* munmap */
-			/* TODO */
-			s->rax = -ENOSYS;
+			s->rax = sys_munmap(s->rdi, s->rsi);
 			break;
 #endif /* DISABLE_SYS_MMAP */
 
