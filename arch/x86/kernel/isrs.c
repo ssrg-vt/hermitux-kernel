@@ -316,8 +316,7 @@ void syscall_handler(struct state *s)
 
 		case 11:
 			/* munmap */
-			/* TODO */
-			s->rax = -ENOSYS;
+			s->rax = sys_munmap(s->rdi, s->rsi);
 			break;
 #endif /* DISABLE_SYS_MMAP */
 
@@ -367,6 +366,13 @@ void syscall_handler(struct state *s)
 					s->rdx);
 			break;
 #endif /* DISABLE_SYS_WRITEV */
+
+#ifndef DISABLE_SYS_ACCESS
+		case 21:
+			/* access */
+			s->rax = sys_access(s->rdi, s->rsi);
+			break;
+#endif /* DISABLE_SYS_ACCESS */
 
 #ifndef DISABLE_SYS_MADVISE
 		case 28:
@@ -516,6 +522,13 @@ void syscall_handler(struct state *s)
 			break;
 #endif /* DISABLE_SYS_UNLINK */
 
+#ifndef DISABLE_SYS_READLINK
+		case 89:
+			/* readlink */
+			s->rax = sys_readlink(s->rdi, s->rsi, s->rdx);
+			break;
+#endif /* DISABLE_SYS_READLINK */
+
 #ifndef DISABLE_SYS_GETTIMEOFDAY
 		case 96:
 			/* gettimeofday */
@@ -523,6 +536,32 @@ void syscall_handler(struct state *s)
 					(struct timezone *)s->rsi);
 			break;
 #endif /* DISABLE_SYS_GETTIMEOFDAY */
+
+#ifndef DISABLE_SYS_GETUID
+		case 102:
+			/* getuid */
+			s->rax = sys_getuid();
+			break;
+#endif /* DISABLE_SYS_GETUID */
+
+#ifndef DISABLE_SYS_GETGID
+		case 104:
+			s->rax = sys_getgid();
+			break;
+#endif /* DISABLE_SYS_GETGID */
+
+#ifndef DISABLE_SYS_GETEUID
+		case 107:
+			/* geteuid */
+			s->rax = sys_geteuid();
+			break;
+#endif /* DISABLE_SYS_GETEUID */
+
+#ifndef DISABLE_SYS_GETEGID
+		case 108:
+			s->rax = sys_getegid();
+			break;
+#endif /* DISABLE_SYS_GETEGID */
 
 #ifndef DISABLE_SYS_GETPRIO
 		case 140:
@@ -552,6 +591,19 @@ void syscall_handler(struct state *s)
 				break;
 #endif /* DISABLE_SYS_TKILL */
 
+#ifndef DISABLE_SYS_TIME
+			case 201:
+				/* time */
+				s->rax = sys_time(s->rdi);
+				break;
+#endif /* DISABLE_SYS_TIME */
+
+#ifndef DISABLE_SYS_SCHED_SETAFFINITY
+			case 203:
+				s->rax = sys_sched_setaffinity(s->rdi, s->rsi, s->rdx);
+				break;
+#endif /* DISABLE_SYS_SCHED_SETAFFINITY */
+
 #ifndef DISABLE_SYS_SET_TID_ADDRESS
 		case 218:
 			/* set_tid_address */
@@ -566,6 +618,19 @@ void syscall_handler(struct state *s)
 			s->rax = sys_clock_gettime(s->rdi, (struct timespec *)s->rsi);
 			break;
 #endif /* DISABLE_SYS_CLOCK_GETTIME */
+
+#ifndef DISABLE_SYS_TGKILL
+		case 234:
+			/* tgkill */
+			s->rax = sys_tgkill(s->rdi, s->rsi, s->rdx);
+			break;
+#endif /* DISABLE_SYS_TGKILL */
+
+#ifndef DISABLE_SYS_OPENAT
+		case 257:
+			s->rax = sys_openat(s->rdi, s->rsi, s->rdx, s->r10);
+			break;
+#endif /* DISABLE_SYS_OPENAT */
 
 #ifndef DISABLE_SYS_EXIT_GROUP
 		case 231:
