@@ -16,7 +16,6 @@ int sys_munmap(size_t viraddr, size_t len) {
 	if (BUILTIN_EXPECT(!phyaddr, 0))
 		return -ENOMEM;
 
-	// unmap and destroy stack
 	vma_free((size_t)viraddr-PAGE_SIZE, (size_t)viraddr+(npages+1)*PAGE_SIZE);
 	page_unmap((size_t)viraddr, npages);
 	put_pages(phyaddr, npages);

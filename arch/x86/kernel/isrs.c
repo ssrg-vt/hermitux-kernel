@@ -313,12 +313,21 @@ void syscall_handler(struct state *s)
 			s->rax = sys_mmap(s->rdi, s->rsi, s->rdx, s->r10, s->r8,
 					s->r9);
 			break;
+#endif /* DISABLE_SYS_MMAP */
 
+#ifndef DISABLE_SYS_MPROTECT
+		case 10:
+			/* mprotect */
+			s->rax = sys_mprotect(s->rsi, s->rdi, s->rdx);
+			break;
+#endif /* DISABLE_SYS_MPROTECT */
+
+#ifndef DISABLE_SYS_MUNMAP
 		case 11:
 			/* munmap */
 			s->rax = sys_munmap(s->rdi, s->rsi);
 			break;
-#endif /* DISABLE_SYS_MMAP */
+#endif /* DISABLE_SYS_MUNMAP */
 
 #ifndef DISABLE_SYS_BRK
 		case 12:
