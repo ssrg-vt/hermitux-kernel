@@ -385,7 +385,7 @@ static int load_kernel(uint8_t* mem, const char* path)
 	buflen = hdr.e_phentsize * hdr.e_phnum;
 
 	if(is_compressed)
-		phdr = compr_out + hdr.e_phoff;
+		phdr = (Elf64_Phdr *)(compr_out + hdr.e_phoff);
 	else {
 
 		phdr = malloc(buflen);
@@ -1064,6 +1064,15 @@ static int vcpu_loop(void)
 					uhyve_lseek_t* uhyve_lseek = (uhyve_lseek_t*) (guest_mem+data);
 
 					uhyve_lseek->offset = lseek(uhyve_lseek->fd, uhyve_lseek->offset, uhyve_lseek->whence);
+					break;
+				}
+
+			case UHYVE_PORT_ACCESS: {
+					unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+					uhyve_access_t *uhyve_access = (uhyve_access_t*) (guest_mem+data);
+
+					uhyve_access->ret = access((char *)guest_mem+(size_t)uhyve_access->pathname,
+							uhyve_access->mode);
 					break;
 				}
 

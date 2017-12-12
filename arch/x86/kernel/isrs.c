@@ -379,7 +379,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_ACCESS
 		case 21:
 			/* access */
-			s->rax = sys_access(s->rdi, s->rsi);
+			s->rax = sys_access((const char *)s->rdi, s->rsi);
 			break;
 #endif /* DISABLE_SYS_ACCESS */
 
