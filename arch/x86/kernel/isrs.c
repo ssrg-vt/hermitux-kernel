@@ -415,7 +415,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_CONNECT
 		case 42:
 			/* connect */
-			s->rax = connect(s->rdi, (const struct sockaddr*) s->rsi, s->rdx);
+			s->rax = lwip_connect(s->rdi, (const struct sockaddr*) s->rsi, s->rdx);
 			break;
 #endif
 #endif /* NO_NET */
@@ -424,7 +424,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_ACCEPT
 		case 43:
 			/* accept */
-			s->rax = accept(s->rdi, (struct sockaddr *) s->rsi, s->rdx);
+			s->rax = lwip_accept(s->rdi, (struct sockaddr *) s->rsi, (unsigned int *)s->rdx);
 			break;
 #endif /* DISABLE_SYS_ACCEPT */
 #endif /* NO_NET */
@@ -433,7 +433,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_RECVFROM
 		case 45:
 			/* recvfrom */
-			s->rax = recvfrom(s->rdi, s->rsi, s->rdx, s->r10, s->r8, s->r9);
+			s->rax = lwip_recvfrom(s->rdi, (void *)s->rsi, s->rdx, s->r10, (struct sockaddr *)s->r8, (unsigned int *)s->r9);
 			break;
 #endif /* DISABLE_SYS_RECVFROM */
 #endif /* NO_NET */
@@ -442,7 +442,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_SHUTDOWN
 		case 48:
 			/* shutdown */
-			s->rax = shutdown(s->rdi, s->rsi);
+			s->rax = lwip_shutdown(s->rdi, s->rsi);
 			break;
 #endif /* DISABLE_SYS_SHUTDOWN */
 #endif /* NO_NET */
@@ -460,7 +460,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_LISTEN
 		case 50:
 			/* lsiten */
-			s->rax = listen(s->rdi, s->rsi);
+			s->rax = lwip_listen(s->rdi, s->rsi);
 			break;
 #endif
 #endif /* NO_NET */
@@ -469,7 +469,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_GETSOCKNAME
 		case 51:
 			/* getsockname */
-			s->rax = getsockname(s->rdi, (struct sockaddr *)s->rsi, s->rdx);
+			s->rax = lwip_getsockname(s->rdi, (struct sockaddr *)s->rsi, (unsigned int *)s->rdx);
 			break;
 #endif
 #endif /* NO_NET */
@@ -534,7 +534,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_READLINK
 		case 89:
 			/* readlink */
-			s->rax = sys_readlink(s->rdi, s->rsi, s->rdx);
+			s->rax = sys_readlink((const char *)s->rdi, (char *)s->rsi, s->rdx);
 			break;
 #endif /* DISABLE_SYS_READLINK */
 
@@ -603,13 +603,13 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_TIME
 			case 201:
 				/* time */
-				s->rax = sys_time(s->rdi);
+				s->rax = sys_time((long int *)s->rdi);
 				break;
 #endif /* DISABLE_SYS_TIME */
 
 #ifndef DISABLE_SYS_SCHED_SETAFFINITY
 			case 203:
-				s->rax = sys_sched_setaffinity(s->rdi, s->rsi, s->rdx);
+				s->rax = sys_sched_setaffinity(s->rdi, s->rsi, (long unsigned int *)s->rdx);
 				break;
 #endif /* DISABLE_SYS_SCHED_SETAFFINITY */
 
@@ -637,7 +637,7 @@ void syscall_handler(struct state *s)
 
 #ifndef DISABLE_SYS_OPENAT
 		case 257:
-			s->rax = sys_openat(s->rdi, s->rsi, s->rdx, s->r10);
+			s->rax = sys_openat(s->rdi, (const char *)s->rsi, s->rdx, s->r10);
 			break;
 #endif /* DISABLE_SYS_OPENAT */
 

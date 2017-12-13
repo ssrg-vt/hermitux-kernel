@@ -2,6 +2,7 @@
 #include <hermit/logging.h>
 #include <asm/page.h>
 #include <hermit/spinlock.h>
+#include <hermit/memory.h>
 
 int sys_munmap(size_t viraddr, size_t len) {
 	size_t phyaddr;
