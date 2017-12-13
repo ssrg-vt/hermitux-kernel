@@ -141,6 +141,8 @@ int sys_access(const char *pathname, int mode);
 int sys_time(long *tloc);
 int sys_sched_setaffinity(int pid, unsigned int len, 
 		unsigned long *user_mask_ptr);
+long sys_mprotect(size_t addr, size_t len, unsigned long prot);
+int sys_munmap(size_t viraddr, size_t len);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;
