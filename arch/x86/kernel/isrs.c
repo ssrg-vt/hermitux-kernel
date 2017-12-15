@@ -47,9 +47,6 @@
 
 char *syscalls_names[250];
 
-#define SYSCALL_INT_NO 6
-
-
 /*
  * These are function prototypes for all of the exception
  * handlers: The first 32 entries in the IDT are reserved
@@ -91,7 +88,6 @@ extern void isr31(void);
 static void arch_fault_handler(struct state *s);
 static void arch_fpu_handler(struct state *s);
 extern void fpu_handler(void);
-static void static_syscall_handler(struct state *s);
 
 static void init_syscalls_names() {
 	syscalls_names[0] = "read";
@@ -200,10 +196,6 @@ void isrs_install(void)
 	for(i=0; i<32; i++)
 		irq_install_handler(i, arch_fault_handler);
 
-	// For static syscalls
-	//irq_uninstall_handler(SYSCALL_INT_NO);
-	//irq_install_handler(SYSCALL_INT_NO, static_syscall_handler);
-
 	init_syscalls_names();
 	
 	// set hanlder for fpu exceptions
@@ -231,8 +223,15 @@ static const char *exception_messages[] = {
 
 void syscall_handler(struct state *s)
 {
+	/*
+	LOG_INFO("DC: In regular syscall handler, syscall #%lld\n", s->rax);
+	LOG_INFO("DC: RAX = %#llx, RDI = %#llx, RSI = %#llx, RDX = %#llx, "
+		 "R10 = %#llx, R8 = %#llx, R9 = %#llx\n",
+		 s->rax, s->rdi, s->rsi, s->rdx, s->r10, s->r8, s->r9);
+	*/
 	s->rax = redirect_syscall(s->rax, s->rdi, s->rsi, s->rdx,
 				  s->r10, s->r8, s->r9);
+	//LOG_INFO("DC: Returned from regular syscall. Return = %#llx\n", s->rax);
 }
 	
      

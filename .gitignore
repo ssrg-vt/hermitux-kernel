@@ -16,7 +16,7 @@ tags
 .idea/*
 qemu-vlan0.pcap
 cmake/cmake-3.7.2-Linux-x86_64/*
-arch/x86/kernel/displaced.s
+arch/x86/kernel/syscall-veneer.s
 
 usr/tests
 usr/gdb/core
