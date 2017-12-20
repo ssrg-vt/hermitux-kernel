@@ -125,11 +125,24 @@ int sys_rt_sigaction(int signum, const struct sigaction *act,
 int sys_socket(int domain, int type, int protocol);
 int sys_bind(int fd, struct sockaddr *addr, int addrlen);
 int sys_setsockopt(int fd, int level, int optname, char *optval, int optlen);
-int sys_mmap(unsigned long addr, unsigned long len, unsigned long prot, 
+size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot, 
 		unsigned long flags, unsigned long fd, unsigned long off);
 int sys_mkdir(const char *pathname, umode_t mode);
 int sys_rmdir(const char *pathname);
 int sys_madvise(unsigned long start, size_t len_in, int behavior);
+int sys_geteuid(void);
+int sys_getuid(void);
+int sys_getgid(void);
+int sys_getegid(void);
+int sys_openat(int dirfd, const char *pathname, int flags, int mode);
+int sys_tgkill(int tgid, int tid, int sig);
+int sys_readlink(const char *path, char *buf, int bufsiz);
+int sys_access(const char *pathname, int mode);
+int sys_time(long *tloc);
+int sys_sched_setaffinity(int pid, unsigned int len, 
+		unsigned long *user_mask_ptr);
+long sys_mprotect(size_t addr, size_t len, unsigned long prot);
+int sys_munmap(size_t viraddr, size_t len);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;

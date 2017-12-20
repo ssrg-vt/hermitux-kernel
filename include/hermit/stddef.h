@@ -77,6 +77,7 @@ extern uint64_t tux_size;
 #define UHYVE_PORT_GETCWD	0x514
 #define UHYVE_PORT_MKDIR	0x515
 #define UHYVE_PORT_RMDIR	0x516
+#define UHYVE_PORT_ACCESS	0x517
 
 #define BUILTIN_EXPECT(exp, b)		__builtin_expect((exp), (b))
 //#define BUILTIN_EXPECT(exp, b)	(exp)
