@@ -1,8 +1,31 @@
 #include <hermit/syscall.h>
 #include <hermit/ioctl.h>
 #include <hermit/logging.h>
+#include <hermit/stdio.h>
+
+#define SYSCALL_MEASURE
+#define SC_ENTER_FILE "/home/danchiba/Documents/HermiTux/hetmitux/syscall-rewriter/eval/sc_entered_times"
+
+#ifdef SYSCALL_MEASURE
+inline static unsigned long long rdtsc(void)
+{
+	unsigned long lo, hi;
+	asm volatile("rdtsc"
+		     : "=a"(lo), "=d"(hi)::"memory");
+	return ((unsigned long long)hi << 32ULL | (unsigned long long)lo);
+}
+#endif
 
 int sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg) {
+#ifdef SYSCALL_MEASURE
+	unsigned long long entered = rdtsc();
+	char buf[20];
+	ksprintf(buf, "%llu\n", entered);
+	int sc_res_file = sys_open(SC_ENTER_FILE, 0x9, 0);
+	sys_write(sc_res_file, buf, strlen(buf));
+	sys_close(sc_res_file);
+#endif
+	
 	/* Check cmd, we want that to fail on commands that we did not explore */
 	switch(cmd) {
 		case TIOCGWINSZ:
