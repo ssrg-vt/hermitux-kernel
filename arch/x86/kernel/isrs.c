@@ -223,12 +223,11 @@ static const char *exception_messages[] = {
 
 void syscall_handler(struct state *s)
 {
-	/*
-	LOG_INFO("DC: In regular syscall handler, syscall #%lld\n", s->rax);
-	LOG_INFO("DC: RAX = %#llx, RDI = %#llx, RSI = %#llx, RDX = %#llx, "
-		 "R10 = %#llx, R8 = %#llx, R9 = %#llx\n",
-		 s->rax, s->rdi, s->rsi, s->rdx, s->r10, s->r8, s->r9);
-	*/
+	/* LOG_INFO("DC: In regular syscall handler, syscall #%lld\n", s->rax); */
+	/* LOG_INFO("DC: RAX = %#llx, RDI = %#llx, RSI = %#llx, RDX = %#llx, " */
+	/* 	 "R10 = %#llx, R8 = %#llx, R9 = %#llx\n", */
+	/* 	 s->rax, s->rdi, s->rsi, s->rdx, s->r10, s->r8, s->r9); */
+
 	s->rax = redirect_syscall(s->rax, s->rdi, s->rsi, s->rdx,
 				  s->r10, s->r8, s->r9);
 	//LOG_INFO("DC: Returned from regular syscall. Return = %#llx\n", s->rax);

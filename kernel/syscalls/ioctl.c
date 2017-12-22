@@ -4,7 +4,7 @@
 #include <hermit/stdio.h>
 
 #define SYSCALL_MEASURE
-#define SC_ENTER_FILE "/home/danchiba/Documents/HermiTux/hetmitux/syscall-rewriter/eval/sc_entered_times"
+#define SC_ENTER_FILE "/home/danchiba/hermitux/syscall-rewriter/eval/results/sc_entered_times"
 
 #ifdef SYSCALL_MEASURE
 inline static unsigned long long rdtsc(void)
@@ -21,9 +21,11 @@ int sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg) {
 	unsigned long long entered = rdtsc();
 	char buf[20];
 	ksprintf(buf, "%llu\n", entered);
-	int sc_res_file = sys_open(SC_ENTER_FILE, 0x9, 0);
-	sys_write(sc_res_file, buf, strlen(buf));
-	sys_close(sc_res_file);
+	//int sc_res_file = sys_open(SC_ENTER_FILE, 0xa, 0);
+	//LOG_INFO("DC: In sys_ioctl(): sc_res_file = %d\n", sc_res_file);
+	/* LOG_INFO("DC: In sys_ioctl(): buf = %s\n", buf); */
+	sys_write(7, buf, strlen(buf));
+	//sys_close(sc_res_file);
 #endif
 	
 	/* Check cmd, we want that to fail on commands that we did not explore */
