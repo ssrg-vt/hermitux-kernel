@@ -56,6 +56,9 @@ typedef unsigned int tid_t;
 extern "C" {
 #endif
 
+/* For evaluating the time between invocation of a system call and entry into the handler */
+#define MEASURE_SYSCALL_ENTRY
+	
 struct sem;
 typedef struct sem sem_t;
 

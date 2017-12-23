@@ -3,10 +3,9 @@
 #include <hermit/logging.h>
 #include <hermit/stdio.h>
 
-#define SYSCALL_MEASURE
 #define SC_ENTER_FILE "/home/danchiba/hermitux/syscall-rewriter/eval/results/sc_entered_times"
 
-#ifdef SYSCALL_MEASURE
+#ifdef MEASURE_SYSCALL_ENTRY
 inline static unsigned long long rdtsc(void)
 {
 	unsigned long lo, hi;
@@ -17,7 +16,7 @@ inline static unsigned long long rdtsc(void)
 #endif
 
 int sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg) {
-#ifdef SYSCALL_MEASURE
+#ifdef MEASURE_SYSCALL_ENTRY
 	unsigned long long entered = rdtsc();
 	char buf[20];
 	ksprintf(buf, "%llu\n", entered);
