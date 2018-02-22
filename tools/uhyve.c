@@ -70,6 +70,7 @@
 #include "uhyve-net.h"
 #include "uhyve-elf.h"
 #include "proxy.h"
+#include "uhyve-gdb.h"
 
 #include "miniz.h"
 #include "mini_gzip.h"
@@ -151,13 +152,6 @@
 #define PAGE_MAP_BITS	9
 #define PAGE_LEVELS		4
 
-#define kvm_ioctl(fd, cmd, arg) ({ \
-	const int ret = ioctl(fd, cmd, arg); \
-	if(ret == -1) \
-		err(1, "KVM: ioctl " #cmd " failed"); \
-	ret; \
-	})
-
 // Networkports
 #define UHYVE_PORT_NETINFO		0x505
 #define UHYVE_PORT_NETWRITE		0x506
@@ -180,7 +174,6 @@ static bool full_checkpoint = false;
 static uint32_t ncores = 1;
 static uint8_t* klog = NULL;
 static uint8_t* mboot = NULL;
-static size_t guest_size = 0x20000000ULL;
 static uint64_t elf_entry;
 static pthread_t* vcpu_threads = NULL;
 static pthread_t net_thread;
@@ -193,6 +186,9 @@ static __thread struct kvm_run *run = NULL;
 static __thread int vcpufd = -1;
 static __thread uint32_t cpuid = 0;
 static sem_t net_sem;
+static bool uhyve_gdb_enabled = false;
+
+size_t guest_size = 0x20000000ULL;
 uint8_t* guest_mem = NULL;
 
 int uhyve_argc = -1;
@@ -876,6 +872,8 @@ static int vcpu_loop(void)
 		switch (run->exit_reason) {
 		case KVM_EXIT_HLT:
 			fprintf(stderr, "Guest has halted the CPU, this is considered as a normal exit.\n");
+			if(uhyve_gdb_enabled)
+				uhyve_gdb_handle_term();
 			return 0;
 
 		case KVM_EXIT_MMIO:
@@ -1118,11 +1116,15 @@ static int vcpu_loop(void)
 			break;
 
 		case KVM_EXIT_FAIL_ENTRY:
+			if(uhyve_gdb_enabled)
+				uhyve_gdb_handle_exception(vcpufd, GDB_SIGNAL_SEGV);
 			err(1, "KVM: entry failure: hw_entry_failure_reason=0x%llx\n",
 				run->fail_entry.hardware_entry_failure_reason);
 			break;
 
 		case KVM_EXIT_INTERNAL_ERROR:
+			if(uhyve_gdb_enabled)
+				uhyve_gdb_handle_exception(vcpufd, GDB_SIGNAL_SEGV);
 			err(1, "KVM: internal error exit: suberror = 0x%x\n", run->internal.suberror);
 			break;
 
@@ -1131,7 +1133,12 @@ static int vcpu_loop(void)
 			break;
 
 		case KVM_EXIT_DEBUG:
-			print_registers();
+			if(uhyve_gdb_enabled) {
+				uhyve_gdb_handle_exception(vcpufd, GDB_SIGNAL_TRAP);
+				break;
+			}
+			else
+				print_registers();
 		default:
 			fprintf(stderr, "KVM: unhandled exit: exit_reason = 0x%x\n", run->exit_reason);
 			exit(EXIT_FAILURE);
@@ -1740,7 +1747,11 @@ nextslot:
 int uhyve_loop(int argc, char **argv)
 {
 	const char* hermit_check = getenv("HERMIT_CHECKPOINT");
+	const char *hermit_debug = getenv("HERMIT_DEBUG");
 	int ts = 0, i = 0;
+
+	if(hermit_debug && atoi(hermit_debug) != 0)
+		uhyve_gdb_enabled = true;
 
 	/* argv[0] is 'proxy', do not count it */
 	uhyve_argc = argc-1;
@@ -1801,6 +1812,10 @@ int uhyve_loop(int argc, char **argv)
 		/* Start a virtual timer. It counts down whenever this process is executing. */
 		setitimer(ITIMER_REAL, &timer, NULL);
 	}
+
+	/* init uhyve gdb support */
+	if(uhyve_gdb_enabled)
+		uhyve_gdb_init(vcpufd);
 
 	// Run first CPU
 	return vcpu_loop();

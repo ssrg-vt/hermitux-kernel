@@ -33,6 +33,13 @@
 
 #define GUEST_OFFSET		0x0
 
+#define kvm_ioctl(fd, cmd, arg) ({ \
+	const int ret = ioctl(fd, cmd, arg); \
+	if(ret == -1) \
+		err(1, "KVM: ioctl " #cmd " failed"); \
+	ret; \
+	})
+
 extern uint8_t* guest_mem;
 
 extern ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset);
