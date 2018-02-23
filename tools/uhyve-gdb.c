@@ -179,7 +179,7 @@ static int wait_for_connect()
     }
 
     warnx("Waiting for a debugger. Connect to it like this:");
-    warnx("\tgdb --ex=\"target remote localhost:%d\" KERNEL", portno);
+    warnx("\tgdb --ex=\"target remote localhost:%d\" <linux binary>", portno);
 
     len = sizeof(client_addr);
     socket_fd = accept(listen_socket_fd, (struct sockaddr *)&client_addr, &len);
