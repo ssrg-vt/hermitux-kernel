@@ -75,6 +75,8 @@
 #include "miniz.h"
 #include "mini_gzip.h"
 
+#include "uhyve-seccomp.h"
+
 // define this macro to create checkpoints with KVM's dirty log
 //#define USE_DIRTY_LOG
 
@@ -1748,7 +1750,14 @@ int uhyve_loop(int argc, char **argv)
 {
 	const char* hermit_check = getenv("HERMIT_CHECKPOINT");
 	const char *hermit_debug = getenv("HERMIT_DEBUG");
+	const char *hermit_seccomp = getenv("HERMIT_SECCOMP");
 	int ts = 0, i = 0;
+
+	if(hermit_seccomp && atoi(hermit_seccomp) != 0)
+		if(uhyve_seccomp_init()) {
+			fprintf(stderr, "Error configuring seccomp\n");
+			exit(-1);
+		}
 
 	if(hermit_debug && atoi(hermit_debug) != 0)
 		uhyve_gdb_enabled = true;
