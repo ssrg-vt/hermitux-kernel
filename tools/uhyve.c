@@ -179,8 +179,7 @@ static uint8_t* mboot = NULL;
 static uint64_t elf_entry;
 static pthread_t* vcpu_threads = NULL;
 static pthread_t net_thread;
-static int* vcpu_fds = NULL;
-static int kvm = -1, vmfd = -1, netfd = -1, efd = -1;
+static int netfd = -1, efd = -1;
 static uint32_t no_checkpoint = 0;
 static pthread_mutex_t kvm_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_barrier_t barrier;
@@ -189,6 +188,9 @@ static __thread int vcpufd = -1;
 static __thread uint32_t cpuid = 0;
 static sem_t net_sem;
 static bool uhyve_gdb_enabled = false;
+
+int* vcpu_fds = NULL;
+int kvm = -1, vmfd = -1;
 
 size_t guest_size = 0x20000000ULL;
 uint8_t* guest_mem = NULL;

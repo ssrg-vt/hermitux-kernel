@@ -8,6 +8,8 @@
 #include <sys/syscall.h>
 #include <string.h>
 
+extern int kvm, vmfd, *vcpu_fds;
+
 void sigsys_handler(int signum, siginfo_t *siginfo, void *context) {
 	char buf[256];
 	sprintf(buf, "Syscall failed: %d\n", siginfo->si_syscall);
@@ -26,6 +28,22 @@ int sigsys_handler_install(void) {
 		fprintf(stderr, "Error installing sygsys handler\n");
 		return -1;
 	}
+
+	return 0;
+}
+
+int setup_ioctl_rules(scmp_filter_ctx *ctx) {
+	int ret;
+
+	/* Allow IOCTL */
+	ret = seccomp_rule_add(*ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioctl), 0);
+	if(ret < 0)
+		return -1;
+
+	/* TODO filter based on:
+	 * - Files (only allow /dev/kvm, vmfd, vcpufds
+	 * - Operations made on each file
+	 */
 
 	return 0;
 }
@@ -61,11 +79,6 @@ int uhyve_seccomp_init(void) {
 
 	/* Allow EXIT_GROUP */
 	ret = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(exit_group), 0);
-	if(ret < 0)
-		goto out;
-
-	/* Allow IOCTL */
-	ret = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioctl), 0);
 	if(ret < 0)
 		goto out;
 
@@ -107,6 +120,9 @@ int uhyve_seccomp_init(void) {
 	/* Allow getcwd */
 	ret = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getcwd), 0);
 	if(ret < 0)
+		goto out;
+
+	if(setup_ioctl_rules(&ctx))
 		goto out;
 
 	ret = seccomp_load(ctx);
