@@ -15,7 +15,7 @@ scmp_filter_ctx ctx;
 
 void sigsys_handler(int signum, siginfo_t *siginfo, void *context) {
 	char buf[256];
-	sprintf(buf, "Syscall failed: %d\n", siginfo->si_syscall);
+	sprintf(buf, "Seccomp - unauthorized syscall: %d\n", siginfo->si_syscall);
 	syscall(1, 1, buf, strlen(buf));
 	return;
 }
