@@ -11,7 +11,7 @@
 #define DENY_RULE(call) { if (seccomp_rule_add (ctx, SCMP_ACT_KILL, SCMP_SYS(call), 0) < 0) goto out; }
 #define ALLOW_RULE(call) { if (seccomp_rule_add (ctx, SCMP_ACT_ALLOW, SCMP_SYS(call), 0) < 0) goto out; }
 
-extern int kvm, vmfd, *vcpu_fds;
+scmp_filter_ctx ctx;
 
 void sigsys_handler(int signum, siginfo_t *siginfo, void *context) {
 	char buf[256];
@@ -20,7 +20,7 @@ void sigsys_handler(int signum, siginfo_t *siginfo, void *context) {
 	return;
 }
 
-int sigsys_handler_install(void) {
+static int sigsys_handler_install(void) {
 	struct sigaction sa;
  	
 	sigemptyset(&sa.sa_mask);
@@ -35,11 +35,18 @@ int sigsys_handler_install(void) {
 	return 0;
 }
 
-int setup_ioctl_rules(scmp_filter_ctx *ctx) {
+static int setup_vm_kvm_ioctl(int kvm_fd, int vm_fd) {
 	int ret;
 
-	/* Allow IOCTL */
-	ret = seccomp_rule_add(*ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioctl), 0);
+	/* kvm_fd */
+	ret = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioctl), 1,
+			SCMP_A0(SCMP_CMP_EQ, kvm_fd));
+	if(ret < 0)
+		return -1;
+
+	/* vm_fd */
+	ret = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioctl), 1,
+			SCMP_A0(SCMP_CMP_EQ, vm_fd));
 	if(ret < 0)
 		return -1;
 
@@ -51,9 +58,18 @@ int setup_ioctl_rules(scmp_filter_ctx *ctx) {
 	return 0;
 }
 
-int uhyve_seccomp_init(void) {
-	scmp_filter_ctx ctx;
+int uhyve_seccomp_add_vcpu_fd(int vcpu_fd) {
+	int ret =  seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioctl), 1,
+			SCMP_A0(SCMP_CMP_EQ, vcpu_fd));
+	if(ret < 0)
+		return -1;
+	return 0;
+}
+
+int uhyve_seccomp_init(int kvm_fd, int vm_fd) {
 	int ret;
+
+	printf("init seccomp\n");
 
 	if(sigsys_handler_install())
 		return -1;
@@ -65,16 +81,8 @@ int uhyve_seccomp_init(void) {
 		return -1;
 	}
 
-	/* Allow READ */
-	ret = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(read), 0);
-	if(ret < 0)
-		goto out;
-
-	/* Allow WRITE */
-	ret = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(write), 0);
-	if(ret < 0)
-		goto out;
-
+	ALLOW_RULE(read);
+	ALLOW_RULE(write);
 	ALLOW_RULE(close);
 	ALLOW_RULE(exit_group);
 	ALLOW_RULE(openat);
@@ -85,9 +93,25 @@ int uhyve_seccomp_init(void) {
 	ALLOW_RULE(rmdir);
 	ALLOW_RULE(unlink);
 	ALLOW_RULE(getcwd);
+	ALLOW_RULE(mmap);
+	ALLOW_RULE(pread64);
+	ALLOW_RULE(futex);
+	ALLOW_RULE(tgkill);
+	ALLOW_RULE(getpid);
 
-	if(setup_ioctl_rules(&ctx))
+	if(setup_vm_kvm_ioctl(kvm_fd, vm_fd))
 		goto out;
+
+	return 0;
+
+out:
+	fprintf(stderr, "Error adding rule to seccomp filter\n");
+	seccomp_release(ctx);
+	return -1;
+}
+
+int uhyve_seccomp_load(void) {
+	int ret;
 
 	ret = seccomp_load(ctx);
 	if(ret < 0) {
@@ -97,9 +121,4 @@ int uhyve_seccomp_init(void) {
 
 	seccomp_release(ctx);
 	return 0;
-
-out:
-	fprintf(stderr, "Error adding rule to seccomp filter\n");
-	seccomp_release(ctx);
-	return -1;
 }

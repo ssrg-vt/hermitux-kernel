@@ -179,7 +179,8 @@ static uint8_t* mboot = NULL;
 static uint64_t elf_entry;
 static pthread_t* vcpu_threads = NULL;
 static pthread_t net_thread;
-static int netfd = -1, efd = -1;
+static int* vcpu_fds = NULL;
+static int kvm = -1, vmfd = -1, netfd = -1, efd = -1;
 static uint32_t no_checkpoint = 0;
 static pthread_mutex_t kvm_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_barrier_t barrier;
@@ -188,9 +189,7 @@ static __thread int vcpufd = -1;
 static __thread uint32_t cpuid = 0;
 static sem_t net_sem;
 static bool uhyve_gdb_enabled = false;
-
-int* vcpu_fds = NULL;
-int kvm = -1, vmfd = -1;
+bool uhyve_seccomp_enabled = false;
 
 size_t guest_size = 0x20000000ULL;
 uint8_t* guest_mem = NULL;
@@ -1375,7 +1374,11 @@ void sigterm_handler(int signum)
 int uhyve_init(char** argv)
 {
 	const char* path = argv[1];
+	const char *hermit_seccomp = getenv("HERMIT_SECCOMP");
 	signal(SIGTERM, sigterm_handler);
+
+	if(hermit_seccomp && atoi(hermit_seccomp) != 0)
+		uhyve_seccomp_enabled = true;
 
 	// register routine to close the VM
 	atexit(uhyve_atexit);
@@ -1428,6 +1431,14 @@ int uhyve_init(char** argv)
 
 	/* Create the virtual machine */
 	vmfd = kvm_ioctl(kvm, KVM_CREATE_VM, 0);
+
+	/* Initialize seccomp filter */
+	if(uhyve_seccomp_enabled) {
+		if(uhyve_seccomp_init(kvm, vmfd)) {
+			fprintf(stderr, "Error configuring seccomp\n");
+			exit(-1);
+		}
+	}
 
 	uint64_t identity_base = 0xfffbc000;
 	if (ioctl(vmfd, KVM_CHECK_EXTENSION, KVM_CAP_SYNC_MMU) > 0) {
@@ -1752,14 +1763,7 @@ int uhyve_loop(int argc, char **argv)
 {
 	const char* hermit_check = getenv("HERMIT_CHECKPOINT");
 	const char *hermit_debug = getenv("HERMIT_DEBUG");
-	const char *hermit_seccomp = getenv("HERMIT_SECCOMP");
 	int ts = 0, i = 0;
-
-	if(hermit_seccomp && atoi(hermit_seccomp) != 0)
-		if(uhyve_seccomp_init()) {
-			fprintf(stderr, "Error configuring seccomp\n");
-			exit(-1);
-		}
 
 	if(hermit_debug && atoi(hermit_debug) != 0)
 		uhyve_gdb_enabled = true;
@@ -1827,6 +1831,20 @@ int uhyve_loop(int argc, char **argv)
 	/* init uhyve gdb support */
 	if(uhyve_gdb_enabled)
 		uhyve_gdb_init(vcpufd);
+
+	/* Add vcpu_fds to the seccomp filter then load it */
+	if(uhyve_seccomp_enabled) {
+		for(i=0; i<ncores; i++)
+			if(uhyve_seccomp_add_vcpu_fd(vcpu_fds[i])) {
+				fprintf(stderr, "Cannot add vcpu_fd to seccomp filter\n");
+				exit(-1);
+			}
+
+		if(uhyve_seccomp_load()) {
+			fprintf(stderr, "Cannot load seccomp filter\n");
+			exit(-1);
+		}
+	}
 
 	// Run first CPU
 	return vcpu_loop();
