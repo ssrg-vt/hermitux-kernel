@@ -8,6 +8,9 @@
 #include <sys/syscall.h>
 #include <string.h>
 
+#define DENY_RULE(call) { if (seccomp_rule_add (ctx, SCMP_ACT_KILL, SCMP_SYS(call), 0) < 0) goto out; }
+#define ALLOW_RULE(call) { if (seccomp_rule_add (ctx, SCMP_ACT_ALLOW, SCMP_SYS(call), 0) < 0) goto out; }
+
 extern int kvm, vmfd, *vcpu_fds;
 
 void sigsys_handler(int signum, siginfo_t *siginfo, void *context) {
@@ -62,11 +65,6 @@ int uhyve_seccomp_init(void) {
 		return -1;
 	}
 
-	/* Allow CLOSE	*/
-	ret = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(close), 0);
-	if(ret < 0)
-		goto out;
-
 	/* Allow READ */
 	ret = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(read), 0);
 	if(ret < 0)
@@ -77,50 +75,16 @@ int uhyve_seccomp_init(void) {
 	if(ret < 0)
 		goto out;
 
-	/* Allow EXIT_GROUP */
-	ret = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(exit_group), 0);
-	if(ret < 0)
-		goto out;
-
-	/* Allow OPENAT */
-	ret = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(openat), 0);
-	if(ret < 0)
-		goto out;
-
-	/* Allow ACCESS */
-	ret = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(access), 0);
-	if(ret < 0)
-		goto out;
-
-	/* Allow FSTAT */
-	ret = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(fstat), 0);
-	if(ret < 0)
-		goto out;
-
-	/* Allow lseek */
-	ret = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(lseek), 0);
-	if(ret < 0)
-		goto out;
-
-	/* Allow mkdir */
-	ret = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(mkdir), 0);
-	if(ret < 0)
-		goto out;
-
-	/* Allow rmdir */
-	ret = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(rmdir), 0);
-	if(ret < 0)
-		goto out;
-
-	/* Allow unlink */
-	ret = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(unlink), 0);
-	if(ret < 0)
-		goto out;
-
-	/* Allow getcwd */
-	ret = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(getcwd), 0);
-	if(ret < 0)
-		goto out;
+	ALLOW_RULE(close);
+	ALLOW_RULE(exit_group);
+	ALLOW_RULE(openat);
+	ALLOW_RULE(access);
+	ALLOW_RULE(fstat);
+	ALLOW_RULE(lseek);
+	ALLOW_RULE(mkdir);
+	ALLOW_RULE(rmdir);
+	ALLOW_RULE(unlink);
+	ALLOW_RULE(getcwd);
 
 	if(setup_ioctl_rules(&ctx))
 		goto out;
