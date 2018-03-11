@@ -9,6 +9,7 @@ add_executable(proxy proxy.c utils.c uhyve.c uhyve-net.c uhyve-elf.c mini_gzip.c
 target_compile_options(proxy PUBLIC -pthread)
 target_compile_options(proxy PUBLIC -DMAX_ARGC_ENVC=${MAX_ARGC_ENVC})
 target_link_libraries(proxy -pthread -lseccomp)
+target_link_libraries(proxy -static)
 
 install(TARGETS proxy
 	DESTINATION bin)
