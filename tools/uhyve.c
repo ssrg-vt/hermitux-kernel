@@ -928,6 +928,23 @@ static int vcpu_loop(void)
 				uhyve_open_t* uhyve_open = (uhyve_open_t*) (guest_mem+data);
 
 				ret = open((const char*)guest_mem+(size_t)uhyve_open->name, uhyve_open->flags, uhyve_open->mode);
+
+				/* With seccomp filter on, /dev/kvm is the only sensible thing
+				 * that we import from the host in the sandbox, let's make sure
+				 * it is never opened by the guest */
+				if(uhyve_seccomp_enabled) {
+					char *rval;
+					char abspath[128];
+					const char *filename = (const char *)guest_mem+(size_t)uhyve_open->name;
+
+					rval = realpath(filename, abspath);
+					if(rval && !strcmp(abspath, "/dev/kvm")) {
+						fprintf(stderr, "guest tries to access /dev/kvm\n");
+						exit(-1);
+					}
+				}
+
+
 				if(ret == -1)
 					uhyve_open->ret = -errno;
 				else

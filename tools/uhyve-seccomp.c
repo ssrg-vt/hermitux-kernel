@@ -93,6 +93,7 @@ int uhyve_seccomp_init(int vm_fd) {
 	ALLOW_RULE(openat);
 	ALLOW_RULE(access);
 	ALLOW_RULE(fstat);
+	ALLOW_RULE(lstat);
 	ALLOW_RULE(lseek);
 	ALLOW_RULE(mkdir);
 	ALLOW_RULE(rmdir);
