@@ -89,21 +89,13 @@ int uhyve_seccomp_init(int vm_fd) {
 	ALLOW_RULE(read);
 	ALLOW_RULE(write);
 	ALLOW_RULE(close);
-	ALLOW_RULE(exit_group);
 	ALLOW_RULE(openat);
-	ALLOW_RULE(access);
-	ALLOW_RULE(fstat);
 	ALLOW_RULE(lstat);
 	ALLOW_RULE(lseek);
 	ALLOW_RULE(mkdir);
 	ALLOW_RULE(rmdir);
-	ALLOW_RULE(unlink);
 	ALLOW_RULE(getcwd);
-	ALLOW_RULE(mmap);
-	ALLOW_RULE(pread64);
-	ALLOW_RULE(futex);
-	ALLOW_RULE(tgkill);
-	ALLOW_RULE(getpid);
+	ALLOW_RULE(unlink);
 
 	if(setup_vm_kvm_ioctl(vm_fd))
 		goto out;
