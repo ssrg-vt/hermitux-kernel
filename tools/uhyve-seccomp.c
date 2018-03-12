@@ -7,9 +7,12 @@
 #include <unistd.h>
 #include <sys/syscall.h>
 #include <string.h>
+#include <linux/kvm.h>
 
 #define DENY_RULE(call) { if (seccomp_rule_add (ctx, SCMP_ACT_KILL, SCMP_SYS(call), 0) < 0) goto out; }
 #define ALLOW_RULE(call) { if (seccomp_rule_add (ctx, SCMP_ACT_ALLOW, SCMP_SYS(call), 0) < 0) goto out; }
+
+#define ALLOW_IOCTL(fd, cmd) { if (seccomp_rule_add (ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioctl), 2, SCMP_A0(SCMP_CMP_EQ, fd), SCMP_A1(SCMP_CMP_EQ, cmd)) < 0) goto out; }
 
 scmp_filter_ctx ctx;
 
@@ -35,41 +38,43 @@ static int sigsys_handler_install(void) {
 	return 0;
 }
 
-static int setup_vm_kvm_ioctl(int kvm_fd, int vm_fd) {
+static int setup_vm_kvm_ioctl(int vm_fd) {
 	int ret;
 
-	/* kvm_fd */
-	ret = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioctl), 1,
-			SCMP_A0(SCMP_CMP_EQ, kvm_fd));
-	if(ret < 0)
-		return -1;
-
-	/* vm_fd */
-	ret = seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioctl), 1,
-			SCMP_A0(SCMP_CMP_EQ, vm_fd));
-	if(ret < 0)
-		return -1;
-
-	/* TODO filter based on:
-	 * - Files (only allow /dev/kvm, vmfd, vcpufds
-	 * - Operations made on each file
-	 */
+	/* While the guest is running, only these are needed in case of
+	 * checkpointing */
+	ALLOW_IOCTL(vm_fd, KVM_GET_CLOCK);
+	ALLOW_IOCTL(vm_fd, KVM_GET_DIRTY_LOG);
 
 	return 0;
+
+out:
+	fprintf(stderr, "Error setting up ioctl vm_fd seccomp rule\n");
+	return -1;
 }
 
 int uhyve_seccomp_add_vcpu_fd(int vcpu_fd) {
-	int ret =  seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(ioctl), 1,
-			SCMP_A0(SCMP_CMP_EQ, vcpu_fd));
-	if(ret < 0)
-		return -1;
+
+	/* While the guest is running, only KVM_RUN and KVM_GET_REGS/SREGS are
+	 * needed. However, for GDB debugging a few mores are also required */
+	ALLOW_IOCTL(vcpu_fd, KVM_RUN);
+	ALLOW_IOCTL(vcpu_fd, KVM_GET_REGS);
+	ALLOW_IOCTL(vcpu_fd, KVM_SET_REGS);
+	ALLOW_IOCTL(vcpu_fd, KVM_SET_SREGS);
+	ALLOW_IOCTL(vcpu_fd, KVM_GET_SREGS);
+	ALLOW_IOCTL(vcpu_fd, KVM_SET_GUEST_DEBUG);
+	ALLOW_IOCTL(vcpu_fd, KVM_TRANSLATE);
+
 	return 0;
+
+out:
+	fprintf(stderr, "Error setting up ioctl vcpu_fd seccomp rule\n");
+	return -1;
+
 }
 
-int uhyve_seccomp_init(int kvm_fd, int vm_fd) {
+int uhyve_seccomp_init(int vm_fd) {
 	int ret;
-
-	printf("init seccomp\n");
 
 	if(sigsys_handler_install())
 		return -1;
@@ -99,7 +104,7 @@ int uhyve_seccomp_init(int kvm_fd, int vm_fd) {
 	ALLOW_RULE(tgkill);
 	ALLOW_RULE(getpid);
 
-	if(setup_vm_kvm_ioctl(kvm_fd, vm_fd))
+	if(setup_vm_kvm_ioctl(vm_fd))
 		goto out;
 
 	return 0;

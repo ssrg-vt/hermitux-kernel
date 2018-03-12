@@ -1434,7 +1434,7 @@ int uhyve_init(char** argv)
 
 	/* Initialize seccomp filter */
 	if(uhyve_seccomp_enabled) {
-		if(uhyve_seccomp_init(kvm, vmfd)) {
+		if(uhyve_seccomp_init(vmfd)) {
 			fprintf(stderr, "Error configuring seccomp\n");
 			exit(-1);
 		}
