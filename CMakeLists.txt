@@ -8,10 +8,11 @@ project (HermitCore)
 ### Kernel
 
 # generate config files
+add_subdirectory(kernel/syscalls)
 add_subdirectory(include/hermit)
 
 add_kernel_module_sources("kernel"		"kernel/*.c")
-add_kernel_module_sources("syscalls"	"kernel/syscalls/*.c")
+#add_kernel_module_sources("syscalls"	"kernel/syscalls/*.c")
 add_kernel_module_sources("libkern"		"libkern/*.c")
 add_kernel_module_sources("mm"			"mm/*.c")
 
@@ -20,7 +21,7 @@ add_kernel_module_sources("drivers"		"drivers/net/*.c")
 endif(NOT ${NO_NET})
 
 if(NOT ${NO_NET})
-message("Enabling LWIP")
+message(STATUS "Enabling LWIP")
 	set(LWIP_SRC lwip/src)
 	add_kernel_module_sources("lwip"	"${LWIP_SRC}/api/*.c")
 	add_kernel_module_sources("lwip"	"${LWIP_SRC}/arch/*.c")

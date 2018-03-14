@@ -57,7 +57,7 @@ extern "C" {
 #endif
 
 /* For evaluating the time between invocation of a system call and entry into the handler */
-#define MEASURE_SYSCALL_ENTRY
+//#define MEASURE_SYSCALL_ENTRY
 	
 struct sem;
 typedef struct sem sem_t;
@@ -146,7 +146,8 @@ int sys_sched_setaffinity(int pid, unsigned int len,
 		unsigned long *user_mask_ptr);
 long sys_mprotect(size_t addr, size_t len, unsigned long prot);
 int sys_munmap(size_t viraddr, size_t len);
-
+int sys_dummy_syscall(void);
+    
 struct ucontext;
 typedef struct ucontext ucontext_t;
 

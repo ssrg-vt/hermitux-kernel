@@ -31,6 +31,7 @@
 #include <hermit/errno.h>
 #include <hermit/syscall.h>
 #include <hermit/logging.h>
+#include <hermit/syscall_disabler.h>
 #include "syscall.h"
 
 void __startcontext(void);
@@ -122,12 +123,12 @@ int swapcontext(ucontext_t *oucp, const ucontext_t *ucp)
 void fast_syscall_handler(struct fast_sc_state *s)
 {
 	//uint64_t rax, rdi, rsi, rdx, r10, r8, r9, ret;
-	/*
-	  LOG_INFO("DC: In fast_syscall_handler\n");
-	  LOG_INFO("DC: RAX = %#llx, RDI = %#llx, RSI = %#llx, RDX = %#llx, "
-	  "R10 = %#llx, R8 = %#llx, R9 = %#llx\n",
-	  s->rax, s->rdi, s->rsi, s->rdx, s->r10, s->r8, s->r9);
-	*/
+	
+	/* LOG_INFO("DC: In fast_syscall_handler\n"); */
+	/* LOG_INFO("DC: RAX = %#llx, RDI = %#llx, RSI = %#llx, RDX = %#llx, " */
+	/* 	 "R10 = %#llx, R8 = %#llx, R9 = %#llx\n", */
+	/* 	 s->rax, s->rdi, s->rsi, s->rdx, s->r10, s->r8, s->r9); */
+	
 	
 	s->rax = redirect_syscall(s->rax, s->rdi, s->rsi, s->rdx, s->r10, s->r8, s->r9);
 
@@ -379,7 +380,7 @@ uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx
 		/* lsiten */
 		ret = lwip_listen(rdi, rsi);
 		break;
-#endif
+#endif /* DISABLE_SYS_LISTEN */
 #endif /* NO_NET */
 
 #ifndef NO_NET
@@ -388,8 +389,15 @@ uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx
 		/* getsockname */
 		ret = lwip_getsockname(rdi, (struct sockaddr *)rsi, (unsigned int *)rdx);
 		break;
-#endif
+#endif /* DISABLE_SYS_GETSOCKNAME */
 #endif /* NO_NET */
+
+#ifndef DISABLE_SYS_SETSOCKOPT
+	case 54:
+		/* setsockopt */
+		ret = sys_setsockopt(rdi, rsi, rdx, (char *)r10, r8);
+		break;
+#endif /* DISABLE_SYS_SETSOCKOPT */
 
 #ifndef DISABLE_SYS_EXIT
 	case 60:
@@ -398,13 +406,6 @@ uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx
 		LOG_ERROR("Should not reach here after exit ... \n");
 		break;
 #endif /* DISABLE_SYS_EXIT */
-
-#ifndef DISABLE_SYS_SETSOCKOPT
-	case 54:
-		/* setsockopt */
-		ret = sys_setsockopt(rdi, rsi, rdx, (char *)r10, r8);
-		break;
-#endif /* DISABLE_SYS_SETSOCKOPT */
 
 #ifndef DISABLE_SYS_UNAME
 	case 63:
@@ -545,6 +546,16 @@ uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx
 		break;
 #endif /* DISABLE_SYS_CLOCK_GETTIME */
 
+#ifndef DISABLE_SYS_EXIT_GROUP
+	case 231:
+		/* exit_group */
+		/* FIXME this will probably not work in multi-threaded 
+		 * environments */
+		sys_exit(rdi);
+		LOG_ERROR("Should not reach here after exit_group ... \n");
+		break;
+#endif /* DISABLE_SYS_EXIT_GROUP */
+
 #ifndef DISABLE_SYS_TGKILL
 	case 234:
 		/* tgkill */
@@ -558,16 +569,13 @@ uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx
 		break;
 #endif /* DISABLE_SYS_OPENAT */
 
-#ifndef DISABLE_SYS_EXIT_GROUP
-	case 231:
-		/* exit_group */
-		/* FIXME this will probably not work in multi-threaded 
-		 * environments */
-		sys_exit(rdi);
-		LOG_ERROR("Should not reach here after exit_group ... \n");
+#ifndef DISABLE_SYS_DUMMY_SYSCALL
+	case 326:
+		/* dummy_syscall (for microbenchmark) */
+		ret = sys_dummy_syscall();
 		break;
-#endif /* DISABLE_SYS_EXIT_GROUP */
-
+#endif /* DISABLE_SYS_DUMMY_SYSCALL */
+		
 	default:
 		LOG_ERROR("Unsuported Linux syscall: %d\n", rax);
 		sys_exit(-EFAULT);
