@@ -29,12 +29,10 @@ ssize_t sys_write(int fd, const char* buf, size_t len)
 	if (BUILTIN_EXPECT(!buf, 0))
 		return -1;
 
+#ifndef NO_NET
 	ssize_t i, ret;
 	int s;
 	sys_write_t sysargs = {__NR_write, fd, len};
-
-
-#ifndef NO_NET
 	// do we have an LwIP file descriptor?
 	if (fd & LWIP_FD_BIT) {
 		ret = lwip_write(fd & ~LWIP_FD_BIT, buf, len);
