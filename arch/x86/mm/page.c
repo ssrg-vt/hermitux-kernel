@@ -230,6 +230,7 @@ void page_fault_handler(struct state *s)
 {
 	size_t viraddr = read_cr2();
 	task_t* task = per_core(current_task);
+	int i;
 
 	int check_pagetables(size_t vaddr)
 	{
@@ -255,41 +256,45 @@ void page_fault_handler(struct state *s)
 	spinlock_irqsave_lock(&page_lock);
 
 	if ((task->heap) && (viraddr >= task->heap->start) && (viraddr < task->heap->end)) {
-		size_t flags;
-		int ret;
+		/* Page fault cost is high because we run under virtualization, allocate
+		 * a bit more than one page to absorb future page faults. More than 10
+		 * pages does not seem to increase performance further */
 
-		/*
-		 * do we have a valid page table entry? => flush TLB and return
-		 */
-		if (check_pagetables(viraddr)) {
-			//tlb_flush_one_page(viraddr);
-			spinlock_irqsave_unlock(&page_lock);
-			return;
+		for(i=0; i<OVERMAP; i++) {
+			size_t flags;
+			int ret;
+			viraddr += i*PAGE_SIZE;
+			/*
+			 * do we have a valid page table entry? => flush TLB
+			 */
+			if (check_pagetables(viraddr)) {
+				//tlb_flush_one_page(viraddr);
+				//spinlock_irqsave_unlock(&page_lock);
+				continue;
+			}
+
+			size_t phyaddr = get_page();
+			if (BUILTIN_EXPECT(!phyaddr, 0)) {
+				LOG_ERROR("out of memory: task = %u\n", task->id);
+				goto default_handler;
+			}
+			 // on demand userspace heap mapping
+			viraddr &= PAGE_MASK;
+
+			flags = PG_USER|PG_RW;
+			if (has_nx()) // set no execution flag to protect the heap
+				flags |= PG_XD;
+			ret = __page_map(viraddr, phyaddr, 1, flags, 0);
+
+			if (BUILTIN_EXPECT(ret, 0)) {
+				LOG_ERROR("map_region: could not map %#lx to %#lx, task = %u\n", phyaddr, viraddr, task->id);
+				put_page(phyaddr);
+
+				goto default_handler;
+			}
+
 		}
-
-		 // on demand userspace heap mapping
-		viraddr &= PAGE_MASK;
-
-		size_t phyaddr = expect_zeroed_pages ? get_zeroed_page() : get_page();
-		if (BUILTIN_EXPECT(!phyaddr, 0)) {
-			LOG_ERROR("out of memory: task = %u\n", task->id);
-			goto default_handler;
-		}
-
-		flags = PG_USER|PG_RW;
-		if (has_nx()) // set no execution flag to protect the heap
-			flags |= PG_XD;
-		ret = __page_map(viraddr, phyaddr, 1, flags, 0);
-
-		if (BUILTIN_EXPECT(ret, 0)) {
-			LOG_ERROR("map_region: could not map %#lx to %#lx, task = %u\n", phyaddr, viraddr, task->id);
-			put_page(phyaddr);
-
-			goto default_handler;
-		}
-
 		spinlock_irqsave_unlock(&page_lock);
-
 		return;
 	}
 
