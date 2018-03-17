@@ -67,6 +67,7 @@ typedef void (*signal_handler_t)(int);
  * => forward declaration of system calls as function
  */
 tid_t sys_getpid(void);
+tid_t sys_getppid(void);
 int sys_fork(void);
 int sys_wait(int* status);
 int sys_execve(const char* name, char * const * argv, char * const * env);

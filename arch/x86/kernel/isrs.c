@@ -572,6 +572,12 @@ void syscall_handler(struct state *s)
 			break;
 #endif /* DISABLE_SYS_GETEGID */
 
+#ifndef DISABLE_SYS_GETPPID
+		case 110:
+			s->rax = sys_getppid();
+			break;
+#endif /* DISABLE_SYS_GETPPID */
+
 #ifndef DISABLE_SYS_GETPRIO
 		case 140:
 			/* getpriority */
