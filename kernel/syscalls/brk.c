@@ -11,7 +11,7 @@ ssize_t sys_brk(ssize_t val) {
 	static spinlock_t heap_lock = SPINLOCK_INIT;
 
 	if(!val)
-		return sys_sbrk(0);
+		return heap->end;
 
 	if (BUILTIN_EXPECT(!heap, 0)) {
 		LOG_ERROR("sys_sbrk: missing heap!\n");
