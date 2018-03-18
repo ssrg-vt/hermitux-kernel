@@ -227,31 +227,32 @@ int page_unmap(size_t viraddr, size_t npages)
 	return 0;
 }
 
+int check_pagetables(size_t vaddr)
+{
+	int lvl;
+	long vpn = vaddr >> PAGE_BITS;
+	long index[PAGE_LEVELS];
+
+	/* Calculate index boundaries for page map traversal */
+	for (lvl=0; lvl<PAGE_LEVELS; lvl++)
+		index[lvl] = vpn >> (lvl * PAGE_MAP_BITS);
+
+	/* do we have already a valid entry in the page tables */
+	for (lvl=PAGE_LEVELS-1; lvl>=0; lvl--) {
+		vpn = index[lvl];
+
+		if (!(self[lvl][vpn] & PG_PRESENT))
+			return 0;
+	}
+
+	return 1;
+}
+
 void page_fault_handler(struct state *s)
 {
 	size_t viraddr = read_cr2();
 	task_t* task = per_core(current_task);
 
-	int check_pagetables(size_t vaddr)
-	{
-		int lvl;
-		long vpn = vaddr >> PAGE_BITS;
-		long index[PAGE_LEVELS];
-
-		/* Calculate index boundaries for page map traversal */
-		for (lvl=0; lvl<PAGE_LEVELS; lvl++)
-			index[lvl] = vpn >> (lvl * PAGE_MAP_BITS);
-
-		/* do we have already a valid entry in the page tables */
-		for (lvl=PAGE_LEVELS-1; lvl>=0; lvl--) {
-			vpn = index[lvl];
-
-			if (!(self[lvl][vpn] & PG_PRESENT))
-				return 0;
-		}
-
-		return 1;
-	}
 
 	spinlock_irqsave_lock(&page_lock);
 

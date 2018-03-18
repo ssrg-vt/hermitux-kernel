@@ -5,6 +5,13 @@
 #include <hermit/memory.h>
 #include <hermit/mmap_areas.h>
 
+/* We use the concept of 'mmap areas' to track which part of the address space
+ * are used for mmap mappings (currently just memory allocation). It is needed
+ * to enable on demand virtual to physical mapping for such areas: we check in
+ * the page fault handler if the faulty address falls into one of the mmap
+ * areas
+ */
+
 #define MMAP_AREA_MAX	256
 
 typedef struct s_mmap_area {
@@ -43,11 +50,13 @@ static int mmap_area_add(uint64_t addr, uint64_t size) {
 	return -1;
 }
 
+/* Return 1 if addr corresponds to a mmap mapping */
 int mmap_area_check(uint64_t addr) {
 	int i;
 
 	for(i=0; i<MMAP_AREA_MAX; i++) {
-		if(mmap_areas[i].size && (addr >= mmap_areas[i].addr) && (addr < (mmap_areas[i].addr + mmap_areas[i].size)))
+		if(mmap_areas[i].size && (addr >= mmap_areas[i].addr) &&
+				(addr < (mmap_areas[i].addr + mmap_areas[i].size)))
 			return 1;
 	}
 	return 0;
@@ -85,6 +94,7 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 	if (BUILTIN_EXPECT(!viraddr, 0))
 		return (size_t)NULL;
 
+	/* Indicate the area as used for mmap */
 	if(mmap_area_add(viraddr+PAGE_SIZE, len))
 		return (size_t)NULL;
 
