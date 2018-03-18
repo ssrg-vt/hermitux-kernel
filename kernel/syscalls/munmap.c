@@ -8,7 +8,6 @@
 extern int check_pagetables(size_t vaddr);
 
 int sys_munmap(size_t viraddr, size_t len) {
-	size_t phyaddr;
 	uint32_t npages = PAGE_CEIL(len) >> PAGE_BITS;
 	int i;
 
