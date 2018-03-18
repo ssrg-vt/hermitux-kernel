@@ -61,7 +61,6 @@
 #include <sys/eventfd.h>
 #include <linux/const.h>
 #include <linux/kvm.h>
-#include <asm/msr-index.h>
 #include <asm/mman.h>
 
 #include "uhyve.h"
@@ -71,6 +70,7 @@
 #include "uhyve-elf.h"
 #include "proxy.h"
 #include "uhyve-gdb.h"
+#include "uhyve-msr.h"
 
 #include "miniz.h"
 #include "mini_gzip.h"
