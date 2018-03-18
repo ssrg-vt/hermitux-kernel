@@ -33,6 +33,7 @@
 #cmakedefine DISABLE_SYS_FCNTL
 #cmakedefine DISABLE_SYS_GETCWD
 #cmakedefine DISABLE_SYS_MKDIR
+#cmakedefine DISABLE_SYS_RMDIR
 #cmakedefine DISABLE_SYS_UNLINK
 #cmakedefine DISABLE_SYS_READLINK
 #cmakedefine DISABLE_SYS_GETTIMEOFDAY
@@ -40,7 +41,7 @@
 #cmakedefine DISABLE_SYS_GETGID
 #cmakedefine DISABLE_SYS_GETEUID
 #cmakedefine DISABLE_SYS_GETEGID
-#cmakedefine DISABLE_SYS_GETPRIORITY
+#cmakedefine DISABLE_SYS_GETPRIO
 #cmakedefine DISABLE_SYS_ARCH_PRCTL
 #cmakedefine DISABLE_SYS_GETTID
 #cmakedefine DISABLE_SYS_TKILL
@@ -51,3 +52,4 @@
 #cmakedefine DISABLE_SYS_EXIT_GROUP
 #cmakedefine DISABLE_SYS_TGKILL
 #cmakedefine DISABLE_SYS_OPENAT
+#cmakedefine DISABLE_SYS_DUMMY_SYSCALL

@@ -1,30 +1,20 @@
-cmake_minimum_required(VERSION 3.7)
-include(../../cmake/HermitCore.cmake)
-
-#project (HermitCore)
-
-set(_KERNEL_MODULES "" PARENT_SCOPE)
-set(_KERNEL_SOURCES_syscalls "" PARENT_SCOPE)
-# set_parent(_KERNEL_MODULES "")
-# set_parent(_KERNEL_SOURCES_syscalls "")
-
 # No executable given as input argument. Add all files and return.
 if(NOT EXEC)
   # TODO: CMake stores the previous value in the cache, so we need to find some way to make it discard that
   message(STATUS "No input executable provided")
   message(STATUS "Compiling HermiTux with all system calls.")
-  add_kernel_module_sources("syscalls"	"${CMAKE_CURRENT_LIST_DIR}/*.c")
+  add_kernel_module_sources("syscalls" "${CMAKE_SOURCE_DIR}/kernel/syscalls/*.c")
   # TODO: configure_file
   return()
 endif()
 
-set(SC_FILE_NAME "${CMAKE_CURRENT_LIST_DIR}/supported_syscalls.csv")
+set(SC_FILE_NAME "${CMAKE_SOURCE_DIR}/kernel/syscalls/supported_syscalls.csv")
 set(HEADER_IP_FILE "${CMAKE_SOURCE_DIR}/include/hermit/syscall_disabler.h.in")
 set(HEADER_OP_FILE "${CMAKE_SOURCE_DIR}/include/hermit/syscall_disabler.h")
 
 # Get all the syscalls being made by the executable.
 # The output of identify_syscalls is already in the CMake list format
-set(sc_id_cmd "${CMAKE_CURRENT_LIST_DIR}/../../../syscall-identification/identify_syscalls")
+set(sc_id_cmd "${CMAKE_SOURCE_DIR}/../syscall-identification/identify_syscalls")
 execute_process(COMMAND ${sc_id_cmd} ${EXEC} WORKING_DIRECTORY
   ${CMAKE_SOURCE_DIR}/build OUTPUT_VARIABLE required_syscalls RESULT_VARIABLE id_res)
 
@@ -39,6 +29,12 @@ endif()
 
 list(LENGTH required_syscalls sc_len)
 message(STATUS "${sc_len} unique syscalls are being made by the application.")
+
+# Append certain system calls to the required list regardless, because they are
+# called elsewhere in the kernel
+list(APPEND required_syscalls "39")
+list(REMOVE_DUPLICATES required_syscalls)
+list(SORT required_syscalls)
 
 # Convert the supported_syscalls.csv file into a CMake list.
 file(READ ${SC_FILE_NAME} supported_syscalls_csv)
@@ -70,18 +66,21 @@ endforeach(syscall)
 
 # For each required system call, search for it in supported_sc_nos.
 foreach(reqsc ${required_syscalls})
-  list(FIND supported_sc_nos reqsc sc_index)
+  list(FIND supported_sc_nos ${reqsc} sc_index)
 
-  # Abort if not found.
-  if(NOT sc_index)
-    message(FATAL_ERROR "Application requires an unsupported system call and will not work with HermiTux.")
+  if(${sc_index} EQUAL -1)
+    #message(FATAL_ERROR "Application requires an unsupported system call and will not work with HermiTux.")
+    continue()
   endif()
 
   # Add syscall source file.
   list(GET sc_file_names ${sc_index} fname)
-  add_kernel_module_sources("syscalls" "${fname}")
+  #message("fname = ${fname}")
+  add_kernel_module_sources("syscalls" "${CMAKE_SOURCE_DIR}/kernel/syscalls/${fname}")
 
 endforeach(reqsc)
+
+#message("SYSCALLS_SOURCES = ${_KERNEL_SOURCES_syscalls}")
 
 # For each macro set its value depending on whether the corresponding syscall is required or not.
 list(LENGTH sc_disable_macros len)

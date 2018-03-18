@@ -16,7 +16,10 @@ tags
 .idea/*
 qemu-vlan0.pcap
 cmake/cmake-3.7.2-Linux-x86_64/*
+
+# Automatically generated
 arch/x86/kernel/syscall-veneer.s
+include/hermit/syscall_disabler.h
 
 usr/tests
 usr/gdb/core

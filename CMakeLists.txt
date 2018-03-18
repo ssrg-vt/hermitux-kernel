@@ -8,7 +8,6 @@ project (HermitCore)
 ### Kernel
 
 # generate config files
-add_subdirectory(kernel/syscalls)
 add_subdirectory(include/hermit)
 
 add_kernel_module_sources("kernel"		"kernel/*.c")

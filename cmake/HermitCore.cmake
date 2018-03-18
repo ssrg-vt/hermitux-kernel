@@ -3,6 +3,7 @@ include_guard()
 
 include(${CMAKE_CURRENT_LIST_DIR}/HermitCore-Paths.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/HermitCore-Configuration.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/HermitCore-Syscalls.cmake)
 
 # scripts to detect HermitCore Go compiler
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/golang/)
