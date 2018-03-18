@@ -30,8 +30,9 @@ ssize_t sys_brk(ssize_t val) {
 		if (PAGE_FLOOR(heap->end) > PAGE_FLOOR(ret)) {
 			// region is already reserved for the heap, we have to change the
 			// property
-			vma_free(PAGE_FLOOR(ret), PAGE_CEIL(heap->end));
-			vma_add(PAGE_FLOOR(ret), PAGE_CEIL(heap->end), VMA_HEAP|VMA_USER);
+			// And also consider a bit more vrtual memory due to over-mapping
+			vma_free(PAGE_FLOOR(ret), PAGE_CEIL(heap->end) + PAGE_SIZE * OVERMAP);
+			vma_add(PAGE_FLOOR(ret), PAGE_CEIL(heap->end) + PAGE_SIZE * OVERMAP, VMA_HEAP|VMA_USER);
 		}
 
 		ret = val;

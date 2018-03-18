@@ -41,6 +41,12 @@
 #ifndef __PAGE_H__
 #define __PAGE_H__
 
+/* Heap is mapped on demand, and only use through brk/sbrk (mmap memory
+ * allocation is implemented as separate memory areas. Batch on-demand
+ * heap mappings to absorb the high cost of a nested page fault, this variable
+ * define how much sequential virtual pages are mapped on a page fault */
+#define OVERMAP		10
+
 /// Page offset bits
 #define PAGE_BITS		12
 #define PAGE_2M_BITS		21
