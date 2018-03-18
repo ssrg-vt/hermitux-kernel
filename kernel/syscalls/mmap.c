@@ -20,6 +20,7 @@ typedef struct s_mmap_area {
 } mmap_area;
 
 static mmap_area *mmap_areas = NULL;
+spinlock_irqsave_t mmap_areas_lock = SPINLOCK_IRQSAVE_INIT;
 
 int mmap_areas_init() {
 	int i;
@@ -39,13 +40,17 @@ int mmap_areas_init() {
 static int mmap_area_add(uint64_t addr, uint64_t size) {
 	int i;
 
+	spinlock_irqsave_lock(&mmap_areas_lock);
+
 	for(i=0; i<MMAP_AREA_MAX; i++)
 		if(mmap_areas[i].size == 0) {
 			mmap_areas[i].addr = addr;
 			mmap_areas[i].size = size;
+			spinlock_irqsave_unlock(&mmap_areas_lock);
 			return 0;
 		}
 
+	spinlock_irqsave_unlock(&mmap_areas_lock);
 	LOG_ERROR("Max amount of mmap areas reached!\n");
 	return -1;
 }
@@ -54,23 +59,31 @@ static int mmap_area_add(uint64_t addr, uint64_t size) {
 int mmap_area_check(uint64_t addr) {
 	int i;
 
+	spinlock_irqsave_lock(&mmap_areas_lock);
 	for(i=0; i<MMAP_AREA_MAX; i++) {
 		if(mmap_areas[i].size && (addr >= mmap_areas[i].addr) &&
-				(addr < (mmap_areas[i].addr + mmap_areas[i].size)))
+				(addr < (mmap_areas[i].addr + mmap_areas[i].size))) {
+			spinlock_irqsave_unlock(&mmap_areas_lock);
 			return 1;
+		}
 	}
+
+	spinlock_irqsave_unlock(&mmap_areas_lock);
 	return 0;
 }
 
 int mmap_area_remove(uint64_t addr) {
 	int i;
 
+	spinlock_irqsave_lock(&mmap_areas_lock);
 	for(i=0; i<MMAP_AREA_MAX; i++)
 		if(mmap_areas[i].addr == addr) {
 			mmap_areas[i].size = 0;
+			spinlock_irqsave_unlock(&mmap_areas_lock);
 			return 0;
 		}
 
+	spinlock_irqsave_unlock(&mmap_areas_lock);
 	LOG_ERROR("Cannot find mmap_area to remove @0x%x\n", addr);
 	return -1;
 
