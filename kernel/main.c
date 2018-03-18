@@ -47,6 +47,8 @@
 #include <asm/multiboot.h>
 #include <asm/uhyve.h>
 
+#include <hermit/mmap_areas.h>
+
 #ifndef NO_NET
 #include <lwip/init.h>
 #include <lwip/sys.h>
@@ -153,6 +155,8 @@ static int hermit_init(void)
 #ifndef NO_SIGNAL
 	signal_init();
 #endif /* NO_SIGNAL */
+	if(mmap_areas_init())
+		return -1;
 
 	return 0;
 }

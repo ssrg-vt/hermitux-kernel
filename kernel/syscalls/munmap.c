@@ -3,6 +3,7 @@
 #include <asm/page.h>
 #include <hermit/spinlock.h>
 #include <hermit/memory.h>
+#include <hermit/mmap_areas.h>
 
 int sys_munmap(size_t viraddr, size_t len) {
 	size_t phyaddr;
@@ -18,8 +19,13 @@ int sys_munmap(size_t viraddr, size_t len) {
 		return -ENOMEM;
 
 	vma_free((size_t)viraddr-PAGE_SIZE, (size_t)viraddr+(npages+1)*PAGE_SIZE);
-	page_unmap((size_t)viraddr, npages);
-	put_pages(phyaddr, npages);
+
+	/* TODO unmap and put only what is mapped */
+
+//	page_unmap((size_t)viraddr, npages);
+//	put_pages(phyaddr, npages);
+
+	mmap_area_remove(viraddr);
 
 	return 0;
 }
