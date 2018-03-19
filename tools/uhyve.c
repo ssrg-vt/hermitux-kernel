@@ -78,7 +78,7 @@
 #include "uhyve-seccomp.h"
 
 // define this macro to create checkpoints with KVM's dirty log
-//#define USE_DIRTY_LOG
+#define USE_DIRTY_LOG
 
 #define MAX_FNAME	256
 #define MAX_MSR_ENTRIES	25
@@ -190,6 +190,7 @@ static __thread uint32_t cpuid = 0;
 static sem_t net_sem;
 static bool uhyve_gdb_enabled = false;
 bool uhyve_seccomp_enabled = false;
+static char htux_bin[128];
 
 size_t guest_size = 0x20000000ULL;
 uint8_t* guest_mem = NULL;
@@ -520,9 +521,24 @@ static int load_checkpoint(uint8_t* mem, const char* path)
 	 * and aren't able to detect by KVM's dirty page logging
 	 * technique.
 	 */
+	const char* hermit_tux;
+
 	ret = load_kernel(mem, path);
 	if (ret)
 		return ret;
+
+	hermit_tux = getenv("HERMIT_TUX");
+	if (hermit_tux)
+	{
+		if (htux_bin == NULL) {
+			fprintf(stderr, "Name of the ELF file is missing!\n");
+			exit(EXIT_FAILURE);
+		}
+
+		if (uhyve_elf_loader(htux_bin) < 0)
+			exit(EXIT_FAILURE);
+	}
+
 #endif
 
 	i = full_checkpoint ? no_checkpoint : 0;
@@ -1408,7 +1424,7 @@ int uhyve_init(char** argv)
 		fscanf(f, "number of cores: %u\n", &ncores);
 		fscanf(f, "memory size: 0x%zx\n", &guest_size);
 		fscanf(f, "checkpoint number: %u\n", &no_checkpoint);
-		fscanf(f, "entry point: 0x%zx", &elf_entry);
+		fscanf(f, "entry point: 0x%zx\n", &elf_entry);
 		fscanf(f, "full checkpoint: %d", &tmp);
 		full_checkpoint = tmp ? true : false;
 
@@ -1425,8 +1441,10 @@ int uhyve_init(char** argv)
 			ncores = (uint32_t) atoi(hermit_cpus);
 
 		const char* full_chk = getenv("HERMIT_FULLCHECKPOINT");
-		if (full_chk && (strcmp(full_chk, "0") != 0))
+		if (full_chk && (strcmp(full_chk, "0") != 0)) {
+			printf("full\n");
 			full_checkpoint = true;
+		}
 	}
 
 	vcpu_threads = (pthread_t*) calloc(ncores, sizeof(pthread_t));
@@ -1566,24 +1584,27 @@ int uhyve_init(char** argv)
 	//if (cap_vapic)
 	//	printf("System supports vapic\n");
 
+	const char* hermit_tux;
+	hermit_tux = getenv("HERMIT_TUX");
+	if (hermit_tux)
+	{
+		if (argv[2] == NULL) {
+			fprintf(stderr, "Hermitux: linux binary missing\n");
+			exit(EXIT_FAILURE);
+		}
+		strcpy(htux_bin, argv[2]);
+	}
+
+
 	if (restart) {
 		if (load_checkpoint(guest_mem, path) != 0)
 			exit(EXIT_FAILURE);
 	} else {
 		if (load_kernel(guest_mem, path) != 0)
 			exit(EXIT_FAILURE);
-	}
-
-	const char* hermit_tux = getenv("HERMIT_TUX");
-	if (hermit_tux)
-	{
-		if (argv[2] == NULL) {
-			fprintf(stderr, "Name of the ELF file is missing!\n");
-			exit(EXIT_FAILURE);
-		}
-
-		if (uhyve_elf_loader(argv[2]) < 0)
-			exit(EXIT_FAILURE);
+		if (hermit_tux)
+			if (uhyve_elf_loader(htux_bin) < 0)
+				exit(EXIT_FAILURE);
 	}
 
 	pthread_barrier_init(&barrier, NULL, ncores);
@@ -1758,7 +1779,7 @@ nextslot:
 	fprintf(f, "number of cores: %u\n", ncores);
 	fprintf(f, "memory size: 0x%zx\n", guest_size);
 	fprintf(f, "checkpoint number: %u\n", no_checkpoint);
-	fprintf(f, "entry point: 0x%zx", elf_entry);
+	fprintf(f, "entry point: 0x%zx\n", elf_entry);
 	if (full_checkpoint)
 		fprintf(f, "full checkpoint: 1");
 	else
