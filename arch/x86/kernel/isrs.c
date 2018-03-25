@@ -474,6 +474,13 @@ void syscall_handler(struct state *s)
 #endif
 #endif /* NO_NET */
 
+#ifndef DISABLE_SYS_CLONE
+		case 56:
+			/* clone */
+			s->rax = sys_clone(s->rdi, s->rsi, s->rdx, s->r10, s->r8, s->r9);
+			break;
+#endif /* DISABLE_SYS_CLONE */
+
 #ifndef DISABLE_SYS_EXIT
 		case 60:
 			/* exit */
