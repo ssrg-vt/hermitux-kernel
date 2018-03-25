@@ -14,7 +14,7 @@ int clone_task(tid_t* id, entry_point_t ep, void* arg, uint8_t prio);
 int sys_clone(int (*func)(void *), void *stack, int flags, void *arg, int ptid, void *tls)
 {
 	tid_t id;
-	LOG_INFO("Clone EP=0x%x\n");
+	LOG_INFO("Clone EP=0x%x\n", func);
 	return clone_task(&id, func, arg, per_core(current_task)->prio);
 }
 
