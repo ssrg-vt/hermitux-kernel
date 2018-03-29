@@ -68,8 +68,8 @@ int mmap_area_check(uint64_t addr) {
 /*		if(mmap_areas[i].size)
 		LOG_INFO("%llx - %llx\n", mmap_areas[i].addr, mmap_areas[i].addr + 
 				mmap_areas[i].size);
-		else if(i<10) */
-			LOG_INFO("%d: 0\n", i);
+		else if(i<10)
+			LOG_INFO("%d: 0\n", i); */
 		if(mmap_areas[i].size && (addr >= mmap_areas[i].addr) &&
 				(addr < (mmap_areas[i].addr + mmap_areas[i].size))) {
 			spinlock_irqsave_unlock(&mmap_areas_lock);
