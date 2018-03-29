@@ -40,6 +40,8 @@ int mmap_areas_init() {
 static int mmap_area_add(uint64_t addr, uint64_t size) {
 	int i;
 
+	LOG_INFO("add mmap area: %llx -> %llx\n", addr, addr+size);
+
 	spinlock_irqsave_lock(&mmap_areas_lock);
 
 	for(i=0; i<MMAP_AREA_MAX; i++)
@@ -59,8 +61,15 @@ static int mmap_area_add(uint64_t addr, uint64_t size) {
 int mmap_area_check(uint64_t addr) {
 	int i;
 
+	LOG_INFO("(%llx) mmap area check for %llx\n", mmap_areas, addr);
+
 	spinlock_irqsave_lock(&mmap_areas_lock);
 	for(i=0; i<MMAP_AREA_MAX; i++) {
+		if(mmap_areas[i].size)
+		LOG_INFO("%llx - %llx\n", mmap_areas[i].addr, mmap_areas[i].addr + 
+				mmap_areas[i].size);
+		else if(i<10)
+			LOG_INFO("%d: 0\n", i);
 		if(mmap_areas[i].size && (addr >= mmap_areas[i].addr) &&
 				(addr < (mmap_areas[i].addr + mmap_areas[i].size))) {
 			spinlock_irqsave_unlock(&mmap_areas_lock);
@@ -75,6 +84,7 @@ int mmap_area_check(uint64_t addr) {
 int mmap_area_remove(uint64_t addr) {
 	int i;
 
+LOG_INFO("del mmap area: %llx\n", addr);
 	spinlock_irqsave_lock(&mmap_areas_lock);
 	for(i=0; i<MMAP_AREA_MAX; i++)
 		if(mmap_areas[i].addr == addr) {

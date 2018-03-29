@@ -383,6 +383,13 @@ void syscall_handler(struct state *s)
 			break;
 #endif /* DISABLE_SYS_ACCESS */
 
+#ifndef DISABLE_SYS_SCHED_YIELD
+		case 24:
+			/* sched_yield */
+			s->rax = sys_sched_yield();
+			break;
+#endif /* DISABLE_SYS_SCHED_YIELD */
+
 #ifndef DISABLE_SYS_MADVISE
 		case 28:
 			/* madvise */
@@ -477,7 +484,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_CLONE
 		case 56:
 			/* clone */
-			s->rax = sys_clone(s->rdi, s->rsi, s->rdx, s->r10, s->r8, s->r9);
+			s->rax = sys_clone(s->rdi, (void *)s->rsi, (int *)s->rdx, (int *)s->r10, (void *)s->r8, (void *)s->r9);
 			break;
 #endif /* DISABLE_SYS_CLONE */
 
@@ -620,11 +627,24 @@ void syscall_handler(struct state *s)
 				break;
 #endif /* DISABLE_SYS_TIME */
 
+#ifndef DISABLE_SYS_FUTEX
+			case 202:
+				/* futex */
+				s->rax = sys_futex((int *)s->rdi, s->rsi, s->rdx, (const struct timespec *)s->r10, (int *)s->r9, s->r8);
+				break;
+#endif /* DISABLE_SYS_FUXTEX */
+
 #ifndef DISABLE_SYS_SCHED_SETAFFINITY
 			case 203:
 				s->rax = sys_sched_setaffinity(s->rdi, s->rsi, (long unsigned int *)s->rdx);
 				break;
 #endif /* DISABLE_SYS_SCHED_SETAFFINITY */
+
+#ifndef DISABLE_SYS_SCHED_GETAFFINITY
+			case 204:
+				s->rax = sys_sched_getaffinity(s->rdi, s->rsi, (long unsigned int *)s->rdx);
+				break;
+#endif /* DISABLE_SYS_SCHED_GETAFFINITY */
 
 #ifndef DISABLE_SYS_SET_TID_ADDRESS
 		case 218:

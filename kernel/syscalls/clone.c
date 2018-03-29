@@ -4,18 +4,23 @@
 #include <hermit/logging.h>
 #include <hermit/time.h>
 
-extern task_t *task_table;
-extern spinlock_irqsave_t table_lock;
-extern readyqueues_t *readyqueues;
+/* From Linux sources: */
+#define CLONE_VM	0x00000100
 
-int clone_task(tid_t* id, entry_point_t ep, void* arg, uint8_t prio);
-
-//int sys_clone(tid_t* id, void* ep, void* argv)
-int sys_clone(int (*func)(void *), void *stack, int flags, void *arg, int ptid, void *tls)
+int sys_clone(unsigned long clone_flags, void *stack, int *ptid, int *ctid, void *arg,
+		void *ep)
 {
 	tid_t id;
-	LOG_INFO("Clone EP=0x%x\n", func);
-	return clone_task(&id, func, arg, per_core(current_task)->prio);
-}
 
+	/* Unikernel -> do no allow new processes creation */
+	if(!(clone_flags & CLONE_VM))
+		return -ENOSYS;
+
+	int ret = clone_task(&id, ep, arg, per_core(current_task)->prio, arg);
+
+	if(ret)
+		return ret;
+
+	return id;
+}
 

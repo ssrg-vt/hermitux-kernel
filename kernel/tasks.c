@@ -484,7 +484,7 @@ int create_task(tid_t* id, entry_point_t ep, void* arg, uint8_t prio, uint32_t c
 			if (id)
 				*id = i;
 
-			ret = create_default_frame(task_table+i, ep, arg, core_id);
+			ret = create_default_frame(task_table+i, ep, arg, core_id, NULL);
 			if (ret)
 				goto out;
 
@@ -800,7 +800,7 @@ void reschedule(void)
 	irq_nested_enable(flags);
 }
 
-int clone_task(tid_t* id, entry_point_t ep, void* arg, uint8_t prio)
+int clone_task(tid_t* id, entry_point_t ep, void* arg, uint8_t prio, void *tls)
 {
 	int ret = -EINVAL;
 	uint32_t i;
@@ -808,8 +808,6 @@ int clone_task(tid_t* id, entry_point_t ep, void* arg, uint8_t prio)
 	void* ist = NULL;
 	task_t* curr_task;
 	uint32_t core_id;
-
-	LOG_INFO("task_table is at 0x%x\n", &(task_table[0]));
 
 	if (BUILTIN_EXPECT(!ep, 0))
 		return -EINVAL;
@@ -861,7 +859,7 @@ int clone_task(tid_t* id, entry_point_t ep, void* arg, uint8_t prio)
 			if (id)
 				*id = i;
 
-			ret = create_default_frame(task_table+i, ep, arg, core_id);
+			ret = create_default_frame(task_table+i, ep, arg, core_id, tls);
 			if (ret)
 				goto out;
 
