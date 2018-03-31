@@ -103,6 +103,10 @@ static int thread_entry(void* arg, size_t ep)
 static int hermitux_thread_entry(void* arg, size_t ep, void *tls)
 {
 
+	/* Uncomment this if it becomes necessary to keep the two swapgs
+	 * instructions (currently commented) in isyscall */
+	/* asm("swapgs"); */
+
 	entry_point_t call_ep = (entry_point_t) ep;
 	call_ep(arg);
 

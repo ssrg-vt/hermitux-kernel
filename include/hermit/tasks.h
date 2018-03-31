@@ -50,6 +50,7 @@ uint32_t get_next_core_id(void);
 
 /** @brief System call to terminate a user level process */
 void NORETURN sys_exit(int);
+void NORETURN do_exit(int);
 
 
 /** @brief Task switcher

@@ -74,6 +74,7 @@ extern const void boot_stack;
 extern const void boot_ist;
 
 
+#ifdef DYNAMIC_TICKS
 static void update_timer(task_t* first)
 {
 	if(first) {
@@ -88,7 +89,7 @@ static void update_timer(task_t* first)
 		timer_disable();
 	}
 }
-
+#endif /* DYNAMIC_TICKS */
 
 static void timer_queue_remove(uint32_t core_id, task_t* task)
 {
@@ -480,6 +481,8 @@ int create_task(tid_t* id, entry_point_t ep, void* arg, uint8_t prio, uint32_t c
 			task_table[i].tls_size = 0;
 			task_table[i].lwip_err = 0;
 			task_table[i].signal_handler = NULL;
+			/* Other threads are created with clone_task */
+			task_table[i].is_main_thread = 1;
 
 			if (id)
 				*id = i;
@@ -761,7 +764,6 @@ get_task_out:
 
 	if (curr_task != orig_task) {
 		LOG_DEBUG("schedule on core %d from %u to %u with prio %u\n", core_id, orig_task->id, curr_task->id, (uint32_t)curr_task->prio);
-
 		return (size_t**) &(orig_task->last_stack_pointer);
 	}
 
@@ -855,6 +857,7 @@ int clone_task(tid_t* id, entry_point_t ep, void* arg, uint8_t prio, void *tls)
 			task_table[i].ist_addr = ist;
 			task_table[i].lwip_err = 0;
 			task_table[i].signal_handler = NULL;
+			task_table[i].is_main_thread = 0; 
 
 			if (id)
 				*id = i;
@@ -888,7 +891,7 @@ int clone_task(tid_t* id, entry_point_t ep, void* arg, uint8_t prio, void *tls)
 	spinlock_irqsave_unlock(&table_lock);
 
 	if (!ret) {
-		LOG_DEBUG("start new thread %d on core %d with stack address %p\n", i, core_id, stack);
+		LOG_INFO("start new thread %d on core %d with stack address %p\n", i, core_id, stack);
 	}
 
 out:

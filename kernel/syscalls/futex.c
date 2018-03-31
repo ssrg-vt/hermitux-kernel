@@ -1,8 +1,5 @@
 #include <hermit/syscall.h>
 #include <hermit/logging.h>
-#include <asm/atomic.h>
-#include <hermit/tasks_types.h>
-#include <hermit/spinlock.h>
 
 #define FUTEX_WAIT 0
 #define FUTEX_WAKE 1
