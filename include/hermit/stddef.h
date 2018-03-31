@@ -53,7 +53,7 @@ extern uint64_t tux_size;
 #define CACHE_LINE	64
 #define HEAP_START	(PAGE_2M_CEIL((size_t)&kernel_start + image_size) + 4*PAGE_SIZE + PAGE_CEIL(tux_size))
 #define HEAP_SIZE	(1ULL << 32)
-#define KMSG_SIZE	0x1000
+#define KMSG_SIZE	0x4000
 #define INT_SYSCALL	0x80
 #define MAILBOX_SIZE	128
 //#define WITH_PCI_IDS
