@@ -340,7 +340,7 @@ void syscall_handler(struct state *s)
 		case 13:
 			/* rt_sigaction */
 			s->rax = sys_rt_sigaction(s->rdi, 
-					(const struct sigaction *)s->rsi, 
+					(struct sigaction *)s->rsi,
 					(struct sigaction *)s->rdx);
 			break;
 #endif /* DISABLE_SYS_RT_SIGACTION */
@@ -371,7 +371,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_WRITEV
 		case 20:
 			/* writev */
-			s->rax = sys_writev(s->rdi, (const struct iovec *)s->rsi, 
+			s->rax = sys_writev(s->rdi, (const struct iovec *)s->rsi,
 					s->rdx);
 			break;
 #endif /* DISABLE_SYS_WRITEV */

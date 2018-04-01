@@ -122,7 +122,7 @@ int sys_fstat(int fd, struct stat *buf);
 int sys_stat(const char *pathname, struct stat *buf);
 int sys_lstat(const char *pathname, struct stat *buf);
 int sys_getcwd(char *buf, size_t size);
-int sys_rt_sigaction(int signum, const struct sigaction *act, 
+int sys_rt_sigaction(int signum, struct sigaction *act,
 		struct sigaction *oldact);
 int sys_socket(int domain, int type, int protocol);
 int sys_bind(int fd, struct sockaddr *addr, int addrlen);
