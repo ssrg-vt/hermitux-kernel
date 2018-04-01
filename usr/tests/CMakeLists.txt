@@ -3,7 +3,7 @@ include(../../cmake/HermitCore-Application.cmake)
 
 project(hermit_tests C CXX Fortran Go)
 
-add_executable(hello hello.c)
+#add_executable(hello hello.c)
 #add_executable(hello-minimal hello-minimal.c)
 #add_executable(argv_envp argv_envp.c)
 #add_executable(timing timing.c)
@@ -24,18 +24,18 @@ target_link_libraries(hermitux -Wl,-T,${CMAKE_SOURCE_DIR}/linker.ld)
 # add_executable(server server.go)
 # target_link_libraries(server netgo)
 
-if(NOT ${NO_IRCCE})
-add_executable(RCCE_minimum RCCE_minimum.c)
-target_link_libraries(RCCE_minimum ircce)
-endif(NOT ${NO_IRCCE})
+#if(NOT ${NO_IRCCE})
+#add_executable(RCCE_minimum RCCE_minimum.c)
+#target_link_libraries(RCCE_minimum ircce)
+#endif(NOT ${NO_IRCCE})
 
-add_executable(thr_hello thr_hello.c)
-target_compile_options(thr_hello PRIVATE -pthread)
-target_link_libraries(thr_hello pthread)
+#add_executable(thr_hello thr_hello.c)
+#target_compile_options(thr_hello PRIVATE -pthread)
+#target_link_libraries(thr_hello pthread)
 
-add_executable(signals signals.c)
-target_compile_options(signals PRIVATE -pthread)
-target_link_libraries(signals pthread)
+#add_executable(signals signals.c)
+#target_compile_options(signals PRIVATE -pthread)
+#target_link_libraries(signals pthread)
 
 add_executable(syscall_tester syscall_tester.c)
 

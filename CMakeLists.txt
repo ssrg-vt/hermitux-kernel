@@ -164,29 +164,29 @@ build_external(tools ${HERMIT_ROOT}/tools "")
 build_external(arch_x86_loader ${HERMIT_ROOT}/arch/x86/loader "")
 
 ## Intel's OpenMP runtime for x86 (libomp)
-build_external(libiomp ${HERMIT_ROOT}/usr/libomp ""
-		-DHERMIT=1
-		-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
-		-DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}/${TARGET_ARCH})
+#build_external(libiomp ${HERMIT_ROOT}/usr/libomp ""
+#		-DHERMIT=1
+#		-DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
+#		-DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX}/${TARGET_ARCH})
 
 # libomp is part of HermitCore's runtime and should be available before any
 # application will link
-add_dependencies(hermit libiomp)
+# add_dependencies(hermit libiomp)
 
 ## iRCCE
-if(NOT ${NO_IRCCE})
-build_external(ircce ${HERMIT_ROOT}/usr/ircce "")
-add_dependencies(hermit ircce)
-endif(NOT ${NO_IRCCE})
+# if(NOT ${NO_IRCCE})
+# build_external(ircce ${HERMIT_ROOT}/usr/ircce "")
+# add_dependencies(hermit ircce)
+# endif(NOT ${NO_IRCCE})
 
 ## XRay profiler
-build_external(xray ${HERMIT_ROOT}/usr/xray "")
-add_dependencies(hermit xray)
+# build_external(xray ${HERMIT_ROOT}/usr/xray "")
+# add_dependencies(hermit xray)
 
 ## Tests and benchmarks
 build_external(tests ${HERMIT_ROOT}/usr/tests hermit)
-build_external(benchmarks ${HERMIT_ROOT}/usr/benchmarks hermit)
-build_external(openmpbench ${HERMIT_ROOT}/usr/openmpbench hermit)
+# build_external(benchmarks ${HERMIT_ROOT}/usr/benchmarks hermit)
+# build_external(openmpbench ${HERMIT_ROOT}/usr/openmpbench hermit)
 
 ## relocate the local prefix to our install destination
 install(DIRECTORY ${LOCAL_PREFIX_DIR}/
