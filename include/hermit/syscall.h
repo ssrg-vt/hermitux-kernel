@@ -86,7 +86,8 @@ int sys_sem_wait(sem_t* sem);
 int sys_sem_post(sem_t* sem);
 int sys_sem_timedwait(sem_t *sem, unsigned int ms);
 int sys_sem_cancelablewait(sem_t* sem, unsigned int ms);
-int sys_clone(tid_t* id, void* ep, void* argv);
+int sys_clone(unsigned long clone_flags, void *stack, int *ptid, int *ctid,
+		void *arg, void *ep);
 off_t sys_lseek(int fd, off_t offset, int whence);
 size_t sys_get_ticks(void);
 int sys_rcce_init(int session_id);
@@ -121,7 +122,7 @@ int sys_fstat(int fd, struct stat *buf);
 int sys_stat(const char *pathname, struct stat *buf);
 int sys_lstat(const char *pathname, struct stat *buf);
 int sys_getcwd(char *buf, size_t size);
-int sys_rt_sigaction(int signum, const struct sigaction *act, 
+int sys_rt_sigaction(int signum, struct sigaction *act,
 		struct sigaction *oldact);
 int sys_socket(int domain, int type, int protocol);
 int sys_bind(int fd, struct sockaddr *addr, int addrlen);
@@ -144,6 +145,11 @@ int sys_sched_setaffinity(int pid, unsigned int len,
 		unsigned long *user_mask_ptr);
 long sys_mprotect(size_t addr, size_t len, unsigned long prot);
 int sys_munmap(size_t viraddr, size_t len);
+int sys_sched_getaffinity(int pid, unsigned int len,
+		unsigned long *user_mask_ptr);
+int sys_futex(int *uaddr, int futex_op, int val, const struct timespec *timeout,
+		int *uaddr2, int val3);
+int sys_sched_yield(void);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;

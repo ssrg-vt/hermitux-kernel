@@ -465,7 +465,9 @@ isyscall:
     push r15
     push 0 ; dummy fs
     push 0 ; dummy gs
-    swapgs
+   ;swapgs ; Pierre: I believe this is not needed (it actually causes issues
+			; with SMP and threads created through clone task as gs becomes 0
+			; on the first syscall when entering the kerne)
 
     ; set pointer at "struct state" as first argument
     mov rdi, rsp
@@ -475,7 +477,7 @@ isyscall:
     call syscall_handler
 
     cli
-    swapgs
+    ;swapgs ; Pierre: I think this is not needed
     add rsp, 16
     pop r15
     pop r14

@@ -60,7 +60,9 @@ extern uint64_t tux_size;
 
 #define BYTE_ORDER             LITTLE_ENDIAN
 
-#define DYNAMIC_TICKS
+/* Dynamic ticks causes issues with hermitux multithreading, disable it for
+ * now */
+/* #define DYNAMIC_TICKS */
 
 #define UHYVE_PORT_WRITE	0x499
 #define UHYVE_PORT_OPEN		0x500

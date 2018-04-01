@@ -111,6 +111,8 @@ typedef struct task {
 	signal_handler_t signal_handler;
 	/// FPU state
 	union fpu_state	fpu;
+	/// Is this the main thread?
+	uint8_t is_main_thread;
 } task_t;
 
 typedef struct {
