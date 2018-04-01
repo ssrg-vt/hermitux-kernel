@@ -24,9 +24,8 @@ typedef struct {
 /** @brief To be called by the systemcall to exit tasks */
 void NORETURN sys_exit(int arg)
 {
-	if (is_uhyve() && per_core(current_task)->is_main_thread) {
+	if (is_uhyve() && per_core(current_task)->is_main_thread)
 		uhyve_send(UHYVE_PORT_EXIT, (unsigned) virt_to_phys((size_t) &arg));
-	} 
 #ifndef NO_NET
 	else {
 		sys_exit_t sysargs = {__NR_exit, arg};
