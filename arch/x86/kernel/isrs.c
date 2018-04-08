@@ -44,10 +44,19 @@
 #include <asm/idt.h>
 #include <asm/apic.h>
 
+#include <asm/uhyve.h>
+
 char *syscalls_names[250];
 
 #define SYSCALL_INT_NO 6
 
+typedef struct {
+	uint64_t rip;
+	uint32_t int_no;
+} __attribute__ ((packed)) uhyve_fault_t;
+
+/* Are we running under gdb? (set by uhyve) */
+extern const uint8_t tux_gdb;
 
 /*
  * These are function prototypes for all of the exception
@@ -724,6 +733,19 @@ static void arch_fault_handler(struct state *s)
 		s->rax, s->rbx, s->rcx, s->rdx, s->rbp, s->rsp, s->rdi, s->rsi, s->r8, s->r9, s->r10, s->r11, s->r12, s->r13, s->r14, s->r15);
 
 	apic_eoi(s->int_no);
+
+	/* Notify uhyve that we have a non-recoverable page fault */
+	uhyve_fault_t arg = {s->rip, s->int_no};
+	uhyve_send(UHYVE_PORT_FAULT, (unsigned)virt_to_phys((size_t)&arg));
+
+	if(tux_gdb) {
+		/* We are running under gdb, put int $3 manually on the instruction
+		 * source of the page fault, so that we trap to gdb from within the
+		 * right context when we return there */
+		*((unsigned long long int *)(s->rip)) = 0xCC;
+		return;
+	}
+
 	//do_abort();
 	sys_exit(-EFAULT);
 }

@@ -190,7 +190,8 @@ static __thread uint32_t cpuid = 0;
 static sem_t net_sem;
 static bool uhyve_gdb_enabled = false;
 bool uhyve_seccomp_enabled = false;
-static char htux_bin[128];
+static char htux_bin[256];
+static char htux_kernel[256];
 
 size_t guest_size = 0x20000000ULL;
 uint8_t* guest_mem = NULL;
@@ -1152,8 +1153,19 @@ static int vcpu_loop(void)
 				fprintf(stderr, "GUEST PAGE FAULT @0x%x (RIP @0x%x)\n",
 						arg->addr, arg->rip);
 				sprintf(addr2line_call, "addr2line -a %x -e %s\n", arg->rip,
-						"prog");
+						(arg->rip >= linux_start_address) ? htux_bin :
+						htux_kernel);
 				system(addr2line_call);
+
+				break;
+				}
+
+			case UHYVE_PORT_FAULT: {
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_fault_t *arg = (uhyve_fault_t *)(guest_mem + data);
+
+				fprintf(stderr, "GUEST EXCEPTION %u (RIP @0x%x)\n", arg->int_no,
+						arg->rip);
 
 				break;
 				}
@@ -1607,6 +1619,7 @@ int uhyve_init(char** argv)
 			exit(EXIT_FAILURE);
 		}
 		strcpy(htux_bin, argv[2]);
+		strcpy(htux_kernel, argv[1]);
 	}
 
 

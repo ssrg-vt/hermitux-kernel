@@ -38,7 +38,8 @@ typedef enum {
 	UHYVE_PORT_MKDIR    = 0x515,
 	UHYVE_PORT_RMDIR    = 0x516,
 	UHYVE_PORT_ACCESS   = 0x517,
-	UHYVE_PORT_PFAULT   = 0x518
+	UHYVE_PORT_PFAULT   = 0x518,
+	UHYVE_PORT_FAULT   = 0x519
 } uhyve_syscall_t;
 
 typedef struct {
@@ -131,5 +132,10 @@ typedef struct {
 	uint64_t rip;
 	uint64_t addr;
 } __attribute__ ((packed)) uhyve_pfault_t;
+
+typedef struct {
+	uint64_t rip;
+	uint32_t int_no;
+} __attribute__ ((packed)) uhyve_fault_t;
 
 #endif // UHYVE_SYSCALLS_H

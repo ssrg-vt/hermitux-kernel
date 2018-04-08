@@ -43,9 +43,6 @@
 #include "uhyve.h"
 #include "uhyve-elf.h"
 
-// Linux applications are always located at address 0x400000
-#define linux_start_address	0x400000
-
 size_t tux_entry = 0;
 size_t tux_size = 0;
 
