@@ -1149,9 +1149,12 @@ static int vcpu_loop(void)
 				char addr2line_call[128];
 				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
 				uhyve_pfault_t *arg = (uhyve_pfault_t *)(guest_mem + data);
-				fprintf(stderr, "Guest page fault @0x%x (RIP @0x%x)\n", arg->addr, arg->rip);
-				sprintf(addr2line_call, "addr2line -a %x -e %s\n", arg->rip, "prog");
+				fprintf(stderr, "GUEST PAGE FAULT @0x%x (RIP @0x%x)\n",
+						arg->addr, arg->rip);
+				sprintf(addr2line_call, "addr2line -a %x -e %s\n", arg->rip,
+						"prog");
 				system(addr2line_call);
+
 				break;
 				}
 
@@ -1848,6 +1851,9 @@ int uhyve_loop(int argc, char **argv)
 	*((uint32_t*) (mboot+0x24)) = ncores;
 	*((uint64_t*) (mboot + 0xC0)) = tux_entry;
 	*((uint64_t*) (mboot + 0xC8)) = tux_size;
+
+	if(uhyve_gdb_enabled)
+		*((uint8_t*) (mboot + 0xD0)) = 0x1;
 
 	// First CPU is special because it will boot the system. Other CPUs will
 	// be booted linearily after the first one.

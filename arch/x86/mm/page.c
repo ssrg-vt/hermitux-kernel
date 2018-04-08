@@ -51,12 +51,14 @@
 typedef struct {
 	uint64_t rip;
 	uint64_t addr;
-	int success;
 } __attribute__ ((packed)) uhyve_pfault_t;
 
 /* Note that linker symbols are not variables, they have no memory
  * allocated for maintaining a value, rather their address is their value. */
 extern const void kernel_start;
+
+/* Are we running under gdb? (set by uhyve) */
+extern const uint8_t tux_gdb;
 
 /// This page is reserved for copying
 #define PAGE_TMP		(PAGE_FLOOR((size_t) &kernel_start) - PAGE_SIZE)
@@ -365,8 +367,6 @@ slow_path:
 		return;
 	}
 
-	uhyve_pfault_t arg = {s->rip, viraddr, -1};
-	uhyve_send(UHYVE_PORT_PFAULT, (unsigned)virt_to_phys((size_t)&arg));
 
 default_handler:
 	spinlock_irqsave_unlock(&page_lock);
@@ -384,6 +384,19 @@ default_handler:
 		LOG_ERROR("Heap 0x%llx - 0x%llx\n", task->heap->start, task->heap->end);
 
 	apic_eoi(s->int_no);
+
+	/* Notify uhyve that we have a non-recoverable page fault */
+	uhyve_pfault_t arg = {s->rip, viraddr};
+	uhyve_send(UHYVE_PORT_PFAULT, (unsigned)virt_to_phys((size_t)&arg));
+
+	if(tux_gdb) {
+		/* We are running under gdb, put int $3 manually on the instruction
+		 * source of the page fault, so that we trap to gdb from within the
+		 * right context when we return there */
+		*((unsigned long long int *)(s->rip)) = 0xCC;
+		return;
+	}
+
 	//do_abort();
 	sys_exit(-EFAULT);
 }

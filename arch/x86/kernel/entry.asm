@@ -77,6 +77,7 @@ align 4
     global hcmask
     global tux_entry
     global tux_size
+    global tux_gdb
     base dq 0
     limit dq 0
     cpu_freq dd 0
@@ -110,6 +111,7 @@ align 4
 align 8
     tux_entry dq 0
     tux_size dq 0
+    tux_gdb db 0
 
 ; Bootstrap page tables are used during the initialization.
 align 4096
