@@ -1145,6 +1145,17 @@ static int vcpu_loop(void)
 					break;
 				}
 
+			case UHYVE_PORT_PFAULT: {
+				char addr2line_call[128];
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_pfault_t *arg = (uhyve_pfault_t *)(guest_mem + data);
+				fprintf(stderr, "Guest page fault @0x%x (RIP @0x%x)\n", arg->addr, arg->rip);
+				sprintf(addr2line_call, "addr2line -a %x -e %s\n", arg->rip, "prog");
+				system(addr2line_call);
+				break;
+				}
+
+
 			default:
 				err(1, "KVM: unhandled KVM_EXIT_IO at port 0x%x, direction %d\n", run->io.port, run->io.direction);
 				break;
