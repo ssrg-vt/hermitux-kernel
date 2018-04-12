@@ -3,6 +3,10 @@ include(../../cmake/HermitCore-Application.cmake)
 
 project(hermit_tests C CXX Fortran Go)
 
+# set(HERMIT_INSTALL_DIR "${CMAKE_SOURCE_DIR}/../../prefix")
+# set(CMAKE_C_COMPILER ${HERMIT_INSTALL_DIR}/bin/x86_64-hermit-gcc)
+# set(CMAKE_C_LINK_EXECUTABLE ${HERMIT_INSTALL_DIR}/bin/x86_64-hermit-ld)
+
 # add_executable(hello hello.c)
 # add_executable(hello-minimal hello-minimal.c)
 # add_executable(argv_envp argv_envp.c)
@@ -16,9 +20,14 @@ project(hermit_tests C CXX Fortran Go)
 add_executable(hermitux hermitux.c linker.ld)
 set_target_properties(hermitux PROPERTIES LINK_DEPENDS ${CMAKE_SOURCE_DIR}/linker.ld)
 target_link_libraries(hermitux -Wl,-T,${CMAKE_SOURCE_DIR}/linker.ld)
-add_executable(hermitux-qemu hermitux-qemu.c linker.ld)
-set_target_properties(hermitux-qemu PROPERTIES LINK_DEPENDS ${CMAKE_SOURCE_DIR}/linker.ld)
-target_link_libraries(hermitux-qemu -Wl,-T,${CMAKE_SOURCE_DIR}/linker.ld)
+
+# add_executable(hermitux-light hermitux-light.c)
+# target_compile_options(hermitux-light PRIVATE -g -O3)
+# target_link_libraries(hermitux-light -static -nostdlib ${HERMIT_INSTALL_DIR}/x86_64-hermit/lib/libhermit.a)
+
+# add_executable(hermitux-qemu hermitux-qemu.c linker.ld)
+# set_target_properties(hermitux-qemu PROPERTIES LINK_DEPENDS ${CMAKE_SOURCE_DIR}/linker.ld)
+# target_link_libraries(hermitux-qemu -Wl,-T,${CMAKE_SOURCE_DIR}/linker.ld)
 
 # add_executable(test-malloc test-malloc.c)
 # add_executable(test-malloc-mt test-malloc-mt.c)

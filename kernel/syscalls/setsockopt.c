@@ -1,6 +1,9 @@
 #include <hermit/syscall.h>
-#include <lwip/sockets.h>
 #include <hermit/logging.h>
+
+#ifndef NO_NET
+#include <lwip/sockets.h>
+#endif
 
 int sys_setsockopt(int fd, int level, int optname, char *optval, int optlen) {
 

@@ -1,6 +1,9 @@
 #include <hermit/syscall.h>
-#include <lwip/sockets.h>
 #include <hermit/logging.h>
+
+#ifndef NO_NET
+#include <lwip/sockets.h>
+#endif
 
 int sys_bind(int fd, struct sockaddr *addr, int addrlen) {
 #ifndef NO_NET

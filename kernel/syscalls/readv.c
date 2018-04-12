@@ -1,5 +1,10 @@
 #include <hermit/syscall.h>
 #include <hermit/spinlock.h>
+#include <hermit/syscall_disabler.h>
+
+#ifdef DISABLE_SYS_READ
+#include "read.c"
+#endif /* DISABLE_SYS_READ */
 
 extern spinlock_t readwritev_spinlock;
 

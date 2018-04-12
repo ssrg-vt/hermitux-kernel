@@ -12,8 +12,13 @@ macro(add_kernel_module_sources MODULE SOURCE_GLOB)
         message(FATAL_ERROR "Module '${MODULE}' has no sources")
     endif()
 
-    # make sure modules are unique, this is needed of multiple sources
-    # are added to the same module
+    # message("MODULE = ${MODULE}")
+    # # make sure modules are unique, this is needed of multiple sources
+    # # are added to the same module
+    # if(NOT _KERNEL_MODULES)
+    #   message("HERE")
+    #   set(_KERNEL_MODULES "" PARENT_SCOPE)
+    # endif()
     list(APPEND _KERNEL_MODULES "${MODULE}")
     list(REMOVE_DUPLICATES _KERNEL_MODULES)
 

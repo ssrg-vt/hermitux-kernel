@@ -2,6 +2,7 @@
 #include <hermit/logging.h>
 #include <asm/uhyve.h>
 #include <asm/page.h>
+#include <hermit/errno.h>
 
 typedef struct {
 	const char *pathname;

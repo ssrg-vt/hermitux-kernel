@@ -1,5 +1,6 @@
 #include <hermit/syscall.h>
 #include <hermit/logging.h>
+#include <hermit/errno.h>
 #include <asm/processor.h>
 
 #define ARCH_SET_GS			0x1001

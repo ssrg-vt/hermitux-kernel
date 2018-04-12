@@ -3,6 +3,7 @@
 #include <asm/page.h>
 #include <hermit/spinlock.h>
 #include <hermit/logging.h>
+/* #include "write.h" */
 
 extern spinlock_irqsave_t lwip_lock;
 extern volatile int libc_sd;
@@ -26,15 +27,17 @@ typedef struct {
 
 ssize_t sys_write(int fd, const char* buf, size_t len)
 {
+	/* return _sys_write(fd, buf, len); */
+
 	if (BUILTIN_EXPECT(!buf, 0))
 		return -1;
 
+#ifndef NO_NET
 	ssize_t i, ret;
 	int s;
 	sys_write_t sysargs = {__NR_write, fd, len};
 
 
-#ifndef NO_NET
 	// do we have an LwIP file descriptor?
 	if (fd & LWIP_FD_BIT) {
 		ret = lwip_write(fd & ~LWIP_FD_BIT, buf, len);
@@ -94,6 +97,6 @@ ssize_t sys_write(int fd, const char* buf, size_t len)
 
 #endif /* NO_NET */
 	LOG_ERROR("Network disabled, cannot use qemu isle\n");
-	return -ENOSYS;
+/* 	return -ENOSYS; */
 }
 

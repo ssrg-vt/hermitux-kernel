@@ -1,4 +1,4 @@
-#include <lwip/sockets.h>
+//#include <lwip/sockets.h>
 #include <hermit/hermitux_syscalls.h>
 #include <hermit/logging.h>
 #include <hermit/processor.h>

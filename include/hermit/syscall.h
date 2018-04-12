@@ -36,9 +36,12 @@
 #ifndef __SYSCALL_H__
 #define __SYSCALL_H__
 
+#include <hermit/errno.h>
 #ifdef __KERNEL__
 #include <hermit/stddef.h>
+#ifndef NO_NET
 #include <lwip/sockets.h>
+#endif /* NO_NET */
 #include <hermit/hermitux_syscalls.h>
 #else
 #include <stdlib.h>
@@ -101,12 +104,22 @@ int sys_signal(signal_handler_t handler);
 /* Pierre */
 struct utsname;
 struct stat;
-struct iovec;
 struct timespec;
-struct timeval;
 struct sigaction;
 struct sockaddr;
 typedef unsigned short umode_t;
+
+#ifndef LWIP_HDR_SOCKETS_H
+struct timeval {
+	long tv_sec;    /* seconds */
+	long tv_usec;   /* microseconds */
+};
+
+struct iovec {
+	void *iov_base;
+	size_t iov_len;
+};
+#endif /* LWIP_HDR_SOCKETS_H */
 
 int sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg);
 int sys_writev(int fd, const struct iovec *iov, unsigned long vlen);

@@ -11,6 +11,8 @@
 #ifndef __NETINET_TCP_H__
 #define __NETINET_TCP_H__
 
+#ifndef NO_NET
 #include <lwip/tcp.h>
+#endif /* NO_NET */
 
 #endif /* __NETINET_TCP_H__ */

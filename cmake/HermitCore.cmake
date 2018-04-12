@@ -5,6 +5,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/HermitCore-Paths.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/HermitCore-Configuration.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/HermitCore-Syscalls.cmake)
 
+
 # scripts to detect HermitCore Go compiler
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR}/golang/)
 
@@ -73,8 +74,11 @@ set(HERMIT_KERNEL_INCLUDES
     ${CMAKE_BINARY_DIR}/include
     ${HERMIT_ROOT}/include
     ${HERMIT_ROOT}/arch/${HERMIT_ARCH}/include
-    ${HERMIT_ROOT}/lwip/src/include
     ${HERMIT_ROOT}/drivers)
+
+if(NOT ${NO_NET})
+  list(APPEND HERMIT_KERNEL_INCLUDES ${HERMIT_ROOT}/lwip/src/include)
+endif()
 
 # HACK: when CMake detects compilers it taints CMAKE_INSTALL_PREFIX, so in
 #       order to rely on that variable (we redefine it), enable all languages

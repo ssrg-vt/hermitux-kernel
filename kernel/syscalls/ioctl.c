@@ -2,6 +2,7 @@
 #include <hermit/ioctl.h>
 #include <hermit/logging.h>
 #include <hermit/stdio.h>
+#include <hermit/errno.h>
 
 int sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg) {
 	/* Check cmd, we want that to fail on commands that we did not explore */
