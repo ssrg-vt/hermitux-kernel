@@ -14,11 +14,21 @@ struct sigaction {
 	void (*sa_restorer)(void);
 };
 
-int sys_rt_sigaction(int signum, const struct sigaction *act, 
+#define MAX_SIGNUM 32
+
+struct sigaction *installed_sigactions[MAX_SIGNUM];
+
+int sys_rt_sigaction(int signum, struct sigaction *act,
 		struct sigaction *oldact) {
 
-	signal_handler_t sa = act->sa_handler;
-	hermit_signal(sa);
+	if(oldact)
+		oldact = installed_sigactions[signum];
+
+	if(act) {
+		signal_handler_t sa = act->sa_handler;
+		hermit_signal(sa);
+		installed_sigactions[signum] = act;
+	}
 
 	return 0;
 }

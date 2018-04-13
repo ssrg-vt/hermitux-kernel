@@ -50,6 +50,7 @@ uint32_t get_next_core_id(void);
 
 /** @brief System call to terminate a user level process */
 void NORETURN sys_exit(int);
+void NORETURN do_exit(int);
 
 
 /** @brief Task switcher
@@ -89,7 +90,7 @@ int multitasking_init(void);
  * - 0 on success
  * - -ENOMEM (-12) or -EINVAL (-22) on failure
  */
-int clone_task(tid_t* id, entry_point_t ep, void* arg, uint8_t prio);
+int clone_task(tid_t* id, entry_point_t ep, void* arg, uint8_t prio, void *tls);
 
 
 /** @brief Create a task with a specific entry point

@@ -11,7 +11,6 @@ project(hermit_tests C CXX Fortran Go)
 # add_executable(hello-minimal hello-minimal.c)
 # add_executable(argv_envp argv_envp.c)
 # add_executable(timing timing.c)
-# add_executable(ioctl ioctl.c)
 # add_executable(jacobi jacobi.c)
 # add_executable(hello++ hello++.cpp)
 # add_executable(hellof hellof.f90)
@@ -51,7 +50,7 @@ target_link_libraries(hermitux -Wl,-T,${CMAKE_SOURCE_DIR}/linker.ld)
 # target_link_libraries(signals pthread)
 
 # add_executable(syscall_tester syscall_tester.c)
-#add_executable(syscall_eval syscall_eval.c)
+# add_executable(syscall_eval syscall_eval.c)
 
 # deployment
 install_local_targets(extra/tests)

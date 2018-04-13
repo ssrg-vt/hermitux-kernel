@@ -84,7 +84,7 @@ extern char **environ;
 static void stop_hermit(void);
 static void dump_log(void);
 static int multi_init(const char *path);
-static int qemu_init(const char *path);
+static int qemu_init(char *path);
 
 bool verbose = false;
 
@@ -291,7 +291,7 @@ static void wait_hermit_available(void)
 	close(fd);
 }
 
-static int qemu_init(const char *path)
+static int qemu_init(char *path)
 {
 	int kvm, i = 0;
 	char* str;

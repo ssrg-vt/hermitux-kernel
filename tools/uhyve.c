@@ -61,7 +61,6 @@
 #include <sys/eventfd.h>
 #include <linux/const.h>
 #include <linux/kvm.h>
-#include <asm/msr-index.h>
 #include <asm/mman.h>
 
 #include "uhyve.h"
@@ -70,12 +69,16 @@
 #include "uhyve-net.h"
 #include "uhyve-elf.h"
 #include "proxy.h"
+#include "uhyve-gdb.h"
+#include "uhyve-msr.h"
 
 #include "miniz.h"
 #include "mini_gzip.h"
 
+#include "uhyve-seccomp.h"
+
 // define this macro to create checkpoints with KVM's dirty log
-//#define USE_DIRTY_LOG
+#define USE_DIRTY_LOG
 
 #define MAX_FNAME	256
 #define MAX_MSR_ENTRIES	25
@@ -151,13 +154,6 @@
 #define PAGE_MAP_BITS	9
 #define PAGE_LEVELS		4
 
-#define kvm_ioctl(fd, cmd, arg) ({ \
-	const int ret = ioctl(fd, cmd, arg); \
-	if(ret == -1) \
-		err(1, "KVM: ioctl " #cmd " failed"); \
-	ret; \
-	})
-
 // Networkports
 #define UHYVE_PORT_NETINFO		0x505
 #define UHYVE_PORT_NETWRITE		0x506
@@ -180,7 +176,6 @@ static bool full_checkpoint = false;
 static uint32_t ncores = 1;
 static uint8_t* klog = NULL;
 static uint8_t* mboot = NULL;
-static size_t guest_size = 0x20000000ULL;
 static uint64_t elf_entry;
 static pthread_t* vcpu_threads = NULL;
 static pthread_t net_thread;
@@ -193,6 +188,12 @@ static __thread struct kvm_run *run = NULL;
 static __thread int vcpufd = -1;
 static __thread uint32_t cpuid = 0;
 static sem_t net_sem;
+static bool uhyve_gdb_enabled = false;
+bool uhyve_seccomp_enabled = false;
+static char htux_bin[256];
+static char htux_kernel[256];
+
+size_t guest_size = 0x20000000ULL;
 uint8_t* guest_mem = NULL;
 
 int uhyve_argc = -1;
@@ -521,9 +522,24 @@ static int load_checkpoint(uint8_t* mem, const char* path)
 	 * and aren't able to detect by KVM's dirty page logging
 	 * technique.
 	 */
+	const char* hermit_tux;
+
 	ret = load_kernel(mem, path);
 	if (ret)
 		return ret;
+
+	hermit_tux = getenv("HERMIT_TUX");
+	if (hermit_tux)
+	{
+		if (htux_bin == NULL) {
+			fprintf(stderr, "Name of the ELF file is missing!\n");
+			exit(EXIT_FAILURE);
+		}
+
+		if (uhyve_elf_loader(htux_bin) < 0)
+			exit(EXIT_FAILURE);
+	}
+
 #endif
 
 	i = full_checkpoint ? no_checkpoint : 0;
@@ -876,6 +892,8 @@ static int vcpu_loop(void)
 		switch (run->exit_reason) {
 		case KVM_EXIT_HLT:
 			fprintf(stderr, "Guest has halted the CPU, this is considered as a normal exit.\n");
+			if(uhyve_gdb_enabled)
+				uhyve_gdb_handle_term();
 			return 0;
 
 		case KVM_EXIT_MMIO:
@@ -927,6 +945,23 @@ static int vcpu_loop(void)
 				uhyve_open_t* uhyve_open = (uhyve_open_t*) (guest_mem+data);
 
 				ret = open((const char*)guest_mem+(size_t)uhyve_open->name, uhyve_open->flags, uhyve_open->mode);
+
+				/* With seccomp filter on, /dev/kvm is the only sensible thing
+				 * that we import from the host in the sandbox, let's make sure
+				 * it is never opened by the guest */
+				if(uhyve_seccomp_enabled) {
+					char *rval;
+					char abspath[128];
+					const char *filename = (const char *)guest_mem+(size_t)uhyve_open->name;
+
+					rval = realpath(filename, abspath);
+					if(rval && !strcmp(abspath, "/dev/kvm")) {
+						fprintf(stderr, "guest tries to access /dev/kvm\n");
+						exit(-1);
+					}
+				}
+
+
 				if(ret == -1)
 					uhyve_open->ret = -errno;
 				else
@@ -1111,6 +1146,31 @@ static int vcpu_loop(void)
 					break;
 				}
 
+			case UHYVE_PORT_PFAULT: {
+				char addr2line_call[128];
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_pfault_t *arg = (uhyve_pfault_t *)(guest_mem + data);
+				fprintf(stderr, "GUEST PAGE FAULT @0x%x (RIP @0x%x)\n",
+						arg->addr, arg->rip);
+				sprintf(addr2line_call, "addr2line -a %x -e %s\n", arg->rip,
+						(arg->rip >= linux_start_address) ? htux_bin :
+						htux_kernel);
+				system(addr2line_call);
+
+				break;
+				}
+
+			case UHYVE_PORT_FAULT: {
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_fault_t *arg = (uhyve_fault_t *)(guest_mem + data);
+
+				fprintf(stderr, "GUEST EXCEPTION %u (RIP @0x%x)\n", arg->int_no,
+						arg->rip);
+
+				break;
+				}
+
+
 			default:
 				err(1, "KVM: unhandled KVM_EXIT_IO at port 0x%x, direction %d\n", run->io.port, run->io.direction);
 				break;
@@ -1118,11 +1178,15 @@ static int vcpu_loop(void)
 			break;
 
 		case KVM_EXIT_FAIL_ENTRY:
+			if(uhyve_gdb_enabled)
+				uhyve_gdb_handle_exception(vcpufd, GDB_SIGNAL_SEGV);
 			err(1, "KVM: entry failure: hw_entry_failure_reason=0x%llx\n",
 				run->fail_entry.hardware_entry_failure_reason);
 			break;
 
 		case KVM_EXIT_INTERNAL_ERROR:
+			if(uhyve_gdb_enabled)
+				uhyve_gdb_handle_exception(vcpufd, GDB_SIGNAL_SEGV);
 			err(1, "KVM: internal error exit: suberror = 0x%x\n", run->internal.suberror);
 			break;
 
@@ -1131,7 +1195,12 @@ static int vcpu_loop(void)
 			break;
 
 		case KVM_EXIT_DEBUG:
-			print_registers();
+			if(uhyve_gdb_enabled) {
+				uhyve_gdb_handle_exception(vcpufd, GDB_SIGNAL_TRAP);
+				break;
+			}
+			else
+				print_registers();
 		default:
 			fprintf(stderr, "KVM: unhandled exit: exit_reason = 0x%x\n", run->exit_reason);
 			exit(EXIT_FAILURE);
@@ -1364,7 +1433,11 @@ void sigterm_handler(int signum)
 int uhyve_init(char** argv)
 {
 	const char* path = argv[1];
+	const char *hermit_seccomp = getenv("HERMIT_SECCOMP");
 	signal(SIGTERM, sigterm_handler);
+
+	if(hermit_seccomp && atoi(hermit_seccomp) != 0)
+		uhyve_seccomp_enabled = true;
 
 	// register routine to close the VM
 	atexit(uhyve_atexit);
@@ -1377,7 +1450,7 @@ int uhyve_init(char** argv)
 		fscanf(f, "number of cores: %u\n", &ncores);
 		fscanf(f, "memory size: 0x%zx\n", &guest_size);
 		fscanf(f, "checkpoint number: %u\n", &no_checkpoint);
-		fscanf(f, "entry point: 0x%zx", &elf_entry);
+		fscanf(f, "entry point: 0x%zx\n", &elf_entry);
 		fscanf(f, "full checkpoint: %d", &tmp);
 		full_checkpoint = tmp ? true : false;
 
@@ -1394,8 +1467,10 @@ int uhyve_init(char** argv)
 			ncores = (uint32_t) atoi(hermit_cpus);
 
 		const char* full_chk = getenv("HERMIT_FULLCHECKPOINT");
-		if (full_chk && (strcmp(full_chk, "0") != 0))
+		if (full_chk && (strcmp(full_chk, "0") != 0)) {
+			printf("full\n");
 			full_checkpoint = true;
+		}
 	}
 
 	vcpu_threads = (pthread_t*) calloc(ncores, sizeof(pthread_t));
@@ -1417,6 +1492,14 @@ int uhyve_init(char** argv)
 
 	/* Create the virtual machine */
 	vmfd = kvm_ioctl(kvm, KVM_CREATE_VM, 0);
+
+	/* Initialize seccomp filter */
+	if(uhyve_seccomp_enabled) {
+		if(uhyve_seccomp_init(vmfd)) {
+			fprintf(stderr, "Error configuring seccomp\n");
+			exit(-1);
+		}
+	}
 
 	uint64_t identity_base = 0xfffbc000;
 	if (ioctl(vmfd, KVM_CHECK_EXTENSION, KVM_CAP_SYNC_MMU) > 0) {
@@ -1527,24 +1610,28 @@ int uhyve_init(char** argv)
 	//if (cap_vapic)
 	//	printf("System supports vapic\n");
 
+	const char* hermit_tux;
+	hermit_tux = getenv("HERMIT_TUX");
+	if (hermit_tux)
+	{
+		if (argv[2] == NULL) {
+			fprintf(stderr, "Hermitux: linux binary missing\n");
+			exit(EXIT_FAILURE);
+		}
+		strcpy(htux_bin, argv[2]);
+		strcpy(htux_kernel, argv[1]);
+	}
+
+
 	if (restart) {
 		if (load_checkpoint(guest_mem, path) != 0)
 			exit(EXIT_FAILURE);
 	} else {
 		if (load_kernel(guest_mem, path) != 0)
 			exit(EXIT_FAILURE);
-	}
-
-	const char* hermit_tux = getenv("HERMIT_TUX");
-	if (hermit_tux)
-	{
-		if (argv[2] == NULL) {
-			fprintf(stderr, "Name of the ELF file is missing!\n");
-			exit(EXIT_FAILURE);
-		}
-
-		if (uhyve_elf_loader(argv[2]) < 0)
-			exit(EXIT_FAILURE);
+		if (hermit_tux)
+			if (uhyve_elf_loader(htux_bin) < 0)
+				exit(EXIT_FAILURE);
 	}
 
 	pthread_barrier_init(&barrier, NULL, ncores);
@@ -1719,7 +1806,7 @@ nextslot:
 	fprintf(f, "number of cores: %u\n", ncores);
 	fprintf(f, "memory size: 0x%zx\n", guest_size);
 	fprintf(f, "checkpoint number: %u\n", no_checkpoint);
-	fprintf(f, "entry point: 0x%zx", elf_entry);
+	fprintf(f, "entry point: 0x%zx\n", elf_entry);
 	if (full_checkpoint)
 		fprintf(f, "full checkpoint: 1");
 	else
@@ -1740,7 +1827,11 @@ nextslot:
 int uhyve_loop(int argc, char **argv)
 {
 	const char* hermit_check = getenv("HERMIT_CHECKPOINT");
+	const char *hermit_debug = getenv("HERMIT_DEBUG");
 	int ts = 0, i = 0;
+
+	if(hermit_debug && atoi(hermit_debug) != 0)
+		uhyve_gdb_enabled = true;
 
 	/* argv[0] is 'proxy', do not count it */
 	uhyve_argc = argc-1;
@@ -1774,6 +1865,9 @@ int uhyve_loop(int argc, char **argv)
 	*((uint64_t*) (mboot + 0xC0)) = tux_entry;
 	*((uint64_t*) (mboot + 0xC8)) = tux_size;
 
+	if(uhyve_gdb_enabled)
+		*((uint8_t*) (mboot + 0xD0)) = 0x1;
+
 	// First CPU is special because it will boot the system. Other CPUs will
 	// be booted linearily after the first one.
 	vcpu_threads[0] = pthread_self();
@@ -1800,6 +1894,24 @@ int uhyve_loop(int argc, char **argv)
 		timer.it_interval.tv_usec = 0;
 		/* Start a virtual timer. It counts down whenever this process is executing. */
 		setitimer(ITIMER_REAL, &timer, NULL);
+	}
+
+	/* init uhyve gdb support */
+	if(uhyve_gdb_enabled)
+		uhyve_gdb_init(vcpufd);
+
+	/* Add vcpu_fds to the seccomp filter then load it */
+	if(uhyve_seccomp_enabled) {
+		for(i=0; i<ncores; i++)
+			if(uhyve_seccomp_add_vcpu_fd(vcpu_fds[i])) {
+				fprintf(stderr, "Cannot add vcpu_fd to seccomp filter\n");
+				exit(-1);
+			}
+
+		if(uhyve_seccomp_load()) {
+			fprintf(stderr, "Cannot load seccomp filter\n");
+			exit(-1);
+		}
 	}
 
 	// Run first CPU

@@ -33,6 +33,10 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+// Where to load the application: Linux applications are always located at
+// address 0x400000
+#define linux_start_address	0x400000
+
 extern size_t tux_entry;
 extern size_t tux_size;
 
