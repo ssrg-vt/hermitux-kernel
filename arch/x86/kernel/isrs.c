@@ -557,7 +557,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_READLINK
 		case 89:
 			/* readlink */
-			s->rax = sys_readlink((const char *)s->rdi, (char *)s->rsi, s->rdx);
+			s->rax = sys_readlink((char *)s->rdi, (char *)s->rsi, s->rdx);
 			break;
 #endif /* DISABLE_SYS_READLINK */
 
@@ -568,6 +568,13 @@ void syscall_handler(struct state *s)
 					(struct timezone *)s->rsi);
 			break;
 #endif /* DISABLE_SYS_GETTIMEOFDAY */
+
+#ifndef DISABLE_SYS_GETRLIMIT
+		case 97:
+			/* getrlimit */
+			s->rax = sys_getrlimit(s->rdi, (struct rlimit *)s->rsi);
+			break;
+#endif /* DISABLE_SYS_GETRLIMIT */
 
 #ifndef DISABLE_SYS_GETUID
 		case 102:
@@ -692,6 +699,20 @@ void syscall_handler(struct state *s)
 			LOG_ERROR("Should not reach here after exit_group ... \n");
 			break;
 #endif /* DISABLE_SYS_EXIT_GROUP */
+
+#ifndef DISABLE_SYS_SET_ROBUST_LIST
+		case 273:
+			/* set_robust_list */
+			s->rax = sys_set_robust_list((void *)s->rdi, s->rsi);
+			break;
+#endif /* DISABLE_SYS_SET_ROBUST_LIST */
+
+#ifndef DISABLE_SYS_GET_ROBUST_LIST
+		case 274:
+			/* get_robust_list */
+			s->rax = sys_get_robust_list(s->rdi, (void *)s->rsi, (size_t *)s->rdx);
+			break;
+#endif /* DISABLE_SYS_GET_ROBUST_LIST */
 
 		default:
 			LOG_ERROR("Unsuported Linux syscall: %d\n", s->rax);

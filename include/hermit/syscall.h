@@ -105,6 +105,7 @@ struct timespec;
 struct timeval;
 struct sigaction;
 struct sockaddr;
+struct rlimit;
 typedef unsigned short umode_t;
 
 int sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg);
@@ -138,7 +139,7 @@ int sys_getgid(void);
 int sys_getegid(void);
 int sys_openat(int dirfd, const char *pathname, int flags, int mode);
 int sys_tgkill(int tgid, int tid, int sig);
-int sys_readlink(const char *path, char *buf, int bufsiz);
+int sys_readlink(char *path, char *buf, int bufsiz);
 int sys_access(const char *pathname, int mode);
 int sys_time(long *tloc);
 int sys_sched_setaffinity(int pid, unsigned int len, 
@@ -150,6 +151,9 @@ int sys_sched_getaffinity(int pid, unsigned int len,
 int sys_futex(int *uaddr, int futex_op, int val, const struct timespec *timeout,
 		int *uaddr2, int val3);
 int sys_sched_yield(void);
+long sys_getrlimit(unsigned int resource, struct rlimit *rlim);
+long sys_get_robust_list(int pid, void *head_ptr, size_t *len_ptr);
+long sys_set_robust_list(void *head, size_t len);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;

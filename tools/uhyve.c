@@ -1170,6 +1170,17 @@ static int vcpu_loop(void)
 				break;
 				}
 
+			case UHYVE_PORT_READLINK: {
+				int ret;
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_readlink_t *arg = (uhyve_readlink_t *)(guest_mem + data);
+
+				ret = readlink(guest_mem+(size_t)arg->path,
+						guest_mem+(size_t)arg->buf, arg->bufsz);
+
+				arg->ret = (ret == -1) ? -errno : ret;
+				break;
+				}
 
 			default:
 				err(1, "KVM: unhandled KVM_EXIT_IO at port 0x%x, direction %d\n", run->io.port, run->io.direction);
