@@ -693,8 +693,6 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_EXIT_GROUP
 		case 231:
 			/* exit_group */
-			/* FIXME this will probably not work in multi-threaded 
-			 * environments */
 			sys_exit(s->rdi);
 			LOG_ERROR("Should not reach here after exit_group ... \n");
 			break;
