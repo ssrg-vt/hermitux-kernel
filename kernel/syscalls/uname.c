@@ -1,4 +1,5 @@
 #include <hermit/syscall.h>
+#include <hermit/string.h>
 
 struct utsname {
 	char sysname[33];

@@ -35,6 +35,7 @@
 #include <hermit/syscall.h>
 #include <hermit/memory.h>
 #include <hermit/spinlock.h>
+#include <hermit/syscall_disabler.h>
 
 #ifndef NO_IRCCE
 #include <hermit/rcce.h>
@@ -75,7 +76,9 @@
 #define HERMIT_MAGIC	0x7E317
 
 /* gettimeofday init function */
+#ifndef DISABLE_SYS_GETTIMEOFDAY
 extern void gettimeofday_init(void);
+#endif /* DISABLE_SYS_GETTIMEOFDAY */
 
 #ifndef NO_NET
 static struct netif	default_netif;
@@ -423,7 +426,9 @@ static int initd(void* arg)
 #endif /* NO_NET */
 
 	/* initialize gettimeofday */
+#ifndef DISABLE_SYS_GETTIMEOFDAY
 	gettimeofday_init();
+#endif /* DISABLE_SYS_GETTIMEOFDAY */
 
 	if(is_uhyve()) {
 		int i;
