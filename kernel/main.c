@@ -48,6 +48,7 @@
 #include <asm/uhyve.h>
 
 #include <hermit/mmap_areas.h>
+#include <hermit/hermitux_profiler.h>
 
 #ifndef NO_NET
 #include <lwip/init.h>
@@ -156,6 +157,9 @@ static int hermit_init(void)
 	signal_init();
 #endif /* NO_SIGNAL */
 	if(mmap_areas_init())
+		return -1;
+
+	if(hermitux_profiler_init())
 		return -1;
 
 	return 0;

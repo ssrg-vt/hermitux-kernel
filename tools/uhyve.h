@@ -30,6 +30,8 @@
 
 #include <unistd.h>
 #include <stdint.h>
+#include <sys/ioctl.h>
+#include <err.h>
 
 #define GUEST_OFFSET		0x0
 

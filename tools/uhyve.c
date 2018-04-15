@@ -71,6 +71,7 @@
 #include "proxy.h"
 #include "uhyve-gdb.h"
 #include "uhyve-msr.h"
+#include "uhyve-profiler.h"
 
 #include "miniz.h"
 #include "mini_gzip.h"
@@ -180,7 +181,8 @@ static uint64_t elf_entry;
 static pthread_t* vcpu_threads = NULL;
 static pthread_t net_thread;
 static int* vcpu_fds = NULL;
-static int kvm = -1, vmfd = -1, netfd = -1, efd = -1;
+static int kvm = -1, netfd = -1, efd = -1;
+int vmfd = -1;
 static uint32_t no_checkpoint = 0;
 static pthread_mutex_t kvm_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_barrier_t barrier;
@@ -189,6 +191,7 @@ static __thread int vcpufd = -1;
 static __thread uint32_t cpuid = 0;
 static sem_t net_sem;
 static bool uhyve_gdb_enabled = false;
+static bool uhyve_profiler_enabled = false;
 bool uhyve_seccomp_enabled = false;
 static char htux_bin[256];
 static char htux_kernel[256];
@@ -934,8 +937,11 @@ static int vcpu_loop(void)
 
 					if (cpuid)
 						pthread_exit((int*)(guest_mem+data));
-					else
+					else {
+						if(uhyve_profiler_enabled)
+							uhyve_profiler_exit();
 						exit(*(int*)(guest_mem+data));
+					}
 					break;
 				}
 
@@ -1839,10 +1845,16 @@ int uhyve_loop(int argc, char **argv)
 {
 	const char* hermit_check = getenv("HERMIT_CHECKPOINT");
 	const char *hermit_debug = getenv("HERMIT_DEBUG");
+	const char *hermit_profile = getenv("HERMIT_PROFILE");
 	int ts = 0, i = 0;
 
 	if(hermit_debug && atoi(hermit_debug) != 0)
 		uhyve_gdb_enabled = true;
+
+	if(hermit_profile && atoi(hermit_profile) != 0) {
+		uhyve_profiler_enabled = true;
+		uhyve_profiler_init(atoi(hermit_profile));
+	}
 
 	/* argv[0] is 'proxy', do not count it */
 	uhyve_argc = argc-1;
