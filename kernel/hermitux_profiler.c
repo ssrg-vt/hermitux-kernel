@@ -7,8 +7,10 @@
 #include <asm/page.h>
 
 #define IRQ_NUM	33 /* corresponds to irq 1 when injected from kvm */
-//#define PAGES_FOR_SAMPLES	256
-#define PAGES_FOR_SAMPLES	1
+#define PAGES_FOR_SAMPLES	256
+
+extern uint64_t tux_prof_samples;
+extern uint64_t tux_prof_samples_num;
 
 uint64_t *samples;
 uint64_t next_id;
@@ -17,6 +19,9 @@ uint64_t max_id;
 static void profiler_irq_handler(struct state *s) {
 	LOG_INFO("prof irq received rip 0x%x\n", s->rip);  // TODO remove this
 	samples[next_id++] = s->rip;
+
+	if(tux_prof_samples_num < max_id)
+		tux_prof_samples_num++;
 
 	if (next_id >= max_id) {
 		LOG_WARNING("Profiler sample buffer full, wraping to 0\n");
@@ -32,6 +37,7 @@ int hermitux_profiler_init(void) {
 		LOG_ERROR("Cannot allocate memory for profiling samples\n");
 		return -1;
 	}
+	tux_prof_samples = (uint64_t)virt_to_phys((size_t)samples);
 
 	next_id = 0;
 	max_id = (PAGES_FOR_SAMPLES * PAGE_SIZE) / sizeof(uint64_t);
