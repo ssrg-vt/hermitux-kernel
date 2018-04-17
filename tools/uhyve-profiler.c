@@ -84,8 +84,8 @@ int uhyve_profiler_exit(void) {
 		return -1;
 	}
 
-	fprintf(f, "bin:%s\n", binary_abs_path);
-	fprintf(f, "kernel:%s\n", kernel_abs_path);
+	fprintf(f, "%s\n", binary_abs_path);
+	fprintf(f, "%s\n", kernel_abs_path);
 
 	for(i=0; i<tux_samples_num; i++)
 		fprintf(f, "%llx\n", ((uint64_t *)(guest_mem + tux_samples))[i]);
