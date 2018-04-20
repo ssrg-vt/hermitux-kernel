@@ -570,7 +570,7 @@ uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx
 #endif /* DISABLE_SYS_OPENAT */
 
 #ifndef DISABLE_SYS_DUMMY_SYSCALL
-	case 326:
+	case 346:
 		/* dummy_syscall (for microbenchmark) */
 		ret = sys_dummy_syscall();
 		break;
