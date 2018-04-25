@@ -26,11 +26,11 @@ typedef struct {
 
 ssize_t sys_read(int fd, char* buf, size_t len)
 {
-	sys_read_t sysargs = {__NR_read, fd, len};
+#ifndef NO_NET
 	ssize_t j, ret;
 	int s;
+	sys_read_t sysargs = {__NR_read, fd, len};
 
-#ifndef NO_NET
 	// do we have an LwIP file descriptor?
 	if (fd & LWIP_FD_BIT) {
 		ret = lwip_read(fd & ~LWIP_FD_BIT, buf, len);

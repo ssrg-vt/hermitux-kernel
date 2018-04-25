@@ -5,14 +5,15 @@
 #include <hermit/logging.h>
 #include <hermit/tasks.h>
 
-extern spinlock_irqsave_t lwip_lock;
-extern volatile int libc_sd;
-
 void NORETURN do_sys_exit(int arg);
 
 extern readyqueues_t *readyqueues;
 
 #ifndef NO_NET
+
+extern spinlock_irqsave_t lwip_lock;
+extern volatile int libc_sd;
+
 
 typedef struct {
 	int sysnr;

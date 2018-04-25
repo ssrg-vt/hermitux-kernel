@@ -376,7 +376,6 @@ int libc_start(int argc, char** argv, char** env);
 // init task => creates all other tasks an initialize the LwIP
 static int initd(void* arg)
 {
-	int c = -1;
 	int i, envc = -1;
 	int err = 0;
 	task_t* curr_task = per_core(current_task);
@@ -385,6 +384,7 @@ static int initd(void* arg)
 	char** argv = NULL;
 	char **environ = NULL;
 #ifndef NO_NET
+	int c = -1;
 	int len, flag, j;
 	int s = -1;
 	int magic = 0;
