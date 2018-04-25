@@ -325,7 +325,7 @@ static int load_kernel(uint8_t* mem, const char* path)
 		int fd, ret;
 		int output_file_size = 5*1024*1024;
 
-		printf("COMPRESSED\n");
+		printf("Compressed kernel detected, uncompressing...\n");
 		
 		fd = open(path, O_RDONLY);
 		if(fd == -1) {
