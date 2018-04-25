@@ -576,6 +576,13 @@ void syscall_handler(struct state *s)
 			break;
 #endif /* DISABLE_SYS_GETRLIMIT */
 
+#ifndef DISABLE_SYS_SYSINFO
+		case 99:
+			/* sysinfo */
+			s->rax = sys_sysinfo((void *)s->rdi);
+			break;
+#endif
+
 #ifndef DISABLE_SYS_GETUID
 		case 102:
 			/* getuid */
@@ -711,6 +718,13 @@ void syscall_handler(struct state *s)
 			s->rax = sys_get_robust_list(s->rdi, (void *)s->rsi, (size_t *)s->rdx);
 			break;
 #endif /* DISABLE_SYS_GET_ROBUST_LIST */
+
+#ifndef DISABLE_SYS_PRLIMIT64
+		case 302:
+			/* prlimit64 */
+			s->rax = sys_prlimit64(s->rdi, s->rsi, (void *)s->rdx, (void *)s->r10);
+			break;
+#endif
 
 		default:
 			LOG_ERROR("Unsuported Linux syscall: %d\n", s->rax);

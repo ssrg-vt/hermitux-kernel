@@ -106,6 +106,7 @@ struct timeval;
 struct sigaction;
 struct sockaddr;
 struct rlimit;
+struct sysinfo;
 typedef unsigned short umode_t;
 
 int sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg);
@@ -154,6 +155,8 @@ int sys_sched_yield(void);
 long sys_getrlimit(unsigned int resource, struct rlimit *rlim);
 long sys_get_robust_list(int pid, void *head_ptr, size_t *len_ptr);
 long sys_set_robust_list(void *head, size_t len);
+int sys_sysinfo(struct sysinfo *info);
+int sys_prlimit64(int pid, unsigned int resource, void *new_rlim, void *old_rlim);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;
