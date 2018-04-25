@@ -82,8 +82,8 @@ int uhyve_elf_loader(const char* path)
 	}
 
 	if (verbose)
-		fprintf(stderr, "Uhyve's elf loader found entry point at 0x%zx in file
-				%s\n", hdr.e_entry, path);
+		fprintf(stderr, "Uhyve's elf loader found entry point at 0x%zx in file"
+				"%s\n", hdr.e_entry, path);
 
 	tux_entry = hdr.e_entry;
 	buflen = hdr.e_phentsize * hdr.e_phnum;
