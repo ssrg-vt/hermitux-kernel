@@ -1,8 +1,15 @@
 #include <hermit/syscall.h>
 #include <hermit/spinlock.h>
 #include <hermit/logging.h>
+#include <asm/uhyve.h>
 
 extern spinlock_t readwritev_spinlock;
+
+typedef struct {
+	int fd;
+	const char* buf;
+	size_t len;
+} __attribute__((packed)) uhyve_write_t;
 
 int sys_writev(int fd, const struct iovec *iov, unsigned long vlen) {
 	int i, bytes_written, total_bytes_written;
@@ -12,6 +19,11 @@ int sys_writev(int fd, const struct iovec *iov, unsigned long vlen) {
 		return -EINVAL;
 	}
 
+	if(unlikely(!is_uhyve())) {
+		LOG_ERROR("writev: only supported with uhyve isle\n");
+		return -ENOSYS;
+	}
+
 	bytes_written = total_bytes_written = 0;
 
 	/* writev is supposed to be atomic */
@@ -19,12 +31,17 @@ int sys_writev(int fd, const struct iovec *iov, unsigned long vlen) {
 	for(i=0; i<vlen; i++) {
 
 		if(unlikely(!(iov[i].iov_base) && iov[i].iov_len)) {
-			LOG_ERROR("writev: vector member %d base is null (len=%u)\n", i, iov[i].iov_len);
+			LOG_ERROR("writev: vector member %d base is null (len=%u)\n", i,
+					iov[i].iov_len);
 			return -EINVAL;
 		}
 
-		bytes_written = sys_write(fd, (char *)(iov[i].iov_base),
-				iov[i].iov_len);
+		uhyve_write_t args = {fd,
+			(const char *) virt_to_phys((size_t)(iov[i].iov_base)),
+			iov[i].iov_len};
+
+		uhyve_send(UHYVE_PORT_WRITE, (unsigned)virt_to_phys((size_t)&args));
+		bytes_written = args.len;
 
 		if(bytes_written < 0)
 			goto out;

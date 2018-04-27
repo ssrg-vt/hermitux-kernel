@@ -1,8 +1,17 @@
 #include <hermit/syscall.h>
 #include <hermit/spinlock.h>
 #include <hermit/logging.h>
+#include <asm/uhyve.h>
 
 extern spinlock_t readwritev_spinlock;
+
+typedef struct {
+	int fd;
+	char* buf;
+        size_t len;
+	ssize_t ret;
+} __attribute__((packed)) uhyve_read_t;
+
 
 int sys_readv(int fd, const struct iovec *iov, unsigned long vlen) {
 	int i, bytes_read, total_bytes_read;
@@ -23,8 +32,12 @@ int sys_readv(int fd, const struct iovec *iov, unsigned long vlen) {
 			return -EINVAL;
 		}
 
-		bytes_read = sys_read(fd, (char *)(iov[i].iov_base),
-				iov[i].iov_len);
+		uhyve_read_t args = {fd,
+			(char *) virt_to_phys((size_t)(iov[i].iov_base)),
+			iov[i].iov_len};
+
+		uhyve_send(UHYVE_PORT_READ, (unsigned)virt_to_phys((size_t)&args));
+		bytes_read = args.len;
 
 		if(unlikely(bytes_read < 0))
 			goto out;
