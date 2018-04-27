@@ -17,7 +17,7 @@ int sys_getpriority(int which, id_t who) {
 	int hermitux_prio = -1;
 	long linux_prio = -21;
 
-	if(unlikely(which != PRIO_PROCESS && which != PRIO_PGRP && 
+	if(unlikely(which != PRIO_PROCESS && which != PRIO_PGRP &&
 				which != PRIO_USER)) {
 		LOG_ERROR("getpriority: 'which' is invalid\n");
 		return -EINVAL;

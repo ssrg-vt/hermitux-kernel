@@ -35,3 +35,17 @@ spinlock_irqsave_t lwip_lock = SPINLOCK_IRQSAVE_INIT;
 
 const size_t hermitux_hostname_len = HERMITUX_HOSTNAME_LEN;
 char hermitux_hostname[128] = "hermitux";
+
+/* Timing syscalls (gettimeofday, time, clock_gettime) will return values
+ * relative to the boot time stamp counter. This is called by the kernel at
+ * boot time */
+unsigned long long syscall_boot_tsc = 0;
+unsigned long long syscall_freq = 0;
+
+void syscall_timing_init() {
+	unsigned int lo, hi;
+
+	asm volatile ("rdtsc" : "=a"(lo), "=d"(hi) :: "memory");
+	syscall_boot_tsc = ((unsigned long long)hi << 32ULL | (unsigned long long)lo);
+	syscall_freq = get_cpu_frequency() * 1000000ULL;
+}

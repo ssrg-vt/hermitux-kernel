@@ -378,6 +378,7 @@ static int init_rcce(void)
 #endif /* NO_IRCCE */
 
 int libc_start(int argc, char** argv, char** env);
+extern void syscall_timing_init();
 
 // init task => creates all other tasks an initialize the LwIP
 static int initd(void* arg)
@@ -432,14 +433,7 @@ static int initd(void* arg)
 	err = init_netifs();
 #endif /* NO_NET */
 
-#ifndef DISABLE_SYS_GETTIMEOFDAY
-	/* initialize gettimeofday */
-	gettimeofday_init();
-#endif
-
-#ifndef DISABLE_SYS_CLOCK_GETTIME
-	clock_gettime_init();
-#endif
+	syscall_timing_init();
 
 	if(is_uhyve()) {
 		int i;
