@@ -38,7 +38,7 @@ extern spinlock_irqsave_t table_lock;
 int sys_prlimit64(int pid, unsigned int resource, struct rlimit *new_rlim,
 		struct rlimit *old_rlim) {
 
-	if(new_rlim) {
+	if(unlikely(new_rlim)) {
 		LOG_ERROR("prlimit64: do not support setting new limits\n");
 		return -EINVAL;
 	}

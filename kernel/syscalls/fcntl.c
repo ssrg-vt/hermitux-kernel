@@ -15,7 +15,7 @@ int sys_fcntl(unsigned int fd, unsigned int cmd, unsigned long arg) {
 	/* uhyve: TODO -> when arg is a pointer or not, and
 	 * which size ..... */
 
-	if(is_uhyve()) {
+	if(likely(is_uhyve())) {
 		uhyve_fcntl_t uhyve_args = { fd, cmd, arg };
 		uhyve_send(UHYVE_PORT_FCNTL, (unsigned)virt_to_phys((size_t)&uhyve_args));
 		LOG_WARNING("fcntl: currently unsupported\n");

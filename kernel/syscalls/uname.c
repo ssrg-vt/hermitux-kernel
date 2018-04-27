@@ -14,7 +14,7 @@ struct utsname {
 };
 
 int sys_uname(struct utsname *buf) {
-	if(!buf) {
+	if(unlikely(!buf)) {
 		LOG_ERROR("uname: buf is null\n");
 		return -EINVAL;
 	}

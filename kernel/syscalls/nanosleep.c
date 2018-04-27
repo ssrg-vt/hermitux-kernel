@@ -13,7 +13,7 @@ void ns_udelay(uint32_t usecs);
 int sys_nanosleep(struct timespec *req, struct timespec *rem) {
 	unsigned long long int ms;
 
-	if(!req) {
+	if(unlikely(!req)) {
 		LOG_ERROR("nanosleep: req is null\n");
 		return -EINVAL;
 	}

@@ -1,4 +1,5 @@
 #include <hermit/syscall.h>
+#include <hermit/logging.h>
 
 typedef unsigned int dev_t;
 typedef unsigned int ino_t;
@@ -32,6 +33,12 @@ struct stat {
 int sys_stat(const char* file, struct stat *st)
 {
 	int fd, ret;
+
+	if(unlikely(!file || !st)) {
+		LOG_ERROR("stat: file or/and st is null\n");
+		return -EINVAL;
+	}
+
 	/* 0 corresponds to O_RDONLY */
 	fd = sys_open(file, 0x0, 0x0);
 	ret = sys_fstat(fd, st);

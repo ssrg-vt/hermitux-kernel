@@ -16,12 +16,13 @@ int sys_setpriority(int which, id_t who, int prio) {
 	int hermitux_prio = -1;
 	task_t *task;
 
-	if(which != PRIO_PROCESS && which != PRIO_PGRP && which != PRIO_USER) {
+	if(unlikely(which != PRIO_PROCESS && which != PRIO_PGRP &&
+				which != PRIO_USER)) {
 		LOG_ERROR("setpriority: 'which' is invalid\n");
 		return -EINVAL;
 	}
 
-	if(prio < -20 || prio > 20) {
+	if(unlikely(prio < -20 || prio > 20)) {
 		LOG_ERROR("setpriority: bad value for prio\n");
 		return -EINVAL;
 	}

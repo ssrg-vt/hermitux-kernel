@@ -13,12 +13,12 @@ typedef struct {
 
 int sys_mkdir(const char *pathname,  umode_t mode) {
 
-	if(!pathname) {
+	if(unlikely(!pathname)) {
 		LOG_ERROR("mkdir: pathname is null\n");
 		return -EINVAL;
 	}
 
-	if(is_uhyve()) {
+	if(likely(is_uhyve())) {
 		uhyve_mkdir_t args = {(const char *)virt_to_phys((size_t)pathname),
 				mode, 0};
 		uhyve_send(UHYVE_PORT_MKDIR, (unsigned)virt_to_phys((size_t)&args));

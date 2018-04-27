@@ -26,7 +26,7 @@ int mmap_areas_init() {
 	int i;
 
 	mmap_areas = kmalloc(MMAP_AREA_MAX * sizeof(mmap_area));
-	if(!mmap_areas) {
+	if(unlikely(!mmap_areas)) {
 		LOG_ERROR("Cannot init mmap area\n");
 		return -1;
 	}

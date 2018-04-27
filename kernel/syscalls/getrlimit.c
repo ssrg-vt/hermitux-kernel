@@ -39,7 +39,7 @@ extern spinlock_irqsave_t table_lock;
 long sys_getrlimit(unsigned int resource, struct rlimit *rlim) {
 	long ret = 0;
 
-	if(!rlim) {
+	if(unlikely(!rlim)) {
 		LOG_ERROR("getrlimit: rlim is null\n");
 		return -EINVAL;
 	}

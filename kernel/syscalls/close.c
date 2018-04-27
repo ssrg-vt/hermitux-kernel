@@ -23,7 +23,7 @@ typedef struct {
 
 int sys_close(int fd)
 {
-	if (is_uhyve()) {
+	if (likely(is_uhyve())) {
 		uhyve_close_t uhyve_close = {fd, -1};
 
 		uhyve_send(UHYVE_PORT_CLOSE, (unsigned)virt_to_phys((size_t) &uhyve_close));

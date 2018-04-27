@@ -45,7 +45,7 @@ int sys_clock_gettime(clockid_t id, struct timespec *tp) {
 			return -ENOSYS;
 	}
 
-	if(tp) {
+	if(likely(tp)) {
 		unsigned long long diff = cgt_rdtsc() - start_tsc;
 		tp->tv_sec = diff/freq;
 		tp->tv_nsec = ((diff - tp->tv_sec * freq) * 1000000000ULL) / freq;

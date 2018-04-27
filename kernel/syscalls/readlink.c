@@ -13,12 +13,12 @@ typedef struct {
 
 int sys_readlink(char *path, char *buf, int bufsiz) {
 
-	if(!path || !buf) {
+	if(unlikely(!path || !buf)) {
 		LOG_ERROR("readlink: path or buf is null\n");
 		return -EINVAL;
 	}
 
-	if (is_uhyve()) {
+	if (likely(is_uhyve())) {
 		uhyve_readlink_t args = {path, (char*) virt_to_phys((size_t) buf),
 			bufsiz, -1};
 

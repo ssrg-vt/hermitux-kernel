@@ -14,7 +14,7 @@ int sys_futex(int *uaddr, int futex_op, int val, const struct timespec *timeout,
 
 	int cmd = futex_op & FUTEX_CMD_MASK;
 
-	if(!uaddr) {
+	if(unlikely(!uaddr)) {
 		LOG_ERROR("futex: uaddr is null\n");
 		return -EINVAL;
 	}

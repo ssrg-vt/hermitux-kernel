@@ -7,7 +7,7 @@ extern spinlock_t readwritev_spinlock;
 int sys_writev(int fd, const struct iovec *iov, unsigned long vlen) {
 	int i, bytes_written, total_bytes_written;
 
-	if(!iov) {
+	if(unlikely(!iov)) {
 		LOG_ERROR("writev: iov is null\n");
 		return -EINVAL;
 	}
@@ -18,7 +18,7 @@ int sys_writev(int fd, const struct iovec *iov, unsigned long vlen) {
 	spinlock_lock(&readwritev_spinlock);
 	for(i=0; i<vlen; i++) {
 
-		if(!(iov[i].iov_base) && iov[i].iov_len) {
+		if(unlikely(!(iov[i].iov_base) && iov[i].iov_len)) {
 			LOG_ERROR("writev: vector member %d base is null (len=%u)\n", i, iov[i].iov_len);
 			return -EINVAL;
 		}

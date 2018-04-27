@@ -4,7 +4,7 @@
 
 long sys_get_robust_list(int pid, void *head_ptr, size_t *len_ptr) {
 
-	if(!head_ptr || !len_ptr) {
+	if(unlikely(!head_ptr || !len_ptr)) {
 		LOG_ERROR("get_robust_list: some parameter(s) is (are) null\n");
 		return -EINVAL;
 	}

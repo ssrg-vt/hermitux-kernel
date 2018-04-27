@@ -26,8 +26,8 @@ typedef struct {
 
 ssize_t sys_write(int fd, const char* buf, size_t len)
 {
-	if (BUILTIN_EXPECT(!buf && len, 0)) {
-		LOG_ERROR("write: buf is null\n");
+	if (unlikely(!buf && len)) {
+		LOG_ERROR("write: buf is null and len is not\n");
 		return -1;
 	}
 
@@ -46,7 +46,7 @@ ssize_t sys_write(int fd, const char* buf, size_t len)
 	}
 #endif
 
-	if (is_uhyve()) {
+	if (likely(is_uhyve())) {
 		uhyve_write_t uhyve_args = {fd, (const char*) virt_to_phys((size_t) buf), len};
 
 		uhyve_send(UHYVE_PORT_WRITE, (unsigned)virt_to_phys((size_t)&uhyve_args));

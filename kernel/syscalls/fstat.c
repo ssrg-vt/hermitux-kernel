@@ -41,12 +41,12 @@ typedef struct {
 int sys_fstat(int fd, struct stat *buf)
 {
 
-	if(!buf) {
+	if(unlikely(!buf)) {
 		LOG_ERROR("fstat: called with buf argument null\n");
 		return -EINVAL;
 	}
 
-	if(is_uhyve()) {
+	if(likely(is_uhyve())) {
 		uhyve_fstat_t uhyve_args = {fd, -1,
 			(struct stat *)virt_to_phys((size_t)buf)};
 

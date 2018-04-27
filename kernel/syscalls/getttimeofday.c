@@ -23,12 +23,12 @@ void gettimeofday_init(void) {
 
 int sys_gettimeofday(struct timeval *tv, struct timezone *tz) {
 
-	if(tz) {
+	if(unlikely(tz)) {
 		LOG_ERROR("gettimeofday: tz should be null\n");
 		return -EINVAL;
 	}
 
-	if(tv) {
+	if(likely(tv)) {
 		unsigned long long diff = gtod_rdtsc() - start_tsc;
 		tv->tv_sec = diff/freq;
 		tv->tv_usec = ((diff - tv->tv_sec * freq) * 1000000ULL) / freq;

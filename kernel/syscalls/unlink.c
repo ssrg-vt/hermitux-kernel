@@ -15,7 +15,7 @@ typedef struct {
 
 int sys_unlink(const char *pathname) {
 
-	if(!pathname) {
+	if(unlikely(!pathname)) {
 		LOG_ERROR("unlink: pathname is null\n");
 		return -EINVAL;
 	}

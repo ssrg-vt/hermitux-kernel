@@ -12,13 +12,13 @@ typedef struct {
 
 int sys_openat(int dirfd, const char *pathname, int flags, int mode) {
 
-	if(!pathname) {
+	if(unlikely(!pathname)) {
 		LOG_ERROR("openat: pathname is null\n");
 		return -EINVAL;
 	}
 
 	if(pathname[0] == '/') {
-		if (is_uhyve()) {
+		if (likely(is_uhyve())) {
 			uhyve_open_t uhyve_open = {(const char*)virt_to_phys((size_t)pathname),
 				flags, mode, -1};
 

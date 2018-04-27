@@ -9,7 +9,7 @@ extern dequeue_t *signal_queue;
 int hermit_sys_tgkill(tid_t dest, int signum);
 
 int sys_tgkill(int tgid, int tid, int sig) {
-	if(sig < 0) {
+	if(unlikely(sig < 0)) {
 		LOG_ERROR("tgkill: signal is 0\n");
 		return -EINVAL;
 	}

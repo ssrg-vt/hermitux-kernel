@@ -24,7 +24,8 @@ extern atomic_int64_t total_pages;
 extern atomic_int64_t total_available_pages;
 
 int sys_sysinfo(struct sysinfo *info) {
-	if(!info) {
+
+	if(unlikely(!info)) {
 		LOG_ERROR("sysinfo: info is null\n");
 		return -EINVAL;
 	}

@@ -27,20 +27,15 @@ int sys_clock_getres(clockid_t id, struct timespec *tp) {
 			return -ENOSYS;
 	}
 
-	if(!tp) {
+	if(unlikely(!tp)) {
 		LOG_ERROR("clocK_getres: tp is null\n");
 		return -EINVAL;
 	}
 
 	/* For now we have a stupid clock_gettime implementation so the resolution
 	 * is 1000 nsec */
-	if(tp) {
-		tp->tv_sec = 0;
-		tp->tv_nsec = 1000;
-	} else {
-		LOG_ERROR("clock_getres: invalid parameter\n");
-		return -EINVAL;
-	}
+	tp->tv_sec = 0;
+	tp->tv_nsec = 1000;
 
 	return 0;
 }
