@@ -11,6 +11,7 @@ int hermit_sys_kill(tid_t dest, int signum);
 int sys_kill(tid_t dest, int signum)
 {
 	if(signum < 0) {
+		LOG_ERROR("kill: signum is 0\n");
 		return -EINVAL;
 	}
 	return hermit_sys_kill(dest, signum);

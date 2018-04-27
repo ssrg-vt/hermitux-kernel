@@ -13,6 +13,11 @@ typedef struct {
 
 int sys_readlink(char *path, char *buf, int bufsiz) {
 
+	if(!path || !buf) {
+		LOG_ERROR("readlink: path or buf is null\n");
+		return -EINVAL;
+	}
+
 	if (is_uhyve()) {
 		uhyve_readlink_t args = {path, (char*) virt_to_phys((size_t) buf),
 			bufsiz, -1};
@@ -22,5 +27,6 @@ int sys_readlink(char *path, char *buf, int bufsiz) {
 		return args.ret;
 	}
 
+	LOG_INFO("readlink: not supported with qemu isle\n");
 	return -ENOSYS;
 }

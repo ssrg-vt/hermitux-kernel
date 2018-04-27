@@ -26,8 +26,10 @@ typedef struct {
 
 ssize_t sys_write(int fd, const char* buf, size_t len)
 {
-	if (BUILTIN_EXPECT(!buf, 0))
+	if (BUILTIN_EXPECT(!buf && len, 0)) {
+		LOG_ERROR("write: buf is null\n");
 		return -1;
+	}
 
 #ifndef NO_NET
 	ssize_t i, ret;
@@ -92,7 +94,7 @@ ssize_t sys_write(int fd, const char* buf, size_t len)
 	return i;
 
 #endif /* NO_NET */
-	LOG_ERROR("Network disabled, cannot use qemu isle\n");
+	LOG_ERROR("write: network disabled, cannot use qemu isle\n");
 	return -ENOSYS;
 }
 

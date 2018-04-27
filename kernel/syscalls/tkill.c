@@ -6,19 +6,19 @@
 
 extern dequeue_t *signal_queue;
 
-int hermit_sys_tgkill(tid_t dest, int signum);
+int hermit_sys_tkill(tid_t dest, int signum);
 
-int sys_tgkill(int tgid, int tid, int sig) {
+int sys_tkill(int tid, int sig) {
 	if(sig < 0) {
-		LOG_ERROR("tgkill: signal is 0\n");
+		LOG_ERROR("tkill: signal is 0\n");
 		return -EINVAL;
 	}
 
-	return hermit_sys_tgkill(tid, sig);
+	return hermit_sys_tkill(tid, sig);
 
 }
 
-int hermit_sys_tgkill(tid_t dest, int signum)
+int hermit_sys_tkill(tid_t dest, int signum)
 {
 	task_t* task;
 	if(BUILTIN_EXPECT(get_task(dest, &task), 0)) {

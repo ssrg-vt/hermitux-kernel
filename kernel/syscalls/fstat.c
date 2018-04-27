@@ -40,18 +40,24 @@ typedef struct {
 
 int sys_fstat(int fd, struct stat *buf)
 {
-	
+
+	if(!buf) {
+		LOG_ERROR("fstat: called with buf argument null\n");
+		return -EINVAL;
+	}
+
 	if(is_uhyve()) {
-		uhyve_fstat_t uhyve_args = {fd, -1, 
+		uhyve_fstat_t uhyve_args = {fd, -1,
 			(struct stat *)virt_to_phys((size_t)buf)};
 
-		uhyve_send(UHYVE_PORT_FSTAT, 
+		uhyve_send(UHYVE_PORT_FSTAT,
 				(unsigned)virt_to_phys((size_t)&uhyve_args));
 
 		return uhyve_args.ret;
 	}
 
 	/* qemu not supported yet */
+	LOG_ERROR("fstat: not supported with qemu isle\n");
 	return -ENOSYS;
 }
 

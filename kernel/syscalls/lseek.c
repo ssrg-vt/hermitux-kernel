@@ -54,7 +54,8 @@ off_t sys_lseek(int fd, off_t offset, int whence)
 
 	return off;
 #endif /* NO_NET */
-	LOG_ERROR("Network disabled, cannot use qemu isle\n");
+
+	LOG_ERROR("lseek: network disabled, cannot use qemu isle\n");
 	return -ENOSYS;
 }
 

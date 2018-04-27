@@ -12,12 +12,13 @@ typedef struct {
 int sys_access(const char *pathname, int mode) {
 
 	if(is_uhyve()) {
-		uhyve_access_t uhyve_args = {(const char*) virt_to_phys((size_t) pathname), 
+		uhyve_access_t uhyve_args = {(const char*) virt_to_phys((size_t) pathname),
 			mode, -1};
 		uhyve_send(UHYVE_PORT_ACCESS, (unsigned)virt_to_phys((size_t)&uhyve_args));
 		return uhyve_args.ret;
 	}
-	
+
 	/* Qemu not supported for now */
+	LOG_ERROR("Syscall not supported with qemu: access\n");
 	return -ENOSYS;
 }

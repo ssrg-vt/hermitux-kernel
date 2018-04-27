@@ -16,6 +16,12 @@ typedef struct {
 
 int sys_open(const char* name, int flags, int mode)
 {
+
+	if(!name) {
+		LOG_ERROR("open: name is null\n");
+		return -EINVAL;
+	}
+
 	if (is_uhyve()) {
 		uhyve_open_t uhyve_open = {(const char*)virt_to_phys((size_t)name), flags, mode, -1};
 
@@ -77,7 +83,7 @@ out:
 	return ret;
 
 #endif /* NO_NET */
-	LOG_ERROR("Network disabled, cannot use qemu isle\n");
+	LOG_ERROR("open: network disabled, cannot use qemu isle\n");
 	return -ENOSYS;
 }
 

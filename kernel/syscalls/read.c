@@ -26,6 +26,12 @@ typedef struct {
 
 ssize_t sys_read(int fd, char* buf, size_t len)
 {
+
+	if(!buf && len) {
+		LOG_ERROR("read: buf is null\n");
+		return -EINVAL;
+	}
+
 #ifndef NO_NET
 	ssize_t j, ret;
 	int s;
@@ -81,7 +87,7 @@ ssize_t sys_read(int fd, char* buf, size_t len)
 	return j;
 
 #endif /* NO_NET */
-	LOG_ERROR("Network disabled, cannot use qemu isle\n");
+	LOG_ERROR("read: network disabled, cannot use qemu isle\n");
 	return -ENOSYS;
 }
 

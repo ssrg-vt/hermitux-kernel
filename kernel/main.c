@@ -75,8 +75,14 @@
 #define HERMIT_PORT	0x494E
 #define HERMIT_MAGIC	0x7E317
 
+#ifndef DISABLE_SYS_GETTIMEOFDAY
 /* gettimeofday init function */
 extern void gettimeofday_init(void);
+#endif
+
+#ifndef DISABLE_SYS_CLOCK_GETTIME
+extern void clock_gettime_init(void);
+#endif
 
 #ifndef NO_NET
 static struct netif	default_netif;
@@ -426,8 +432,14 @@ static int initd(void* arg)
 	err = init_netifs();
 #endif /* NO_NET */
 
+#ifndef DISABLE_SYS_GETTIMEOFDAY
 	/* initialize gettimeofday */
 	gettimeofday_init();
+#endif
+
+#ifndef DISABLE_SYS_CLOCK_GETTIME
+	clock_gettime_init();
+#endif
 
 	if(is_uhyve()) {
 		int i;

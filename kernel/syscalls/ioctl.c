@@ -3,12 +3,12 @@
 #include <hermit/logging.h>
 
 int sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg) {
-	/* Check cmd, we want that to fail on commands that we did not explore */
+
 	switch(cmd) {
 		case TIOCGWINSZ:
 			{
 				struct winsize *res = (struct winsize *)arg;
-				/* Quick hack, FIXME */
+				/* Quick hack, mimic what linux is reporting */
 				res->ws_row = 24;
 				res->ws_col = 80;
 				res->ws_xpixel = 0;
@@ -16,9 +16,9 @@ int sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg) {
 				return 0;
 			}
 
-		case TCGETS: 
+		case TCGETS:
 			{
-				/* TODO that's super ugly, I'm mimicing what linux reports me */
+				/* hack again */
 				struct termios *res = (struct termios *)arg;
 				res->c_iflag = 0x4500;
 				res->c_oflag = 0x5;
@@ -51,8 +51,8 @@ int sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg) {
 		default:
 			LOG_ERROR("unsupported ioctl command 0x%x\n", cmd);
 			return -ENOSYS;
-	}	
+	}
 
 	/* should not come here */
-	return -1;
+	return -ENOSYS;
 }

@@ -64,7 +64,7 @@ out:
 
 #else /*NO_NET */
 
-	LOG_ERROR("Network disabled, cannot use qemu isle\n");
+	LOG_ERROR("close: network disabled, cannot use qemu isle\n");
 	return -ENOSYS;
 
 #endif /* NO_NET */

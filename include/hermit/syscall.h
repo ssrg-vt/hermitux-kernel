@@ -60,6 +60,7 @@ struct sem;
 typedef struct sem sem_t;
 
 typedef void (*signal_handler_t)(int);
+typedef unsigned id_t;
 
 /*
  * HermitCore is a libOS.
@@ -72,7 +73,9 @@ int sys_fork(void);
 int sys_wait(int* status);
 int sys_execve(const char* name, char * const * argv, char * const * env);
 int sys_getprio(tid_t* id);
+int sys_getpriority(int which, id_t who);
 int sys_setprio(tid_t* id, int prio);
+int sys_setpriority(int which, id_t who, int prio);
 void NORETURN sys_exit(int arg);
 ssize_t sys_read(int fd, char* buf, size_t len);
 ssize_t sys_write(int fd, const char* buf, size_t len);
@@ -129,7 +132,7 @@ int sys_rt_sigaction(int signum, struct sigaction *act,
 int sys_socket(int domain, int type, int protocol);
 int sys_bind(int fd, struct sockaddr *addr, int addrlen);
 int sys_setsockopt(int fd, int level, int optname, char *optval, int optlen);
-size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot, 
+size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 		unsigned long flags, unsigned long fd, unsigned long off);
 int sys_mkdir(const char *pathname, umode_t mode);
 int sys_rmdir(const char *pathname);
@@ -143,7 +146,7 @@ int sys_tgkill(int tgid, int tid, int sig);
 int sys_readlink(char *path, char *buf, int bufsiz);
 int sys_access(const char *pathname, int mode);
 int sys_time(long *tloc);
-int sys_sched_setaffinity(int pid, unsigned int len, 
+int sys_sched_setaffinity(int pid, unsigned int len,
 		unsigned long *user_mask_ptr);
 long sys_mprotect(size_t addr, size_t len, unsigned long prot);
 int sys_munmap(size_t viraddr, size_t len);
@@ -156,7 +159,12 @@ long sys_getrlimit(unsigned int resource, struct rlimit *rlim);
 long sys_get_robust_list(int pid, void *head_ptr, size_t *len_ptr);
 long sys_set_robust_list(void *head, size_t len);
 int sys_sysinfo(struct sysinfo *info);
-int sys_prlimit64(int pid, unsigned int resource, void *new_rlim, void *old_rlim);
+int sys_prlimit64(int pid, unsigned int resource, struct rlimit *new_rlim,
+		struct rlimit *old_rlim);
+int sys_clock_getres(clockid_t id, struct timespec *tp);
+int sys_sethostname(char *name, size_t len);
+int sys_setrlimit(int resource, const struct rlimit *rlim);
+int sys_tkill(int tid, int sig);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;

@@ -515,7 +515,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_UNAME
 		case 63:
 			/* uname */
-			sys_uname((void *)s->rdi);
+			s->rax = sys_uname((void *)s->rdi);
 			break;
 #endif /* DISABLE_SYS_UNAME */
 
@@ -564,7 +564,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_GETTIMEOFDAY
 		case 96:
 			/* gettimeofday */
-			s->rax = sys_gettimeofday((struct timeval *)s->rdi, 
+			s->rax = sys_gettimeofday((struct timeval *)s->rdi,
 					(struct timezone *)s->rsi);
 			break;
 #endif /* DISABLE_SYS_GETTIMEOFDAY */
@@ -611,16 +611,24 @@ void syscall_handler(struct state *s)
 
 #ifndef DISABLE_SYS_GETPPID
 		case 110:
+			s->rax = (long)0;
 			s->rax = sys_getppid();
 			break;
 #endif /* DISABLE_SYS_GETPPID */
 
-#ifndef DISABLE_SYS_GETPRIO
+#ifndef DISABLE_SYS_GETPRIORITY
 		case 140:
 			/* getpriority */
-			s->rax = sys_getprio((unsigned int *)&(s->rsi));
+			s->rax = sys_getpriority(s->rdi, s->rsi);
 			break;
-#endif /* DISABLE_SYS_GETPRIO */
+#endif /* DISABLE_SYS_GETPRIORITY */
+
+#ifndef DISABLE_SYS_SETPRIORITY
+		case 141:
+			/* setpriority */
+			s->rax = sys_setpriority(s->rdi, s->rsi, s->rdx);
+			break;
+#endif
 
 #ifndef DISABLE_SYS_ARCH_PRCTL
 		case 158:
@@ -628,7 +636,20 @@ void syscall_handler(struct state *s)
 			s->rax = sys_arch_prctl(s->rdi, (unsigned long *)s->rsi, s);
 			break;
 #endif /* DISABLE_SYS_ARCH_PRCTL */
-		
+
+#ifndef DISABLE_SYS_SETRLIMIT
+		case 160:
+			/* setrlimit */
+			s->rax = sys_setrlimit(s->rdi, (void *)s->rsi);
+			break;
+#endif
+
+#ifndef DISABLE_SYS_SETHOSTNAME
+		case 170:
+			/* sethostname */
+			s->rax = sys_sethostname((char *)s->rdi, s->rsi);
+#endif
+
 #ifndef DISABLE_SYS_GETTID
 			case 186:
 				/* gettid */
@@ -639,7 +660,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_TKILL
 			case 200:
 				/* tkill */
-				s->rax = sys_kill(s->rdi, s->rsi);
+				s->rax = sys_tkill(s->rdi, s->rsi);
 				break;
 #endif /* DISABLE_SYS_TKILL */
 
@@ -684,6 +705,13 @@ void syscall_handler(struct state *s)
 			break;
 #endif /* DISABLE_SYS_CLOCK_GETTIME */
 
+#ifndef DISABLE_SYS_CLOCK_GETRES
+		case 229:
+			/* clock_getres */
+			s->rax = sys_clock_getres(s->rdi, (struct timespec *)s->rsi);
+			break;
+#endif
+
 #ifndef DISABLE_SYS_TGKILL
 		case 234:
 			/* tgkill */
@@ -722,7 +750,8 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_PRLIMIT64
 		case 302:
 			/* prlimit64 */
-			s->rax = sys_prlimit64(s->rdi, s->rsi, (void *)s->rdx, (void *)s->r10);
+			s->rax = sys_prlimit64(s->rdi, s->rsi, (struct rlimit *)s->rdx,
+					(struct rlimit *)s->r10);
 			break;
 #endif
 
@@ -731,8 +760,6 @@ void syscall_handler(struct state *s)
 			sys_exit(-EFAULT);
 	}
 }
-	
-     
 
 /* interrupt handler to save / restore the FPU context */
 static void arch_fpu_handler(struct state *s)
