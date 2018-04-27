@@ -80,6 +80,7 @@ int sys_getpriority(int which, id_t who);
 int sys_setprio(tid_t* id, int prio);
 int sys_setpriority(int which, id_t who, int prio);
 void NORETURN sys_exit(int arg);
+void NORETURN sys_exit_group(int arg);
 ssize_t sys_read(int fd, char* buf, size_t len);
 ssize_t sys_write(int fd, const char* buf, size_t len);
 ssize_t sys_sbrk(ssize_t incr);
