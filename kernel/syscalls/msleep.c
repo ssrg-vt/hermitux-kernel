@@ -2,6 +2,8 @@
 #include <hermit/time.h>
 #include <asm/processor.h>
 
+/* Not a Linux syscall */
+
 void sys_msleep(unsigned int ms)
 {
 	if (ms * TIMER_FREQ / 1000 > 0)

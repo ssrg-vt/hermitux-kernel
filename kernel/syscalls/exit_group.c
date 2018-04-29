@@ -14,7 +14,6 @@ extern readyqueues_t *readyqueues;
 extern spinlock_irqsave_t lwip_lock;
 extern volatile int libc_sd;
 
-
 typedef struct {
 	int sysnr;
 	int arg;
@@ -23,7 +22,7 @@ typedef struct {
 #endif /* NO_NET */
 
 /** @brief To be called by the systemcall to exit tasks */
-void NORETURN sys_exit(int arg)
+void NORETURN sys_exit_group(int arg)
 {
 	if (is_uhyve() && per_core(current_task)->is_main_thread)
 		uhyve_send(UHYVE_PORT_EXIT, (unsigned) virt_to_phys((size_t) &arg));

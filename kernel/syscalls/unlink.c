@@ -14,6 +14,12 @@ typedef struct {
 
 
 int sys_unlink(const char *pathname) {
+
+	if(unlikely(!pathname)) {
+		LOG_ERROR("unlink: pathname is null\n");
+		return -EINVAL;
+	}
+
 #ifndef NO_NET
 	int s, sysnr, i, len, ret;
 #endif /* NO_NET */
@@ -31,10 +37,10 @@ int sys_unlink(const char *pathname) {
 
 	sysnr = __NR_unlink;
 	lwip_write(s, &sysnr, sizeof(sysnr));
-	
+
 	len = strlen(pathname);
 	lwip_write(s, &len, sizeof(len));
-	
+
 	i=0;
 	while(i < len)
 	{
@@ -56,7 +62,7 @@ int sys_unlink(const char *pathname) {
 	return i;
 
 #endif /* NO_NET */
-	LOG_ERROR("Network disabled, cannot use qemu isle\n");
+	LOG_ERROR("unlink: network disabled, cannot use qemu isle\n");
 	return -ENOSYS;
 }
 

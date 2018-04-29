@@ -26,10 +26,16 @@ typedef struct {
 
 ssize_t sys_read(int fd, char* buf, size_t len)
 {
+
+	if(unlikely(!buf && len)) {
+		LOG_ERROR("read: buf is null and len is not\n");
+		return -EINVAL;
+	}
+
 #ifndef NO_NET
-	sys_read_t sysargs = {__NR_read, fd, len};
 	ssize_t j, ret;
 	int s;
+	sys_read_t sysargs = {__NR_read, fd, len};
 
 	// do we have an LwIP file descriptor?
 	if (fd & LWIP_FD_BIT) {
@@ -41,7 +47,7 @@ ssize_t sys_read(int fd, char* buf, size_t len)
 	}
 #endif
 
-	if (is_uhyve()) {
+	if (likely(is_uhyve())) {
 		uhyve_read_t uhyve_args = {fd, (char*) virt_to_phys((size_t) buf), len, -1};
 
 		uhyve_send(UHYVE_PORT_READ, (unsigned)virt_to_phys((size_t)&uhyve_args));
@@ -81,7 +87,7 @@ ssize_t sys_read(int fd, char* buf, size_t len)
 	return j;
 
 #endif /* NO_NET */
-	LOG_ERROR("Network disabled, cannot use qemu isle\n");
+	LOG_ERROR("read: network disabled, cannot use qemu isle\n");
 	return -ENOSYS;
 }
 

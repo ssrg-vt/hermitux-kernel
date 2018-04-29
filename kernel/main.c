@@ -35,7 +35,6 @@
 #include <hermit/syscall.h>
 #include <hermit/memory.h>
 #include <hermit/spinlock.h>
-#include <hermit/syscall_disabler.h>
 
 #ifndef NO_IRCCE
 #include <hermit/rcce.h>
@@ -49,6 +48,7 @@
 #include <asm/uhyve.h>
 
 #include <hermit/mmap_areas.h>
+#include <hermit/hermitux_profiler.h>
 
 #ifndef NO_NET
 #include <lwip/init.h>
@@ -75,10 +75,14 @@
 #define HERMIT_PORT	0x494E
 #define HERMIT_MAGIC	0x7E317
 
-/* gettimeofday init function */
 #ifndef DISABLE_SYS_GETTIMEOFDAY
+/* gettimeofday init function */
 extern void gettimeofday_init(void);
-#endif /* DISABLE_SYS_GETTIMEOFDAY */
+#endif
+
+#ifndef DISABLE_SYS_CLOCK_GETTIME
+extern void clock_gettime_init(void);
+#endif
 
 #ifndef NO_NET
 static struct netif	default_netif;
@@ -159,6 +163,9 @@ static int hermit_init(void)
 	signal_init();
 #endif /* NO_SIGNAL */
 	if(mmap_areas_init())
+		return -1;
+
+	if(hermitux_profiler_init())
 		return -1;
 
 	return 0;
@@ -371,6 +378,7 @@ static int init_rcce(void)
 #endif /* NO_IRCCE */
 
 int libc_start(int argc, char** argv, char** env);
+extern void syscall_timing_init();
 
 // init task => creates all other tasks an initialize the LwIP
 static int initd(void* arg)
@@ -425,10 +433,7 @@ static int initd(void* arg)
 	err = init_netifs();
 #endif /* NO_NET */
 
-	/* initialize gettimeofday */
-#ifndef DISABLE_SYS_GETTIMEOFDAY
-	gettimeofday_init();
-#endif /* DISABLE_SYS_GETTIMEOFDAY */
+	syscall_timing_init();
 
 	if(is_uhyve()) {
 		int i;

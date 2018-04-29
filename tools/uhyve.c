@@ -71,6 +71,7 @@
 #include "proxy.h"
 #include "uhyve-gdb.h"
 #include "uhyve-msr.h"
+#include "uhyve-profiler.h"
 
 #include "miniz.h"
 #include "mini_gzip.h"
@@ -175,12 +176,13 @@ static bool cap_vapic = false;
 static bool full_checkpoint = false;
 static uint32_t ncores = 1;
 static uint8_t* klog = NULL;
-static uint8_t* mboot = NULL;
+uint8_t* mboot = NULL;
 static uint64_t elf_entry;
 static pthread_t* vcpu_threads = NULL;
 static pthread_t net_thread;
 static int* vcpu_fds = NULL;
-static int kvm = -1, vmfd = -1, netfd = -1, efd = -1;
+static int kvm = -1, netfd = -1, efd = -1;
+int vmfd = -1;
 static uint32_t no_checkpoint = 0;
 static pthread_mutex_t kvm_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_barrier_t barrier;
@@ -189,9 +191,10 @@ static __thread int vcpufd = -1;
 static __thread uint32_t cpuid = 0;
 static sem_t net_sem;
 static bool uhyve_gdb_enabled = false;
+static bool uhyve_profiler_enabled = false;
 bool uhyve_seccomp_enabled = false;
-static char htux_bin[256];
-static char htux_kernel[256];
+char htux_bin[PATH_MAX+1];
+char htux_kernel[PATH_MAX+1];
 
 size_t guest_size = 0x20000000ULL;
 uint8_t* guest_mem = NULL;
@@ -322,7 +325,7 @@ static int load_kernel(uint8_t* mem, const char* path)
 		int fd, ret;
 		int output_file_size = 5*1024*1024;
 
-		printf("COMPRESSED\n");
+		printf("Compressed kernel detected, uncompressing...\n");
 		
 		fd = open(path, O_RDONLY);
 		if(fd == -1) {
@@ -934,8 +937,11 @@ static int vcpu_loop(void)
 
 					if (cpuid)
 						pthread_exit((int*)(guest_mem+data));
-					else
+					else {
+						if(uhyve_profiler_enabled)
+							uhyve_profiler_exit();
 						exit(*(int*)(guest_mem+data));
+					}
 					break;
 				}
 
@@ -1170,6 +1176,17 @@ static int vcpu_loop(void)
 				break;
 				}
 
+			case UHYVE_PORT_READLINK: {
+				int ret;
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_readlink_t *arg = (uhyve_readlink_t *)(guest_mem + data);
+
+				ret = readlink(guest_mem+(size_t)arg->path,
+						guest_mem+(size_t)arg->buf, arg->bufsz);
+
+				arg->ret = (ret == -1) ? -errno : ret;
+				break;
+				}
 
 			default:
 				err(1, "KVM: unhandled KVM_EXIT_IO at port 0x%x, direction %d\n", run->io.port, run->io.direction);
@@ -1828,10 +1845,16 @@ int uhyve_loop(int argc, char **argv)
 {
 	const char* hermit_check = getenv("HERMIT_CHECKPOINT");
 	const char *hermit_debug = getenv("HERMIT_DEBUG");
+	const char *hermit_profile = getenv("HERMIT_PROFILE");
 	int ts = 0, i = 0;
 
 	if(hermit_debug && atoi(hermit_debug) != 0)
 		uhyve_gdb_enabled = true;
+
+	if(hermit_profile && atoi(hermit_profile) != 0) {
+		uhyve_profiler_enabled = true;
+		uhyve_profiler_init(atoi(hermit_profile));
+	}
 
 	/* argv[0] is 'proxy', do not count it */
 	uhyve_argc = argc-1;

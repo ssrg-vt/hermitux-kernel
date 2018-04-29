@@ -62,7 +62,7 @@ int sys_arch_prctl(int option, unsigned long *arg2) {
 			LOG_ERROR("arch_prctl: unknown option 0x%x\n", option);
 			return -EINVAL;
 	}
-	
+
 	return -ENOSYS;
 }
 

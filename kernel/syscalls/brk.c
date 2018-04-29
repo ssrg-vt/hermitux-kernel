@@ -14,7 +14,7 @@ ssize_t sys_brk(ssize_t val) {
 		return heap->end;
 
 	if (BUILTIN_EXPECT(!heap, 0)) {
-		LOG_ERROR("sys_sbrk: missing heap!\n");
+		LOG_ERROR("sys_brk: missing heap!\n");
 		do_abort();
 	}
 

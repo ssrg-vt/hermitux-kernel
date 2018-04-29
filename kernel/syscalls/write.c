@@ -3,7 +3,6 @@
 #include <asm/page.h>
 #include <hermit/spinlock.h>
 #include <hermit/logging.h>
-/* #include "write.h" */
 
 extern spinlock_irqsave_t lwip_lock;
 extern volatile int libc_sd;
@@ -27,16 +26,15 @@ typedef struct {
 
 ssize_t sys_write(int fd, const char* buf, size_t len)
 {
-	/* return _sys_write(fd, buf, len); */
-
-	if (BUILTIN_EXPECT(!buf, 0))
+	if (unlikely(!buf && len)) {
+		LOG_ERROR("write: buf is null and len is not\n");
 		return -1;
+	}
 
 #ifndef NO_NET
 	ssize_t i, ret;
 	int s;
 	sys_write_t sysargs = {__NR_write, fd, len};
-
 
 	// do we have an LwIP file descriptor?
 	if (fd & LWIP_FD_BIT) {
@@ -48,7 +46,7 @@ ssize_t sys_write(int fd, const char* buf, size_t len)
 	}
 #endif
 
-	if (is_uhyve()) {
+	if (likely(is_uhyve())) {
 		uhyve_write_t uhyve_args = {fd, (const char*) virt_to_phys((size_t) buf), len};
 
 		uhyve_send(UHYVE_PORT_WRITE, (unsigned)virt_to_phys((size_t)&uhyve_args));
@@ -96,7 +94,7 @@ ssize_t sys_write(int fd, const char* buf, size_t len)
 	return i;
 
 #endif /* NO_NET */
-	LOG_ERROR("Network disabled, cannot use qemu isle\n");
-/* 	return -ENOSYS; */
+	LOG_ERROR("write: network disabled, cannot use qemu isle\n");
+	return -ENOSYS;
 }
 

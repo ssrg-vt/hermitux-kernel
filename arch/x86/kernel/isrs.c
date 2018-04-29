@@ -243,7 +243,7 @@ void syscall_handler(struct state *s)
 	//LOG_INFO("DC: Returned from regular syscall. Return = %#llx\n", s->rax);
 }
 	
-     
+
 /* interrupt handler to save / restore the FPU context */
 static void arch_fpu_handler(struct state *s)
 {
