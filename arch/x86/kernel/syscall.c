@@ -124,7 +124,7 @@ void fast_syscall_handler(struct fast_sc_state *s)
 {
 	//uint64_t rax, rdi, rsi, rdx, r10, r8, r9, ret;
 	
-	/* LOG_INFO("DC: In fast_syscall_handler\n"); */
+        LOG_INFO("DC: In fast_syscall_handler, SC_NO: %d\n", s->rax);
 	/* LOG_INFO("DC: RAX = %#llx, RDI = %#llx, RSI = %#llx, RDX = %#llx, " */
 	/* 	 "R10 = %#llx, R8 = %#llx, R9 = %#llx\n", */
 	/* 	 s->rax, s->rdi, s->rsi, s->rdx, s->r10, s->r8, s->r9); */
@@ -172,94 +172,94 @@ uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx
 #ifndef DISABLE_SYS_READ
 	case 0:
 		/* read */
-		ret = sys_read(s->rdi, (char *)s->rsi, s->rdx);
+		ret = sys_read(rdi, (char *)rsi, rdx);
 		break;
 #endif /* DISABLE_SYS_READ */
 
 #ifndef DISABLE_SYS_WRITE
 	case 1:
 		/* write */
-		ret = sys_write(s->rdi, (char *)s->rsi, s->rdx);
+		ret = sys_write(rdi, (char *)rsi, rdx);
 		break;
 #endif /* DISABLE_SYS_WRITE */
 
 #ifndef DISABLE_SYS_OPEN
 	case 2:
 		/* open */
-		ret = sys_open((const char *)s->rdi, s->rsi, s->rdx);
+		ret = sys_open((const char *)rdi, rsi, rdx);
 		break;
 #endif /* DISABLE_SYS_OPEN */
 
 #ifndef DISABLE_SYS_CLOSE
 	case 3:
 		/* close */
-		ret = sys_close(s->rdi);
+		ret = sys_close(rdi);
 		break;
 #endif /* DISABLE_SYS_CLOSE */
 
 #ifndef DISABLE_SYS_STAT
 	case 4:
 		/* stat */
-		ret = sys_stat((const char *)s->rdi, (struct stat *)s->rsi);
+		ret = sys_stat((const char *)rdi, (struct stat *)rsi);
 		break;
 #endif /* DISABLE_SYS_STAT */
 
 #ifndef DISABLE_SYS_FSTAT
 	case 5:
 		/* fstat */
-		ret = sys_fstat(s->rdi, (struct stat *)s->rsi);
+		ret = sys_fstat(rdi, (struct stat *)rsi);
 		break;
 #endif /* DISABLE_SYS_FSTAT */
 
 #ifndef DISABLE_SYS_LSTAT
 	case 6:
 		/* lstat */
-		ret = sys_lstat((const char *)s->rdi, (struct stat *)s->rsi);
+		ret = sys_lstat((const char *)rdi, (struct stat *)rsi);
 		break;
 #endif /* DISABLE_SYS_LSTAT */
 
 #ifndef DISABLE_SYS_LSEEK
 	case 8:
 		/* lseek */
-		ret = sys_lseek(s->rdi, s->rsi, s->rdx);
+		ret = sys_lseek(rdi, rsi, rdx);
 		break;
 #endif /* DISABLE_SYS_LSEEK */
 
 #ifndef DISABLE_SYS_MMAP /* encompasses mmap and munmap */
 	case 9:
 		/* mmap */
-		ret = sys_mmap(s->rdi, s->rsi, s->rdx, s->r10, s->r8,
-			       s->r9);
+		ret = sys_mmap(rdi, rsi, rdx, r10, r8,
+			       r9);
 		break;
 #endif /* DISABLE_SYS_MMAP */
 
 #ifndef DISABLE_SYS_MPROTECT
 	case 10:
 		/* mprotect */
-		ret = sys_mprotect(s->rsi, s->rdi, s->rdx);
+		ret = sys_mprotect(rsi, rdi, rdx);
 		break;
 #endif /* DISABLE_SYS_MPROTECT */
 
 #ifndef DISABLE_SYS_MUNMAP
 	case 11:
 		/* munmap */
-		ret = sys_munmap(s->rdi, s->rsi);
+		ret = sys_munmap(rdi, rsi);
 		break;
 #endif /* DISABLE_SYS_MUNMAP */
 
 #ifndef DISABLE_SYS_BRK
 	case 12:
 		/* brk */
-		ret = sys_brk(s->rdi);
+		ret = sys_brk(rdi);
 		break;
 #endif /* DISABLE_SYS_BRK */
 
 #ifndef DISABLE_SYS_RT_SIGACTION
 	case 13:
 		/* rt_sigaction */
-		ret = sys_rt_sigaction(s->rdi, 
-				       (struct sigaction *)s->rsi,
-				       (struct sigaction *)s->rdx);
+		ret = sys_rt_sigaction(rdi, 
+				       (struct sigaction *)rsi,
+				       (struct sigaction *)rdx);
 		break;
 #endif /* DISABLE_SYS_RT_SIGACTION */
 
@@ -274,30 +274,30 @@ uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx
 #ifndef DISABLE_SYS_IOCTL
 	case 16:
 		/* ioctl */
-		ret = sys_ioctl(s->rdi, s->rsi, s->rdx);
+		ret = sys_ioctl(rdi, rsi, rdx);
 		break;
 #endif /* DISABLE_SYS_IOCTL */
 
 #ifndef DISABLE_SYS_READV
 	case 19:
 		/* readv */
-		ret = sys_readv(s->rdi, (const struct iovec *)s->rsi,
-				s->rdx);
+		ret = sys_readv(rdi, (const struct iovec *)rsi,
+				rdx);
 		break;
 #endif /* DISABLE_SYS_READV */
 
 #ifndef DISABLE_SYS_WRITEV
 	case 20:
 		/* writev */
-		ret = sys_writev(s->rdi, (const struct iovec *)s->rsi,
-				 s->rdx);
+		ret = sys_writev(rdi, (const struct iovec *)rsi,
+				 rdx);
 		break;
 #endif /* DISABLE_SYS_WRITEV */
 
 #ifndef DISABLE_SYS_ACCESS
 	case 21:
 		/* access */
-		ret = sys_access((const char *)s->rdi, s->rsi);
+		ret = sys_access((const char *)rdi, rsi);
 		break;
 #endif /* DISABLE_SYS_ACCESS */
 
@@ -311,15 +311,15 @@ uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx
 #ifndef DISABLE_SYS_MADVISE
 	case 28:
 		/* madvise */
-		ret = sys_madvise(s->rdi, s->rsi, s->rdx);
+		ret = sys_madvise(rdi, rsi, rdx);
 		break;
 #endif /* DISABLE_SYS_MADVISE */
 
 #ifndef DISABLE_SYS_NANOSLEEP
 	case 35:
 		/* nanosleep */
-		ret = sys_nanosleep((struct timespec *)s->rdi, 
-				    (struct timespec *)s->rsi);
+		ret = sys_nanosleep((struct timespec *)rdi, 
+				    (struct timespec *)rsi);
 #endif /* DISABLE_SYS_NANOSLEEP */
 
 #ifndef DISABLE_SYS_GETPID
@@ -332,7 +332,7 @@ uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx
 #ifndef DISABLE_SYS_SOCKET
 	case 41:
 		/* socket */
-		ret = sys_socket(s->rdi, s->rsi, s->rdx);
+		ret = sys_socket(rdi, rsi, rdx);
 		break;
 #endif /* DISABLE_SYS_SOCKET */
 
@@ -340,7 +340,7 @@ uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx
 #ifndef DISABLE_SYS_CONNECT
 	case 42:
 		/* connect */
-		ret = lwip_connect(s->rdi, (const struct sockaddr*) s->rsi, s->rdx);
+		ret = lwip_connect(rdi, (const struct sockaddr*) rsi, rdx);
 		break;
 #endif
 #endif /* NO_NET */
@@ -349,7 +349,7 @@ uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx
 #ifndef DISABLE_SYS_ACCEPT
 	case 43:
 		/* accept */
-		ret = lwip_accept(s->rdi, (struct sockaddr *) s->rsi, (unsigned int *)s->rdx);
+		ret = lwip_accept(rdi, (struct sockaddr *) rsi, (unsigned int *)rdx);
 		break;
 #endif /* DISABLE_SYS_ACCEPT */
 #endif /* NO_NET */
@@ -358,7 +358,7 @@ uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx
 #ifndef DISABLE_SYS_RECVFROM
 	case 45:
 		/* recvfrom */
-		ret = lwip_recvfrom(s->rdi, (void *)s->rsi, s->rdx, s->r10, (struct sockaddr *)s->r8, (unsigned int *)s->r9);
+		ret = lwip_recvfrom(rdi, (void *)rsi, rdx, r10, (struct sockaddr *)r8, (unsigned int *)r9);
 		break;
 #endif /* DISABLE_SYS_RECVFROM */
 #endif /* NO_NET */
@@ -367,7 +367,7 @@ uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx
 #ifndef DISABLE_SYS_SHUTDOWN
 	case 48:
 		/* shutdown */
-		ret = lwip_shutdown(s->rdi, s->rsi);
+		ret = lwip_shutdown(rdi, rsi);
 		break;
 #endif /* DISABLE_SYS_SHUTDOWN */
 #endif /* NO_NET */
@@ -376,7 +376,7 @@ uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx
 #ifndef DISABLE_SYS_BIND
 	case 49:
 		/* bind */
-		ret = sys_bind(s->rdi, (struct sockaddr *)s->rsi, s->rdx);
+		ret = sys_bind(rdi, (struct sockaddr *)rsi, rdx);
 		break;
 #endif /* DISABLE_SYS_BIND */
 #endif /* NO_NET */
@@ -385,7 +385,7 @@ uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx
 #ifndef DISABLE_SYS_LISTEN
 	case 50:
 		/* lsiten */
-		ret = lwip_listen(s->rdi, s->rsi);
+		ret = lwip_listen(rdi, rsi);
 		break;
 #endif
 #endif /* NO_NET */
@@ -394,7 +394,7 @@ uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx
 #ifndef DISABLE_SYS_GETSOCKNAME
 	case 51:
 		/* getsockname */
-		ret = lwip_getsockname(s->rdi, (struct sockaddr *)s->rsi, (unsigned int *)s->rdx);
+		ret = lwip_getsockname(rdi, (struct sockaddr *)rsi, (unsigned int *)rdx);
 		break;
 #endif
 #endif /* NO_NET */
@@ -402,21 +402,21 @@ uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx
 #ifndef DISABLE_SYS_SETSOCKOPT
 	case 54:
 		/* setsockopt */
-		ret = sys_setsockopt(s->rdi, s->rsi, s->rdx, (char *)s->r10, s->r8);
+		ret = sys_setsockopt(rdi, rsi, rdx, (char *)r10, r8);
 		break;
 #endif /* DISABLE_SYS_SETSOCKOPT */
 
 #ifndef DISABLE_SYS_CLONE
 	case 56:
 		/* clone */
-		ret = sys_clone(s->rdi, (void *)s->rsi, (int *)s->rdx, (int *)s->r10, (void *)s->r8, (void *)s->r9);
+		ret = sys_clone(rdi, (void *)rsi, (int *)rdx, (int *)r10, (void *)r8, (void *)r9);
 		break;
 #endif /* DISABLE_SYS_CLONE */
 
 #ifndef DISABLE_SYS_EXIT
 	case 60:
 		/* exit */
-		sys_exit(s->rdi);
+		sys_exit(rdi);
 		LOG_ERROR("Should not reach here after exit ... \n");
 		break;
 #endif /* DISABLE_SYS_EXIT */
@@ -424,71 +424,71 @@ uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx
 #ifndef DISABLE_SYS_UNAME
 	case 63:
 		/* uname */
-		ret = sys_uname((void *)s->rdi);
+		ret = sys_uname((void *)rdi);
 		break;
 #endif /* DISABLE_SYS_UNAME */
 
 #ifndef DISABLE_SYS_FCNTL
 	case 72:
 		/* fcntl */
-		ret = sys_fcntl(s->rdi, s->rsi, s->rdx);
+		ret = sys_fcntl(rdi, rsi, rdx);
 		break;
 #endif /* DISABLE_SYS_FCNTL */
 
 #ifndef DISABLE_SYS_GETCWD
 	case 79:
 		/*getcwd */
-		ret = sys_getcwd((char *)s->rdi, s->rsi);
+		ret = sys_getcwd((char *)rdi, rsi);
 		break;
 #endif /* DISABLE_SYS_GETCWD */
 
 #ifndef DISABLE_SYS_MKDIR
 	case 83:
 		/* mkdir */
-		ret = sys_mkdir((const char *)s->rdi, s->rsi);
+		ret = sys_mkdir((const char *)rdi, rsi);
 		break;
 #endif /* DISABLE_SYS_MKDIR */
 
 #ifndef DISABLE_SYS_RMDIR
 	case 84:
 		/* rmdir */
-		ret = sys_rmdir((const char *)s->rdi);
+		ret = sys_rmdir((const char *)rdi);
 		break;
 #endif /* DISABLE_SYS_RMDIR */
 
 #ifndef DISABLE_SYS_UNLINK
 	case 87:
 		/* unlink */
-		ret = sys_unlink((const char *)s->rdi);
+		ret = sys_unlink((const char *)rdi);
 		break;
 #endif /* DISABLE_SYS_UNLINK */
 
 #ifndef DISABLE_SYS_READLINK
 	case 89:
 		/* readlink */
-		ret = sys_readlink((char *)s->rdi, (char *)s->rsi, s->rdx);
+		ret = sys_readlink((char *)rdi, (char *)rsi, rdx);
 		break;
 #endif /* DISABLE_SYS_READLINK */
 
 #ifndef DISABLE_SYS_GETTIMEOFDAY
 	case 96:
 		/* gettimeofday */
-		ret = sys_gettimeofday((struct timeval *)s->rdi,
-				       (struct timezone *)s->rsi);
+		ret = sys_gettimeofday((struct timeval *)rdi,
+				       (struct timezone *)rsi);
 		break;
 #endif /* DISABLE_SYS_GETTIMEOFDAY */
 
 #ifndef DISABLE_SYS_GETRLIMIT
 	case 97:
 		/* getrlimit */
-		ret = sys_getrlimit(s->rdi, (struct rlimit *)s->rsi);
+		ret = sys_getrlimit(rdi, (struct rlimit *)rsi);
 		break;
 #endif /* DISABLE_SYS_GETRLIMIT */
 
 #ifndef DISABLE_SYS_SYSINFO
 	case 99:
 		/* sysinfo */
-		ret = sys_sysinfo((void *)s->rdi);
+		ret = sys_sysinfo((void *)rdi);
 		break;
 #endif
 
@@ -528,35 +528,35 @@ uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx
 #ifndef DISABLE_SYS_GETPRIORITY
 	case 140:
 		/* getpriority */
-		ret = sys_getpriority(s->rdi, s->rsi);
+		ret = sys_getpriority(rdi, rsi);
 		break;
 #endif /* DISABLE_SYS_GETPRIORITY */
 
 #ifndef DISABLE_SYS_SETPRIORITY
 	case 141:
 		/* setpriority */
-		ret = sys_setpriority(s->rdi, s->rsi, s->rdx);
+		ret = sys_setpriority(rdi, rsi, rdx);
 		break;
 #endif
 
 #ifndef DISABLE_SYS_ARCH_PRCTL
 	case 158:
 		/* arch_prctl */
-		ret = sys_arch_prctl(s->rdi, (unsigned long *)s->rsi, s);
+		ret = sys_arch_prctl(rdi, (unsigned long *)rsi);
 		break;
 #endif /* DISABLE_SYS_ARCH_PRCTL */
 
 #ifndef DISABLE_SYS_SETRLIMIT
 	case 160:
 		/* setrlimit */
-		ret = sys_setrlimit(s->rdi, (void *)s->rsi);
+		ret = sys_setrlimit(rdi, (void *)rsi);
 		break;
 #endif
 
 #ifndef DISABLE_SYS_SETHOSTNAME
 	case 170:
 		/* sethostname */
-		ret = sys_sethostname((char *)s->rdi, s->rsi);
+		ret = sys_sethostname((char *)rdi, rsi);
 #endif
 
 #ifndef DISABLE_SYS_GETTID
@@ -569,33 +569,33 @@ uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx
 #ifndef DISABLE_SYS_TKILL
 	case 200:
 		/* tkill */
-		ret = sys_tkill(s->rdi, s->rsi);
+		ret = sys_tkill(rdi, rsi);
 		break;
 #endif /* DISABLE_SYS_TKILL */
 
 #ifndef DISABLE_SYS_TIME
 	case 201:
 		/* time */
-		ret = sys_time((long int *)s->rdi);
+		ret = sys_time((long int *)rdi);
 		break;
 #endif /* DISABLE_SYS_TIME */
 
 #ifndef DISABLE_SYS_FUTEX
 	case 202:
 		/* futex */
-		ret = sys_futex((int *)s->rdi, s->rsi, s->rdx, (const struct timespec *)s->r10, (int *)s->r9, s->r8);
+		ret = sys_futex((int *)rdi, rsi, rdx, (const struct timespec *)r10, (int *)r9, r8);
 		break;
 #endif /* DISABLE_SYS_FUXTEX */
 
 #ifndef DISABLE_SYS_SCHED_SETAFFINITY
 	case 203:
-		ret = sys_sched_setaffinity(s->rdi, s->rsi, (long unsigned int *)s->rdx);
+		ret = sys_sched_setaffinity(rdi, rsi, (long unsigned int *)rdx);
 		break;
 #endif /* DISABLE_SYS_SCHED_SETAFFINITY */
 
 #ifndef DISABLE_SYS_SCHED_GETAFFINITY
 	case 204:
-		ret = sys_sched_getaffinity(s->rdi, s->rsi, (long unsigned int *)s->rdx);
+		ret = sys_sched_getaffinity(rdi, rsi, (long unsigned int *)rdx);
 		break;
 #endif /* DISABLE_SYS_SCHED_GETAFFINITY */
 
@@ -603,41 +603,41 @@ uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx
 	case 218:
 		/* set_tid_address */
 		/* TODO */
-		ret = s->rdi;
+		ret = rdi;
 		break;
 #endif /* DISABLE_SYS_SET_TID_ADDRESS */
 
 #ifndef DISABLE_SYS_CLOCK_GETTIME
 	case 228:
 		/* clock_gettime */
-		ret = sys_clock_gettime(s->rdi, (struct timespec *)s->rsi);
+		ret = sys_clock_gettime(rdi, (struct timespec *)rsi);
 		break;
 #endif /* DISABLE_SYS_CLOCK_GETTIME */
 
 #ifndef DISABLE_SYS_CLOCK_GETRES
 	case 229:
 		/* clock_getres */
-		ret = sys_clock_getres(s->rdi, (struct timespec *)s->rsi);
+		ret = sys_clock_getres(rdi, (struct timespec *)rsi);
 		break;
 #endif
 
 #ifndef DISABLE_SYS_TGKILL
 	case 234:
 		/* tgkill */
-		ret = sys_tgkill(s->rdi, s->rsi, s->rdx);
+		ret = sys_tgkill(rdi, rsi, rdx);
 		break;
 #endif /* DISABLE_SYS_TGKILL */
 
 #ifndef DISABLE_SYS_OPENAT
 	case 257:
-		ret = sys_openat(s->rdi, (const char *)s->rsi, s->rdx, s->r10);
+		ret = sys_openat(rdi, (const char *)rsi, rdx, r10);
 		break;
 #endif /* DISABLE_SYS_OPENAT */
 
 #ifndef DISABLE_SYS_EXIT_GROUP
 	case 231:
 		/* exit_group */
-		sys_exit_group(s->rdi);
+		sys_exit_group(rdi);
 		LOG_ERROR("Should not reach here after exit_group ... \n");
 		break;
 #endif /* DISABLE_SYS_EXIT_GROUP */
@@ -645,22 +645,22 @@ uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx
 #ifndef DISABLE_SYS_SET_ROBUST_LIST
 	case 273:
 		/* set_robust_list */
-		ret = sys_set_robust_list((void *)s->rdi, s->rsi);
+		ret = sys_set_robust_list((void *)rdi, rsi);
 		break;
 #endif /* DISABLE_SYS_SET_ROBUST_LIST */
 
 #ifndef DISABLE_SYS_GET_ROBUST_LIST
 	case 274:
 		/* get_robust_list */
-		ret = sys_get_robust_list(s->rdi, (void *)s->rsi, (size_t *)s->rdx);
+		ret = sys_get_robust_list(rdi, (void *)rsi, (size_t *)rdx);
 		break;
 #endif /* DISABLE_SYS_GET_ROBUST_LIST */
 
 #ifndef DISABLE_SYS_PRLIMIT64
 	case 302:
 		/* prlimit64 */
-		ret = sys_prlimit64(s->rdi, s->rsi, (struct rlimit *)s->rdx,
-				    (struct rlimit *)s->r10);
+		ret = sys_prlimit64(rdi, rsi, (struct rlimit *)rdx,
+				    (struct rlimit *)r10);
 		break;
 #endif
 
