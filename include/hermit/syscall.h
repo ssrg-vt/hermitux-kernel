@@ -169,6 +169,7 @@ int sys_clock_getres(clockid_t id, struct timespec *tp);
 int sys_sethostname(char *name, size_t len);
 int sys_setrlimit(int resource, const struct rlimit *rlim);
 int sys_tkill(int tid, int sig);
+int sys_gettid(void);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;

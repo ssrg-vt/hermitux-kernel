@@ -62,6 +62,7 @@
 #include <linux/const.h>
 #include <linux/kvm.h>
 #include <asm/mman.h>
+#include <sys/syscall.h>
 
 #include "uhyve.h"
 #include "uhyve-cpu.h"
@@ -326,7 +327,7 @@ static int load_kernel(uint8_t* mem, const char* path)
 		int output_file_size = 5*1024*1024;
 
 		printf("Compressed kernel detected, uncompressing...\n");
-		
+
 		fd = open(path, O_RDONLY);
 		if(fd == -1) {
 			fprintf(stderr, "open %s: %s\n", path, strerror(errno));
@@ -353,7 +354,7 @@ static int load_kernel(uint8_t* mem, const char* path)
 			fprintf(stderr, "error init uncompressing %s\n", path);
 			close(fd); goto out;
 		}
-		
+
 		mini_gz_unpack(&gz, compr_out, 5*1024*1024);
 	}
 
@@ -980,13 +981,13 @@ static int vcpu_loop(void)
 				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
 				uhyve_unlink_t *uhyve_unlink = (uhyve_unlink_t *) (guest_mem+data);
 
-				uhyve_unlink->ret = 
+				uhyve_unlink->ret =
 				ret = unlink((const char *)guest_mem+(size_t)uhyve_unlink->pathname);
 				if(ret == -1)
 					uhyve_unlink->ret = -errno;
 				else
 					uhyve_unlink->ret = ret;
-					break;	
+					break;
 				}
 
 			case UHYVE_PORT_MKDIR: {
@@ -999,7 +1000,7 @@ static int vcpu_loop(void)
 					break;
 
 			}
-								   
+
 			case UHYVE_PORT_RMDIR: {
 				int ret;
 				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
@@ -1014,7 +1015,7 @@ static int vcpu_loop(void)
 				int ret;
 				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
 				uhyve_fstat_t *uhyve_fstat = (uhyve_fstat_t *) (guest_mem+data);
-				
+
 				ret = fstat(uhyve_fstat->fd, (struct stat *)(guest_mem+(size_t)uhyve_fstat->st));
 
 				uhyve_fstat->ret = (ret == -1) ? -errno : ret;
@@ -1024,7 +1025,7 @@ static int vcpu_loop(void)
 			case UHYVE_PORT_GETCWD: {
 				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
 				uhyve_getcwd_t *uhyve_getcwd = (uhyve_getcwd_t *) (guest_mem+data);
-				
+
 				getcwd((char *)(guest_mem+(size_t)uhyve_getcwd->buf), uhyve_getcwd->size);
 				break;
 			}
@@ -1033,11 +1034,20 @@ static int vcpu_loop(void)
 					unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
 					uhyve_fcntl_t *uhyve_fcntl = (uhyve_fcntl_t *) (guest_mem+data);
 
-					uhyve_fcntl->ret = fcntl(uhyve_fcntl-> fd, 
+					uhyve_fcntl->ret = fcntl(uhyve_fcntl-> fd,
 							uhyve_fcntl->cmd, uhyve_fcntl->arg);
 					break;
 			}
 
+			case UHYVE_PORT_GETDENTS: {
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_getdents_t *arg = (uhyve_getdents_t *)(guest_mem+data);
+
+				arg->ret = syscall(SYS_getdents, arg->fd,
+						guest_mem + (size_t)arg->dirp, arg->count);
+				break;
+
+			}
 			case UHYVE_PORT_CLOSE: {
 				int ret;
 				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));

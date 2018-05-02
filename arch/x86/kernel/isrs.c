@@ -348,7 +348,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_RT_SIGACTION
 		case 13:
 			/* rt_sigaction */
-			s->rax = sys_rt_sigaction(s->rdi, 
+			s->rax = sys_rt_sigaction(s->rdi,
 					(struct sigaction *)s->rsi,
 					(struct sigaction *)s->rdx);
 			break;
@@ -409,7 +409,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_NANOSLEEP
 		case 35:
 			/* nanosleep */
-			s->rax = sys_nanosleep((struct timespec *)s->rdi, 
+			s->rax = sys_nanosleep((struct timespec *)s->rdi,
 					(struct timespec *)s->rsi);
 #endif /* DISABLE_SYS_NANOSLEEP */
 
@@ -653,7 +653,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_GETTID
 			case 186:
 				/* gettid */
-				s->rax = sys_getpid();
+				s->rax = sys_gettid();
 				break;
 #endif /* DISABLE_SYS_GETTID */
 
