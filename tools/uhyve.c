@@ -1039,15 +1039,6 @@ static int vcpu_loop(void)
 					break;
 			}
 
-			case UHYVE_PORT_GETDENTS: {
-				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
-				uhyve_getdents_t *arg = (uhyve_getdents_t *)(guest_mem+data);
-
-				arg->ret = syscall(SYS_getdents, arg->fd,
-						guest_mem + (size_t)arg->dirp, arg->count);
-				break;
-
-			}
 			case UHYVE_PORT_CLOSE: {
 				int ret;
 				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
