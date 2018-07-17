@@ -22,6 +22,10 @@ int sys_open(const char* name, int flags, int mode)
 		return -EINVAL;
 	}
 
+#ifdef USE_MINIFS
+	return minifs_open(name, flags, mode);
+#endif
+
 	if (likely(is_uhyve())) {
 		uhyve_open_t uhyve_open = {(const char*)virt_to_phys((size_t)name), flags, mode, -1};
 

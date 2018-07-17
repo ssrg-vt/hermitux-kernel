@@ -23,6 +23,11 @@ typedef struct {
 
 int sys_close(int fd)
 {
+
+#ifdef USE_MINIFS
+	return minifs_close(fd);
+#endif
+
 	if (likely(is_uhyve())) {
 		uhyve_close_t uhyve_close = {fd, -1};
 

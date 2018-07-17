@@ -41,6 +41,7 @@
 #endif /* NO_IRCCE */
 
 #include <hermit/logging.h>
+#include <hermit/minifs.h>
 #include <asm/irq.h>
 #include <asm/page.h>
 #include <asm/uart.h>
@@ -692,6 +693,13 @@ int hermit_main(void)
 
 	print_status();
 	//vma_dump();
+
+#ifdef USE_MINIFS
+	if(minifs_init()) {
+		LOG_ERROR("Cannot initialize minifs\n");
+		sys_exit(-1);
+	}
+#endif
 
 	create_kernel_task_on_core(NULL, initd, NULL, NORMAL_PRIO, boot_processor);
 

@@ -32,6 +32,10 @@ ssize_t sys_read(int fd, char* buf, size_t len)
 		return -EINVAL;
 	}
 
+#ifdef USE_MINIFS
+	return minifs_read(fd, buf, len);
+#endif
+
 #ifndef NO_NET
 	ssize_t j, ret;
 	int s;

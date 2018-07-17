@@ -31,6 +31,10 @@ ssize_t sys_write(int fd, const char* buf, size_t len)
 		return -1;
 	}
 
+#ifdef USE_MINIFS
+	return minifs_write(fd, buf, len);
+#endif
+
 #ifndef NO_NET
 	ssize_t i, ret;
 	int s;

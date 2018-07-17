@@ -26,6 +26,11 @@ typedef struct {
 
 off_t sys_lseek(int fd, off_t offset, int whence)
 {
+
+#ifdef USE_MINIFS
+	return minifs_lseek(fd, offset, whence);
+#endif
+
 	if (likely(is_uhyve())) {
 		uhyve_lseek_t uhyve_lseek = { fd, offset, whence };
 
