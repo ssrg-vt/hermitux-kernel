@@ -25,10 +25,11 @@ typedef struct {
 int sys_close(int fd)
 {
 
-	if(minifs_enabled)
-		return minifs_close(fd);
-
 	if (likely(is_uhyve())) {
+
+		if(minifs_enabled)
+			return minifs_close(fd);
+
 		uhyve_close_t uhyve_close = {fd, -1};
 
 		uhyve_send(UHYVE_PORT_CLOSE, (unsigned)virt_to_phys((size_t) &uhyve_close));

@@ -28,10 +28,11 @@ typedef struct {
 off_t sys_lseek(int fd, off_t offset, int whence)
 {
 
-	if(minifs_enabled)
-		return minifs_lseek(fd, offset, whence);
-
 	if (likely(is_uhyve())) {
+
+		if(minifs_enabled)
+			return minifs_lseek(fd, offset, whence);
+
 		uhyve_lseek_t uhyve_lseek = { fd, offset, whence };
 
 		outportl(UHYVE_PORT_LSEEK, (unsigned)virt_to_phys((size_t) &uhyve_lseek));

@@ -32,9 +32,6 @@ ssize_t sys_write(int fd, const char* buf, size_t len)
 		return -1;
 	}
 
-	if(minifs_enabled)
-		return minifs_write(fd, buf, len);
-
 #ifndef NO_NET
 	ssize_t i, ret;
 	int s;
@@ -51,6 +48,10 @@ ssize_t sys_write(int fd, const char* buf, size_t len)
 #endif
 
 	if (likely(is_uhyve())) {
+
+		if(minifs_enabled)
+			return minifs_write(fd, buf, len);
+
 		uhyve_write_t uhyve_args = {fd, (const char*) virt_to_phys((size_t) buf), len};
 
 		uhyve_send(UHYVE_PORT_WRITE, (unsigned)virt_to_phys((size_t)&uhyve_args));

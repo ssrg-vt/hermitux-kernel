@@ -23,10 +23,11 @@ int sys_open(const char* name, int flags, int mode)
 		return -EINVAL;
 	}
 
-	if(minifs_enabled)
-		return minifs_open(name, flags, mode);
-
 	if (likely(is_uhyve())) {
+
+		if(minifs_enabled)
+			return minifs_open(name, flags, mode);
+
 		uhyve_open_t uhyve_open = {(const char*)virt_to_phys((size_t)name), flags, mode, -1};
 
 		uhyve_send(UHYVE_PORT_OPEN, (unsigned)virt_to_phys((size_t) &uhyve_open));

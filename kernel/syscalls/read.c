@@ -33,9 +33,6 @@ ssize_t sys_read(int fd, char* buf, size_t len)
 		return -EINVAL;
 	}
 
-	if(minifs_enabled)
-		return minifs_read(fd, buf, len);
-
 #ifndef NO_NET
 	ssize_t j, ret;
 	int s;
@@ -52,6 +49,10 @@ ssize_t sys_read(int fd, char* buf, size_t len)
 #endif
 
 	if (likely(is_uhyve())) {
+
+		if(minifs_enabled)
+			return minifs_read(fd, buf, len);
+
 		uhyve_read_t uhyve_args = {fd, (char*) virt_to_phys((size_t) buf), len, -1};
 
 		uhyve_send(UHYVE_PORT_READ, (unsigned)virt_to_phys((size_t)&uhyve_args));
