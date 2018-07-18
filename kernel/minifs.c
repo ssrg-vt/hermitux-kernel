@@ -87,8 +87,12 @@ int minifs_open(const char *pathname, int flags, mode_t mode) {
 			if(minifs_creat(pathname, mode))
 				return -ENOMEM;
 			f = minifs_find_file(pathname);
+			if(!f) {
+				LOG_ERROR("Cannot find file %s after its creation\n", pathname);
+				__builtin_trap();
+			}
 		} else
-			return -EINVAL;
+			return -ENOENT;
 	}
 
 	/* Create a file descriptor (dont use fds 0/1/2 as they are stdout, etc.) */
@@ -113,7 +117,7 @@ int minifs_creat(const char *pathname, mode_t mode) {
 
 	for(i=0; i<MAX_FILES; i++) {
 		if(files[i].name == NULL) {
-			files[i].name = kmalloc(strlen(pathname + 1));
+			files[i].name = kmalloc(strlen(pathname) + 1);
 			strcpy(files[i].name, pathname);
 			files[i].size = 0;
 			files[i].is_directory = 0;
@@ -164,8 +168,8 @@ int minifs_read(int fd, void *buf, size_t count) {
 int minifs_write(int fd, const void *buf, size_t count) {
 	file *f = fds[fd].f;
 
-	LOG_INFO("minifs_write %d for %d bytes: %s (offset %d)\n", fd, count, buf,
-			fds[fd].offset);
+	LOG_INFO("minifs_write %d for %d bytes: %s (offset %d)\n", fd, count,
+			(count < 10) ? buf : "(...)" , fds[fd].offset);
 
 	uint64_t new_size = fds[fd].offset + count;
 	if(f->size < new_size) {
