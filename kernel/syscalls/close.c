@@ -3,6 +3,7 @@
 #include <asm/uhyve.h>
 #include <asm/page.h>
 #include <hermit/logging.h>
+#include <hermit/minifs.h>
 
 extern spinlock_irqsave_t lwip_lock;
 extern volatile int libc_sd;
@@ -24,9 +25,8 @@ typedef struct {
 int sys_close(int fd)
 {
 
-#ifdef USE_MINIFS
-	return minifs_close(fd);
-#endif
+	if(minifs_enabled)
+		return minifs_close(fd);
 
 	if (likely(is_uhyve())) {
 		uhyve_close_t uhyve_close = {fd, -1};

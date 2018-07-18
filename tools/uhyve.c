@@ -481,6 +481,12 @@ static int load_kernel(uint8_t* mem, const char* path)
 		}
 		total_size += memsz; // total kernel size
 		*((uint64_t*) (mem+paddr-GUEST_OFFSET + 0x38)) = total_size;
+
+		/* Enable minifs or not */
+		char *str = getenv("HERMIT_MINIFS");
+		if(str && atoi(str))
+			*((uint8_t*) (mem+paddr-GUEST_OFFSET + 0xE1)) = (uint8_t)1;
+
 	}
 
 out:

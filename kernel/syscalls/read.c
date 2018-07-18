@@ -3,6 +3,7 @@
 #include <asm/page.h>
 #include <hermit/spinlock.h>
 #include <hermit/logging.h>
+#include <hermit/minifs.h>
 
 extern spinlock_irqsave_t lwip_lock;
 extern volatile int libc_sd;
@@ -32,9 +33,8 @@ ssize_t sys_read(int fd, char* buf, size_t len)
 		return -EINVAL;
 	}
 
-#ifdef USE_MINIFS
-	return minifs_read(fd, buf, len);
-#endif
+	if(minifs_enabled)
+		return minifs_read(fd, buf, len);
 
 #ifndef NO_NET
 	ssize_t j, ret;

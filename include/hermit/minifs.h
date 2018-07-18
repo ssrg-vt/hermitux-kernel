@@ -3,8 +3,7 @@
 
 #include <asm/stddef.h>
 
-/* Comment to disable minifs and use traditional fs redirection */
-#define USE_MINIFS
+extern char minifs_enabled;
 
 typedef unsigned int mode_t;
 

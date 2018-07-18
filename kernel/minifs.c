@@ -30,6 +30,10 @@ file *files = NULL;
 fd *fds = NULL;
 
 int minifs_init(void) {
+
+	LOG_INFO("Init minifs with support for %lld files and %lld fds\n",
+			MAX_FILES, MAX_FDS);
+
 	files = kmalloc(MAX_FILES * sizeof(file));
 	if(!files)
 		return -ENOMEM;
@@ -139,6 +143,8 @@ int minifs_unlink(const char *pathname) {
 }
 
 int minifs_close(int fd) {
+	LOG_INFO("minifs close %d\n", fd);
+
 	fds[fd].f = NULL;
 	fds[fd].offset = 0;
 	return 0;
@@ -184,7 +190,7 @@ uint64_t minifs_lseek(int fd, uint64_t offset, int whence) {
 	switch(whence) {
 		case SEEK_SET:
 			fds[fd].offset = offset;
-			return offset;
+			return fds[fd].offset;
 		case SEEK_CUR:
 			fds[fd].offset += offset;
 			return fds[fd].offset;

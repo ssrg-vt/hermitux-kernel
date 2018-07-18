@@ -3,6 +3,7 @@
 #include <asm/page.h>
 #include <hermit/spinlock.h>
 #include <hermit/logging.h>
+#include <hermit/minifs.h>
 
 extern spinlock_irqsave_t lwip_lock;
 extern volatile int libc_sd;
@@ -27,9 +28,8 @@ typedef struct {
 off_t sys_lseek(int fd, off_t offset, int whence)
 {
 
-#ifdef USE_MINIFS
-	return minifs_lseek(fd, offset, whence);
-#endif
+	if(minifs_enabled)
+		return minifs_lseek(fd, offset, whence);
 
 	if (likely(is_uhyve())) {
 		uhyve_lseek_t uhyve_lseek = { fd, offset, whence };

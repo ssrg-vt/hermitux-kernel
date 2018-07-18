@@ -1,6 +1,7 @@
 #include <hermit/syscall.h>
 #include <hermit/spinlock.h>
 #include <hermit/logging.h>
+#include <hermit/minifs.h>
 #include <asm/uhyve.h>
 
 extern spinlock_t readwritev_spinlock;
@@ -36,12 +37,16 @@ int sys_writev(int fd, const struct iovec *iov, unsigned long vlen) {
 			return -EINVAL;
 		}
 
-		uhyve_write_t args = {fd,
-			(const char *) virt_to_phys((size_t)(iov[i].iov_base)),
-			iov[i].iov_len};
+		if(minifs_enabled && fd > 2)
+			bytes_written = minifs_write(fd, iov[i].iov_base, iov[i].iov_len);
+		else {
+			uhyve_write_t args = {fd,
+				(const char *) virt_to_phys((size_t)(iov[i].iov_base)),
+				iov[i].iov_len};
 
-		uhyve_send(UHYVE_PORT_WRITE, (unsigned)virt_to_phys((size_t)&args));
-		bytes_written = args.len;
+			uhyve_send(UHYVE_PORT_WRITE, (unsigned)virt_to_phys((size_t)&args));
+			bytes_written = args.len;
+		}
 
 		if(bytes_written < 0)
 			goto out;

@@ -694,12 +694,10 @@ int hermit_main(void)
 	print_status();
 	//vma_dump();
 
-#ifdef USE_MINIFS
-	if(minifs_init()) {
+	if(minifs_enabled && minifs_init()) {
 		LOG_ERROR("Cannot initialize minifs\n");
 		sys_exit(-1);
 	}
-#endif
 
 	create_kernel_task_on_core(NULL, initd, NULL, NORMAL_PRIO, boot_processor);
 
