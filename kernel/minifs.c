@@ -201,3 +201,13 @@ uint64_t minifs_lseek(int fd, uint64_t offset, int whence) {
 	LOG_ERROR("minifs_lseek: unsupported whence %d\n", whence);
 	return -ENOSYS;
 }
+
+int minifs_mkdir(const char *pathname, mode_t mode) {
+	/* TODO */
+	return 0;
+}
+
+int minifs_rmdir(const char *pathname) {
+	/* TODO */
+	return 0;
+}
