@@ -2,6 +2,7 @@
 #include <hermit/logging.h>
 #include <asm/uhyve.h>
 #include <asm/page.h>
+#include <hermit/minifs.h>
 
 typedef struct {
 	const char *pathname;
@@ -10,6 +11,11 @@ typedef struct {
 } __attribute__((packed)) uhyve_access_t;
 
 int sys_access(const char *pathname, int mode) {
+
+	if(minifs_enabled) {
+		LOG_ERROR("access not supported by minifs\n");
+		return -ENOSYS;
+	}
 
 	if(unlikely(!pathname)) {
 		LOG_ERROR("access: pathname is null\n");
