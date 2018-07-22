@@ -223,7 +223,9 @@ int minifs_creat(const char *pathname, mode_t mode) {
 
 	for(i=0; i<MAX_FILES; i++) {
 		if(files[i].name == NULL) {
-			files[i].name =  kmalloc(strlen(pathname) + 1);
+			files[i].name = kmalloc(strlen(pathname) + 1);
+			if(!files[i].name)
+				return -ENOMEM;
 			strcpy(files[i].name, pathname);
 			files[i].size = 0;
 
@@ -297,6 +299,8 @@ int minifs_write(int fd, const void *buf, size_t count) {
 	if(f->size < new_size) {
 		/* need to increase the size of this file */
 		char *data = kmalloc(new_size);
+		if(!data)
+			return -ENOMEM;
 		memcpy(data, f->data, f->size);
 		kfree(f->data);
 		f->data = data;
