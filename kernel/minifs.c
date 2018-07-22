@@ -24,7 +24,6 @@ typedef struct s_file {
 	char *name;
 	uint64_t size;
 	char *data;
-	uint8_t is_directory;
 } file;
 
 typedef struct s_fd {
@@ -189,11 +188,6 @@ int minifs_open(const char *pathname, int flags, mode_t mode) {
 
 	file *f = minifs_find_file(pathname);
 
-	if(f && f->is_directory) {
-		LOG_ERROR("minifs_open: cannot open a directory\n");
-		return -EINVAL;
-	}
-
 	if(!f) {
 		if(flags & O_CREAT) {
 			if(minifs_creat(pathname, mode))
@@ -212,7 +206,6 @@ int minifs_open(const char *pathname, int flags, mode_t mode) {
 		if(fds[i].f == NULL) {
 			fds[i].f = f;
 			fds[i].offset = 0;
-//			LOG_INFO(" minifs_open returns fd %d\n", i);
 			return i;
 		}
 
@@ -233,7 +226,6 @@ int minifs_creat(const char *pathname, mode_t mode) {
 			files[i].name =  kmalloc(strlen(pathname) + 1);
 			strcpy(files[i].name, pathname);
 			files[i].size = 0;
-			files[i].is_directory = 0;
 
 			return 0;
 		}
