@@ -173,11 +173,11 @@ int minifs_init(void) {
 	return 0;
 }
 
-int mkdir(const char *pathname, mode_t mode) {
+int minifs_mkdir(const char *pathname, mode_t mode) {
 	return -ENOSYS;
 }
 
-int rmdir(const char *pathname) {
+int minifs_rmdir(const char *pathname) {
 	return -ENOSYS;
 }
 
@@ -232,7 +232,6 @@ int minifs_creat(const char *pathname, mode_t mode) {
 			return 0;
 		}
 	}
-
 
 	LOG_ERROR("minifs_creat: max number of files reached\n");
 	DIE();
