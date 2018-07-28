@@ -173,14 +173,6 @@ int minifs_init(void) {
 	return 0;
 }
 
-int minifs_mkdir(const char *pathname, mode_t mode) {
-	return -ENOSYS;
-}
-
-int minifs_rmdir(const char *pathname) {
-	return -ENOSYS;
-}
-
 /* Optimization avenue: this scales linearly with the number of opened files */
 int minifs_open(const char *pathname, int flags, mode_t mode) {
 
@@ -340,10 +332,10 @@ uint64_t minifs_lseek(int fd, uint64_t offset, int whence) {
 
 int minifs_mkdir(const char *pathname, mode_t mode) {
 	/* TODO */
-	return 0;
+	return -ENOSYS;
 }
 
 int minifs_rmdir(const char *pathname) {
 	/* TODO */
-	return 0;
+	return -ENOSYS;
 }
