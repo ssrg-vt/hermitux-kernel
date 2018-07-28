@@ -10,8 +10,9 @@
 
 #define DIE()	asm("int $3")
 
-#define MAX_FILES		100000
-#define MAX_FDS			100000
+#define MAX_FILES			100000
+#define MAX_FDS				100000
+#define MAX_FILE_SIZE_PG	32
 
 #define O_RDONLY	    0000
 #define O_WRONLY	    0001
@@ -23,7 +24,7 @@
 typedef struct s_file {
 	char *name;
 	uint64_t size;
-	char *data;
+	char *pages[MAX_FILE_SIZE_PG]; //TODO this limits the max size to 64 * 4KB
 } file;
 
 typedef struct s_fd {
@@ -59,6 +60,17 @@ typedef struct {
         int ret;
 } __attribute__((packed)) uhyve_close_t;
 
+static void minifs_dump_file(file *f) {
+	LOG_INFO("minifs_dump_file %p\n", *f);
+	LOG_INFO("- name: %s\n", f->name);
+	LOG_INFO("- size: %d\n", f->size);
+	LOG_INFO(" - allocated pages:\n");
+	for(int i=0; i<MAX_FILE_SIZE_PG; i++)
+		if(f->pages[i])
+			LOG_INFO("  - [%d]: %p (%s)\n", i, f->pages[i], f->pages[i]);
+}
+
+
 /* Optimization avenue: this scales linearly with the maximum number of files */
 static inline file *minifs_find_file(const char *pathname) {
 
@@ -72,9 +84,9 @@ static inline file *minifs_find_file(const char *pathname) {
 }
 
 /* Used to initialize minifs with existing files */
+/* TODO edit this to reflect the per-page data */
 int minifs_load_from_host(const char *filename, const char *dest) {
 	int fd, guest_fd, ret = -1;
-	file *guest_file;
 	char *buffer;
 	size_t filesize;
 	uhyve_open_t arg_open = {(const char *)virt_to_phys((size_t)filename),
@@ -95,6 +107,13 @@ int minifs_load_from_host(const char *filename, const char *dest) {
 	filesize = arg_lseek.offset;
 	if(filesize == -1) {
 		LOG_ERROR("minifs_load_from_host: cannot lseek %s\n", filename);
+		goto out;
+	}
+
+	/* CHeck that the file is not too big */
+	if(filesize > MAX_FILE_SIZE_PG*PAGE_SIZE) {
+		LOG_ERROR("minifs_load_from_host: %s size is superior to the max file "
+				"size (%d)", filename, MAX_FILE_SIZE_PG*PAGE_SIZE);
 		goto out;
 	}
 
@@ -126,18 +145,17 @@ int minifs_load_from_host(const char *filename, const char *dest) {
 		goto out;
 	}
 
-	guest_file = minifs_find_file(dest);
-	if(!guest_file) {
-		LOG_ERROR("minifs_load_from_host: cannot find created guest file %s\n",
-				dest);
-		kfree(buffer);
-		goto out;
+	/* Write the file */
+	if(minifs_write(guest_fd, buffer, filesize) != filesize) {
+		LOG_ERROR("minifs_load_from_host: error while writing %s\n", filename);
+		goto out_close_guest;
 	}
 
-	guest_file->data = buffer;
-	guest_file->size = filesize;
-
 	ret = 0;
+
+out_close_guest:
+	minifs_close(guest_fd);
+
 out:
 	/* Close the host file */
 	arg_close.fd = fd;
@@ -156,8 +174,10 @@ int minifs_init(void) {
 	if(!files)
 		return -ENOMEM;
 
-	for(int i=0; i<MAX_FILES; i++)
+	for(int i=0; i<MAX_FILES; i++) {
 		files[i].name = NULL;
+		/* pages pointers will be zeroed at creat time */
+	}
 
 	fds = kmalloc(MAX_FDS * sizeof(fd));
 	if(!fds)
@@ -221,6 +241,9 @@ int minifs_creat(const char *pathname, mode_t mode) {
 			strcpy(files[i].name, pathname);
 			files[i].size = 0;
 
+			for(int j=0; j<MAX_FILE_SIZE_PG; j++)
+				files[i].pages[j] = 0;
+
 			return 0;
 		}
 	}
@@ -236,9 +259,17 @@ int minifs_unlink(const char *pathname) {
 
 	file *f = minifs_find_file(pathname);
 	if(f) {
+		/* Release each of the file data pages */
+		for(int i=0; i<MAX_FILE_SIZE_PG; i++)
+			if(f->pages[i]) {
+				kfree(f->pages[i]);
+				f->pages[i] = 0;
+			}
+
 		kfree(f->name);
-		kfree(f->data);
 		f->name = NULL;
+		f->pages[0] = 0;
+
 	} else {
 		LOG_ERROR("minifs_unlink: cannot find file %s\n", pathname);
 		return -ENOENT;
@@ -258,17 +289,52 @@ int minifs_close(int fd) {
 }
 
 int minifs_read(int fd, void *buf, size_t count) {
-
+	size_t cur_count;
+	size_t total_bytes_to_read = count;
 //	LOG_INFO("minifs_read %d for %d bytes (offset %d)\n", fd, count,
 //			fds[fd].offset);
+
+//	minifs_dump_file(fds[fd].f);
 
 	/* Don't read past the end of the file */
 	if(fds[fd].offset + count > fds[fd].f->size)
 		count = fds[fd].f->size - fds[fd].offset;
 
-	memcpy(buf, fds[fd].f->data + fds[fd].offset, count);
-	fds[fd].offset += count;
-	return count;
+	/* Iterate of each of the file's pages concerned by the read */
+	while(count) {
+		uint64_t offset = fds[fd].offset;
+
+		if(!(offset % PAGE_SIZE))
+			cur_count = (count < PAGE_SIZE) ? count : PAGE_SIZE;
+		else {
+			cur_count = (offset + count) > PAGE_CEIL(offset) ?
+				PAGE_CEIL(offset) - offset : count;
+		}
+
+		/* Check that we don't go over the max file size */
+		if(offset/PAGE_SIZE > MAX_FILE_SIZE_PG) {
+			LOG_ERROR("Trying to read past the max file size\n");
+			return total_bytes_to_read - count;
+		}
+
+		/* Check that the page is allocated */
+		if(!fds[fd].f->pages[offset/PAGE_SIZE]) {
+			LOG_ERROR("Trying to read a non existant page %d of file %s\n",
+				offset/PAGE_SIZE, fds[fd].f->name);
+			return total_bytes_to_read - count;
+		}
+
+		/* Perform the read */
+		memcpy(buf, fds[fd].f->pages[offset/PAGE_SIZE] + offset%PAGE_SIZE,
+				cur_count);
+
+		// Update buf, count and offset
+		buf += cur_count;
+		count -= cur_count;
+		fds[fd].offset += cur_count;
+	}
+
+	return total_bytes_to_read - count;
 }
 
 /* FIXME: This is actually the main bottleneck (in postmark at least): 80% of
@@ -278,31 +344,51 @@ int minifs_read(int fd, void *buf, size_t count) {
  * doing a full copy of the old content of the file
  * */
 int minifs_write(int fd, const void *buf, size_t count) {
-	file *f = fds[fd].f;
+	size_t cur_count;
+	size_t total_bytes_to_write = count;
 
 	if(!count)
 		return 0;
 
 //	LOG_INFO("minifs_write %d for %d bytes, offset %d (cur. size %d)\n", fd, count,
-//			fds[fd].offset, f->size);
+//			fds[fd].offset, fds[fd].f->size);
 
-	uint64_t new_size = fds[fd].offset + count;
-	if(f->size < new_size) {
-		/* need to increase the size of this file */
-		char *data = kmalloc(new_size);
-		if(!data)
-			return -ENOMEM;
-		memcpy(data, f->data, f->size);
-		kfree(f->data);
-		f->data = data;
-		f->size = new_size;
+	/* Iterate over the file's pages concerned by the read */
+	while(count) {
+		uint64_t offset = fds[fd].offset;
+
+		if(!(offset % PAGE_SIZE))
+			cur_count = (count < PAGE_SIZE) ? count : PAGE_SIZE;
+		else {
+			cur_count = (offset + count) > PAGE_CEIL(offset) ?
+				PAGE_CEIL(offset) - offset : count;
+		}
+
+		/* Check that we don't go over the max file size */
+		if(offset/PAGE_SIZE > MAX_FILE_SIZE_PG) {
+			LOG_ERROR("Trying to write past the max file size (%d)\n",
+					MAX_FILE_SIZE_PG*PAGE_SIZE);
+			DIE();
+			return total_bytes_to_write - count;
+		}
+
+		/* Allocate if the page does not exist */
+		if(!fds[fd].f->pages[offset/PAGE_SIZE])
+			fds[fd].f->pages[offset/PAGE_SIZE] = kmalloc(PAGE_SIZE);
+
+		/* Perform the write */
+		memcpy(fds[fd].f->pages[offset/PAGE_SIZE] +	offset%PAGE_SIZE,
+				buf, cur_count);
+
+		/* Update buf, offset, count and the file size */
+		buf += cur_count;
+		count -= cur_count;
+		fds[fd].offset += cur_count;
+		if(fds[fd].f->size < fds[fd].offset)
+			fds[fd].f->size = fds[fd].offset;
 	}
 
-	/* Perform the write */
-	memcpy(f->data + fds[fd].offset, buf, count);
-	fds[fd].offset += count;
-
-	return count;
+	return total_bytes_to_write - count;
 }
 
 uint64_t minifs_lseek(int fd, uint64_t offset, int whence) {
