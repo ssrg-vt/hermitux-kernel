@@ -60,6 +60,12 @@ typedef struct {
         int ret;
 } __attribute__((packed)) uhyve_close_t;
 
+#define MINIFS_LOAD_MAXPATH		128
+typedef struct {
+	char hostpath[MINIFS_LOAD_MAXPATH];
+	char guestpath[MINIFS_LOAD_MAXPATH];
+} __attribute__((packed)) uhyve_minifs_load_t;
+
 /* Optimization avenue: this scales linearly with the maximum number of files */
 static file *minifs_find_file(const char *pathname) {
 
@@ -153,6 +159,7 @@ out:
 }
 
 int minifs_init(void) {
+	int hostload_done = 0;
 
 	LOG_INFO("Init minifs with support for %lld files and %lld fds\n",
 			MAX_FILES, MAX_FDS);
@@ -175,9 +182,16 @@ int minifs_init(void) {
 	for(int i=0; i<MAX_FDS; i++)
 		fds[i].f = NULL;
 
-	/* FIXME this is spcific to postmark, make a correct interface to specify
-	 * which files to export */
-	minifs_load_from_host(".pmrc", ".pmrc");
+	/* Load files from the host if needed with help from uhyve */
+	while(!hostload_done) {
+		uhyve_minifs_load_t arg;
+		uhyve_send(UHYVE_PORT_MINIFS_LOAD,
+				(unsigned)virt_to_phys((size_t) &arg));
+		if(arg.hostpath[0] != '\0')
+			minifs_load_from_host(arg.hostpath, arg.guestpath);
+		else
+			hostload_done = 1;
+	}
 
 	return 0;
 }
