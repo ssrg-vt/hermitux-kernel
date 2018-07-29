@@ -24,7 +24,7 @@
 typedef struct s_file {
 	char *name;
 	uint64_t size;
-	char *pages[MAX_FILE_SIZE_PG]; //TODO this limits the max size to 64 * 4KB
+	char *pages[MAX_FILE_SIZE_PG]; //TODO this limits the max size
 } file;
 
 typedef struct s_fd {
