@@ -60,31 +60,20 @@ typedef struct {
         int ret;
 } __attribute__((packed)) uhyve_close_t;
 
-static void minifs_dump_file(file *f) {
-	LOG_INFO("minifs_dump_file %p\n", *f);
-	LOG_INFO("- name: %s\n", f->name);
-	LOG_INFO("- size: %d\n", f->size);
-	LOG_INFO(" - allocated pages:\n");
-	for(int i=0; i<MAX_FILE_SIZE_PG; i++)
-		if(f->pages[i])
-			LOG_INFO("  - [%d]: %p (%s)\n", i, f->pages[i], f->pages[i]);
-}
-
-
 /* Optimization avenue: this scales linearly with the maximum number of files */
-static inline file *minifs_find_file(const char *pathname) {
+static file *minifs_find_file(const char *pathname) {
 
 	//LOG_INFO("minifs_find_file %s\n", pathname);
 
 	for(int i=0; i<MAX_FILES; i++)
-		if(files[i].name && !strcmp(pathname, files[i].name))
+		if(files[i].name && !strcmp(pathname, files[i].name)) {
 			return &(files[i]);
+		}
 
 	return NULL;
 }
 
 /* Used to initialize minifs with existing files */
-/* TODO edit this to reflect the per-page data */
 int minifs_load_from_host(const char *filename, const char *dest) {
 	int fd, guest_fd, ret = -1;
 	char *buffer;
@@ -193,39 +182,6 @@ int minifs_init(void) {
 	return 0;
 }
 
-/* Optimization avenue: this scales linearly with the number of opened files */
-int minifs_open(const char *pathname, int flags, mode_t mode) {
-
-	//LOG_INFO("minifs_open %s\n", pathname);
-
-	file *f = minifs_find_file(pathname);
-
-	if(!f) {
-		if(flags & O_CREAT) {
-			if(minifs_creat(pathname, mode))
-				return -ENOMEM;
-			f = minifs_find_file(pathname);
-			if(!f) {
-				LOG_ERROR("Cannot find file %s after its creation\n", pathname);
-				DIE();
-			}
-		} else
-			return -ENOENT;
-	}
-
-	/* Create a file descriptor (dont use fds 0/1/2 as they are stdout, etc.) */
-	for(int i=3; i<MAX_FDS; i++)
-		if(fds[i].f == NULL) {
-			fds[i].f = f;
-			fds[i].offset = 0;
-			return i;
-		}
-
-	LOG_ERROR("minifs_open: max number of fds reached\n");
-	DIE();
-	return -ENOMEM;
-}
-
 /* Optimization avenue: this scales linearly with the number of existing
  * files */
 int minifs_creat(const char *pathname, mode_t mode) {
@@ -249,6 +205,64 @@ int minifs_creat(const char *pathname, mode_t mode) {
 	}
 
 	LOG_ERROR("minifs_creat: max number of files reached\n");
+	DIE();
+	return -ENOMEM;
+}
+
+/* This does the exact same thing as minifs_create, but it does not adhere to
+ * the creat interface: it returns a pointer to the created file object. This is
+ * called from minifs_open when the O_CREAT flag is used, and result in a
+ * optimization */
+static file * minifs_internal_creat(const char *pathname, mode_t mode) {
+	int i = 0;
+
+	//LOG_INFO("minifs_internal_create %s\n", pathname);
+
+	for(i=0; i<MAX_FILES; i++) {
+		if(files[i].name == NULL) {
+			files[i].name = kmalloc(strlen(pathname) + 1);
+			if(!files[i].name)
+				return NULL;
+			strcpy(files[i].name, pathname);
+			files[i].size = 0;
+
+			for(int j=0; j<MAX_FILE_SIZE_PG; j++)
+				files[i].pages[j] = 0;
+
+
+			return &(files[i]);
+		}
+	}
+
+	LOG_ERROR("minifs_creat: max number of files reached\n");
+	DIE();
+	return NULL;
+}
+
+/* Optimization avenue: this scales linearly with the number of opened files */
+int minifs_open(const char *pathname, int flags, mode_t mode) {
+	file *f;
+	//LOG_INFO("minifs_open %s\n", pathname);
+
+	if(flags & O_CREAT) {
+		f = minifs_internal_creat(pathname, mode);
+		if(!f)
+			return -ENOMEM;
+	 } else
+		 f = minifs_find_file(pathname);
+
+	if(!f)
+		return -ENOENT;
+
+	/* Create a file descriptor (dont use fds 0/1/2 as they are stdout, etc.) */
+	for(int i=3; i<MAX_FDS; i++)
+		if(fds[i].f == NULL) {
+			fds[i].f = f;
+			fds[i].offset = 0;
+			return i;
+		}
+
+	LOG_ERROR("minifs_open: max number of fds reached\n");
 	DIE();
 	return -ENOMEM;
 }
@@ -294,8 +308,6 @@ int minifs_read(int fd, void *buf, size_t count) {
 //	LOG_INFO("minifs_read %d for %d bytes (offset %d)\n", fd, count,
 //			fds[fd].offset);
 
-//	minifs_dump_file(fds[fd].f);
-
 	/* Don't read past the end of the file */
 	if(fds[fd].offset + count > fds[fd].f->size)
 		count = fds[fd].f->size - fds[fd].offset;
@@ -337,12 +349,6 @@ int minifs_read(int fd, void *buf, size_t count) {
 	return total_bytes_to_read - count;
 }
 
-/* FIXME: This is actually the main bottleneck (in postmark at least): 80% of
- * the benchmark time is spent in here. On the other end the overhead of
- * find_file is negligible
- * Optimization avenue: if this modifies the size of the file, we are currently
- * doing a full copy of the old content of the file
- * */
 int minifs_write(int fd, const void *buf, size_t count) {
 	size_t cur_count;
 	size_t total_bytes_to_write = count;
