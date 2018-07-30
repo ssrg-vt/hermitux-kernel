@@ -72,9 +72,8 @@ static file *minifs_find_file(const char *pathname) {
 	//LOG_INFO("minifs_find_file %s\n", pathname);
 
 	for(int i=0; i<MAX_FILES; i++)
-		if(files[i].name && !strcmp(pathname, files[i].name)) {
+		if(files[i].name && !strcmp(pathname, files[i].name))
 			return &(files[i]);
-		}
 
 	return NULL;
 }
