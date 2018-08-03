@@ -37,6 +37,7 @@
 #define AT_NULL				0
 #define AT_RANDOM			25
 #define AT_SYSINFO			32
+#define AT_SYSINFO_EHDR		33
 #define AT_BASE				7
 
 typedef unsigned long long size_t;
@@ -60,7 +61,7 @@ int main(int argc, char** argv)
 	envc = 0;
 	for (char **env = environ; *env; ++env) envc++;
 
-	/* We need to push the element on the stack in the inverse order they will 
+	/* We need to push the element on the stack in the inverse order they will
 	 * be read by the C library (i.e. argc in the end) */
 
 	/* auxv */
@@ -68,6 +69,7 @@ int main(int argc, char** argv)
 	push_auxv(AT_RANDOM, 0x400000);
 	push_auxv(AT_BASE, 0x0);
 	push_auxv(AT_SYSINFO, 0x0);
+	push_auxv(AT_SYSINFO_EHDR, 0x0);
 
 	/*envp */
 	/* Note that this will push NULL to the stack first, which is expected */
