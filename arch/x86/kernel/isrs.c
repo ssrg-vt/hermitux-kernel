@@ -399,6 +399,13 @@ void syscall_handler(struct state *s)
 			break;
 #endif /* DISABLE_SYS_SCHED_YIELD */
 
+#ifndef DISABLE_SYS_MINCORE
+		case 27:
+			/* mincore */
+			s->rax = sys_mincore(s->rdi, s->rsi, (unsigned char *)s->rdx);
+			break;
+#endif
+
 #ifndef DISABLE_SYS_MADVISE
 		case 28:
 			/* madvise */
@@ -615,6 +622,12 @@ void syscall_handler(struct state *s)
 			s->rax = sys_getppid();
 			break;
 #endif /* DISABLE_SYS_GETPPID */
+
+#ifndef DISABLE_SYS_SIGALTSTACK
+		case 131:
+			s->rax = sys_sigaltstack((const stack_t *)s->rdi, (stack_t *)s->rsi);
+			break;
+#endif
 
 #ifndef DISABLE_SYS_GETPRIORITY
 		case 140:
