@@ -94,6 +94,7 @@ macro(select_system_calls)
 
   split_csv_file(supported_sc_nos sc_file_names sc_disable_macros)
 
+  set(num_supported 0)
   # For each required system call, search for it in supported_sc_nos.
   foreach(reqsc ${required_syscalls})
     list(FIND supported_sc_nos ${reqsc} sc_index)
@@ -102,12 +103,14 @@ macro(select_system_calls)
       continue()
     endif()
 
+    MATH(EXPR num_supported "${num_supported} + 1")
+
     # Add syscall source file.
     list(GET sc_file_names ${sc_index} fname)
     add_kernel_module_sources("syscalls" "${CMAKE_CURRENT_LIST_DIR}/../kernel/syscalls/${fname}")
-
   endforeach(reqsc)
 
+  message(STATUS "${num_supported} system calls are being included in HermiTux image")
 
   # For each macro set its value depending on whether the corresponding syscall is required or not.
   list(LENGTH sc_disable_macros len)
@@ -127,5 +130,4 @@ macro(select_system_calls)
   configure_file(${HEADER_IP_FILE} ${HEADER_OP_FILE})
 endmacro(select_system_calls)
 
-#message("EXEC = ${EXEC}")
 select_system_calls()

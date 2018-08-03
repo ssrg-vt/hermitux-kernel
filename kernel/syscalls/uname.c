@@ -1,5 +1,6 @@
 #include <hermit/syscall.h>
 #include <hermit/logging.h>
+#include <string.h>
 
 extern char hermitux_hostname[];
 extern size_t hermitux_hostname_len;
