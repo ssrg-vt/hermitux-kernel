@@ -7,6 +7,7 @@
 #include <hermit/errno.h>
 #include <hermit/logging.h>
 #include <asm/uhyve.h>
+#include <asm/atomic.h>
 
 #define DIE()	asm("int $3")
 
@@ -200,6 +201,67 @@ int devrandom_read(int fd, void *buf, uint64_t len) {
 	return len;
 }
 
+
+#define CPUINFO_SIZE_PG	2
+char cpuinfo_buffer[PAGE_SIZE*CPUINFO_SIZE_PG];
+extern atomic_int32_t possible_cpus;
+
+int cpuinfo_read(int fd, void *buf, uint64_t len) {
+	size_t offset = fds[fd].offset;
+	uint32_t freq = get_cpu_frequency();
+
+	cpuinfo_buffer[0] = '\0';
+	for(int i=0; i<atomic_int32_read(&possible_cpus); i++) {
+		ksprintf(cpuinfo_buffer, "%sprocessor:\t%d\n", cpuinfo_buffer, i);
+		ksprintf(cpuinfo_buffer, "%scpu_MHz:\t%u\n", cpuinfo_buffer, freq);
+	}
+
+	if(offset > strlen(cpuinfo_buffer))
+		return 0;
+
+	if(offset + len > strlen(cpuinfo_buffer))
+		len = strlen(cpuinfo_buffer)-offset;
+
+	memcpy(buf, cpuinfo_buffer+offset, len);
+	fds[fd].offset += len;
+	return len;
+}
+
+int cpuinfo_write(int fd, const void *buf, uint64_t len) {
+	return len;
+}
+
+#define MEMINFO_SIZE_PG	1
+char meminfo_buffer[PAGE_SIZE*MEMINFO_SIZE_PG];
+extern atomic_int64_t total_allocated_pages;
+extern atomic_int64_t total_available_pages;
+
+int meminfo_read(int fd, void *buf, uint64_t len) {
+	size_t offset = fds[fd].offset;
+	size_t total = atomic_int64_read(&total_available_pages) * PAGE_SIZE;
+	size_t free = total - atomic_int64_read(&total_allocated_pages) * PAGE_SIZE;
+
+	meminfo_buffer[0] = '\0';
+
+	ksprintf(meminfo_buffer, "%sMemTotal:\t%d\n", meminfo_buffer, total);
+	ksprintf(meminfo_buffer, "%sMemFree:\t%u\n", meminfo_buffer, free);
+
+	if(offset > strlen(meminfo_buffer))
+		return 0;
+
+	if(offset + len > strlen(meminfo_buffer))
+		len = strlen(meminfo_buffer)-offset;
+
+	memcpy(buf, meminfo_buffer+offset, len);
+	fds[fd].offset += len;
+	return len;
+}
+
+
+int meminfo_write(int fd, const void *buf, uint64_t len) {
+	return len;
+}
+
 int minifs_creat_custom(const char *pathname, mode_t mode, void *read,
 		void *write);
 
@@ -243,6 +305,8 @@ int minifs_init(void) {
 	minifs_creat_custom("/dev/zero", 0777, devzero_read, devzero_write);
 	minifs_creat_custom("/dev/random", 0777, devrandom_read, devrandom_write);
 	minifs_creat_custom("/dev/urandom", 0777, devrandom_read, devrandom_write);
+	minifs_creat_custom("/proc/cpuinfo", 0777, cpuinfo_read, cpuinfo_write);
+	minifs_creat_custom("/proc/meminfo", 0777, meminfo_read, meminfo_write);
 
 	return 0;
 }
