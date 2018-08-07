@@ -3,6 +3,7 @@
 #include <asm/uhyve.h>
 #include <asm/page.h>
 #include <hermit/stddef.h>
+#include <hermit/minifs.h>
 
 typedef struct {
 	char *path;
@@ -12,6 +13,11 @@ typedef struct {
 } __attribute__((packed)) uhyve_readlink_t;
 
 int sys_readlink(char *path, char *buf, int bufsiz) {
+
+	if(minifs_enabled) {
+		LOG_ERROR("readlink currently not supported with minifs\n");
+		return -ENOSYS;
+	}
 
 	if(unlikely(!path || !buf)) {
 		LOG_ERROR("readlink: path or buf is null\n");

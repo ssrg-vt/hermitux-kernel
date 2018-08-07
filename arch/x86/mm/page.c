@@ -343,6 +343,11 @@ slow_path:
 		size_t phyaddr, flags;
 		int ret;
 
+		if (check_pagetables(viraddr)) {
+			spinlock_irqsave_unlock(&page_lock);
+			return;
+		}
+
 		viraddr &= PAGE_MASK;
 
 		phyaddr = get_page();
@@ -370,6 +375,13 @@ slow_path:
 
 default_handler:
 	spinlock_irqsave_unlock(&page_lock);
+
+	/* Some programs assume vsyscall is present and will fall back on it if
+	 * they don't find the vdso. They do not check the AT_SYSINFO ELF auxiliary
+	 * vector that should indicate the absence of vsyscall, so we can emulate
+	 * it with this trick: */
+	if(s->rip == 0xffffffffff600000) { s->rip = (uint64_t)sys_gettimeofday;
+		return; }
 
 	LOG_ERROR("Page Fault Exception (%d) on core %d at cs:ip = %#x:%#lx, fs = %#lx, gs = %#lx, rflags 0x%lx, task = %u, addr = %#lx, error = %#x [ %s %s %s %s %s ]\n",
 		s->int_no, CORE_ID, s->cs, s->rip, s->fs, s->gs, s->rflags, task->id, viraddr, s->error,

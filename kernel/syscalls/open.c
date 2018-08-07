@@ -3,6 +3,7 @@
 #include <asm/uhyve.h>
 #include <asm/page.h>
 #include <hermit/logging.h>
+#include <hermit/minifs.h>
 
 extern spinlock_irqsave_t lwip_lock;
 extern volatile int libc_sd;
@@ -23,6 +24,10 @@ int sys_open(const char* name, int flags, int mode)
 	}
 
 	if (likely(is_uhyve())) {
+
+		if(minifs_enabled)
+			return minifs_open(name, flags, mode);
+
 		uhyve_open_t uhyve_open = {(const char*)virt_to_phys((size_t)name), flags, mode, -1};
 
 		uhyve_send(UHYVE_PORT_OPEN, (unsigned)virt_to_phys((size_t) &uhyve_open));

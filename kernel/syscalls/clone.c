@@ -30,7 +30,8 @@ int sys_clone(unsigned long clone_flags, void *stack, int *ptid, int *ctid, void
 	if(ret)
 		return ret;
 
-	*(unsigned int *)ctid = id;
+	if(ctid)
+		*(unsigned int *)ctid = id;
 
 	return id;
 }

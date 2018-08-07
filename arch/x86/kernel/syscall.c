@@ -308,6 +308,14 @@ uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx
 		break;
 #endif /* DISABLE_SYS_SCHED_YIELD */
 
+#ifndef DISABLE_SYS_MINCORE
+	case 27:
+		/* mincore */
+		ret = sys_mincore(s->rdi, s->rsi, (unsigned char *)s->rdx);
+		break;
+#endif
+
+
 #ifndef DISABLE_SYS_MADVISE
 	case 28:
 		/* madvise */
@@ -524,6 +532,12 @@ uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx
 		ret = sys_getppid();
 		break;
 #endif /* DISABLE_SYS_GETPPID */
+
+#ifndef DISABLE_SYS_SIGALTSTACK
+	case 131:
+		ret = sys_sigaltstack((const stack_t *)s->rdi, (stack_t *)s->rsi);
+		break;
+#endif
 
 #ifndef DISABLE_SYS_GETPRIORITY
 	case 140:

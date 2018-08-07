@@ -62,6 +62,7 @@
 #include <linux/const.h>
 #include <linux/kvm.h>
 #include <asm/mman.h>
+#include <sys/syscall.h>
 
 #include "uhyve.h"
 #include "uhyve-cpu.h"
@@ -326,7 +327,7 @@ static int load_kernel(uint8_t* mem, const char* path)
 		int output_file_size = 5*1024*1024;
 
 		printf("Compressed kernel detected, uncompressing...\n");
-		
+
 		fd = open(path, O_RDONLY);
 		if(fd == -1) {
 			fprintf(stderr, "open %s: %s\n", path, strerror(errno));
@@ -353,7 +354,7 @@ static int load_kernel(uint8_t* mem, const char* path)
 			fprintf(stderr, "error init uncompressing %s\n", path);
 			close(fd); goto out;
 		}
-		
+
 		mini_gz_unpack(&gz, compr_out, 5*1024*1024);
 	}
 
@@ -480,6 +481,12 @@ static int load_kernel(uint8_t* mem, const char* path)
 		}
 		total_size += memsz; // total kernel size
 		*((uint64_t*) (mem+paddr-GUEST_OFFSET + 0x38)) = total_size;
+
+		/* Enable minifs or not */
+		char *str = getenv("HERMIT_MINIFS");
+		if(str && atoi(str))
+			*((uint8_t*) (mem+paddr-GUEST_OFFSET + 0xE1)) = (uint8_t)1;
+
 	}
 
 out:
@@ -980,13 +987,13 @@ static int vcpu_loop(void)
 				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
 				uhyve_unlink_t *uhyve_unlink = (uhyve_unlink_t *) (guest_mem+data);
 
-				uhyve_unlink->ret = 
+				uhyve_unlink->ret =
 				ret = unlink((const char *)guest_mem+(size_t)uhyve_unlink->pathname);
 				if(ret == -1)
 					uhyve_unlink->ret = -errno;
 				else
 					uhyve_unlink->ret = ret;
-					break;	
+					break;
 				}
 
 			case UHYVE_PORT_MKDIR: {
@@ -999,7 +1006,7 @@ static int vcpu_loop(void)
 					break;
 
 			}
-								   
+
 			case UHYVE_PORT_RMDIR: {
 				int ret;
 				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
@@ -1014,7 +1021,7 @@ static int vcpu_loop(void)
 				int ret;
 				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
 				uhyve_fstat_t *uhyve_fstat = (uhyve_fstat_t *) (guest_mem+data);
-				
+
 				ret = fstat(uhyve_fstat->fd, (struct stat *)(guest_mem+(size_t)uhyve_fstat->st));
 
 				uhyve_fstat->ret = (ret == -1) ? -errno : ret;
@@ -1024,7 +1031,7 @@ static int vcpu_loop(void)
 			case UHYVE_PORT_GETCWD: {
 				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
 				uhyve_getcwd_t *uhyve_getcwd = (uhyve_getcwd_t *) (guest_mem+data);
-				
+
 				getcwd((char *)(guest_mem+(size_t)uhyve_getcwd->buf), uhyve_getcwd->size);
 				break;
 			}
@@ -1033,7 +1040,7 @@ static int vcpu_loop(void)
 					unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
 					uhyve_fcntl_t *uhyve_fcntl = (uhyve_fcntl_t *) (guest_mem+data);
 
-					uhyve_fcntl->ret = fcntl(uhyve_fcntl-> fd, 
+					uhyve_fcntl->ret = fcntl(uhyve_fcntl-> fd,
 							uhyve_fcntl->cmd, uhyve_fcntl->arg);
 					break;
 			}
@@ -1187,6 +1194,76 @@ static int vcpu_loop(void)
 				arg->ret = (ret == -1) ? -errno : ret;
 				break;
 				}
+
+			/* When using minifs, we can load some files from the host, in that
+			 * case the env. varian;e HERMIT_MINIFS_HOSTLOAD must be set with
+			 * a path to a 'listing' file that has one line per file to laod
+			 * from the host into the guest minifs, with the following format:
+			 * <source file on the host>;<target path on the guest> */
+			case UHYVE_PORT_MINIFS_LOAD: {
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_minifs_load_t *arg = (uhyve_minifs_load_t *)(guest_mem + data);
+				static FILE *minifs_fp = NULL;
+				size_t len, bytes_read = 0;
+				char *line = NULL;
+				char *filename = getenv("HERMIT_MINIFS_HOSTLOAD");
+
+				if(!minifs_fp) {
+					if(filename)
+						minifs_fp = fopen(filename, "r");
+
+					if(!minifs_fp) {
+						/* Could not open the listing ile, or no listing file
+						 * provided, we indicate to the guest that we're done */
+						arg->hostpath[0] = arg->guestpath[0] = '\0';
+						break;
+					}
+				}
+
+				/* Comments in this file are lines starting with '#' */
+				do
+					bytes_read = getline(&line, &len, minifs_fp);
+				while (line[0] == '#' && bytes_read != -1);
+
+				if(bytes_read == -1) {
+					/* End of file, we are done */
+					arg->hostpath[0] = arg->guestpath[0] = '\0';
+					fclose(minifs_fp);
+					break;
+				} else {
+					int guestpath_offset, i = 0;
+
+					/* Set the host path */
+					while(line[i] != ';') {
+						if(i >= MINIFS_LOAD_MAXPATH) {
+							fprintf(stderr, "minifs load from %s: % too long\n",
+									filename, "hostpath");
+							arg->hostpath[0] = arg->guestpath[0] = '\0';
+							break;
+						}
+
+						arg->hostpath[i] = line[i];
+						i++;
+					}
+
+					/* Set the guest path */
+					arg->hostpath[i++] = '\0';
+					guestpath_offset = i;
+					while(line[i] != '\n') {
+						if((i-guestpath_offset) >= MINIFS_LOAD_MAXPATH) {
+							fprintf(stderr, "minifs load from %s: % too long\n",
+									filename, "hostpath");
+							arg->hostpath[0] = arg->guestpath[0] = '\0';
+							break;
+						}
+
+						arg->guestpath[i-guestpath_offset] = line[i];
+						i++;
+					}
+				}
+
+				break;
+			}
 
 			default:
 				err(1, "KVM: unhandled KVM_EXIT_IO at port 0x%x, direction %d\n", run->io.port, run->io.direction);

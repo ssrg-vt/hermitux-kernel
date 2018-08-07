@@ -2,6 +2,7 @@
 #include <asm/uhyve.h>
 #include <asm/page.h>
 #include <hermit/logging.h>
+#include <hermit/minifs.h>
 
 typedef struct {
 	const char *pathname;
@@ -16,6 +17,10 @@ int sys_rmdir(const char *pathname) {
 	}
 
 	if(likely(is_uhyve())) {
+
+		if(minifs_enabled)
+			return minifs_rmdir(pathname);
+
 		uhyve_rmdir_t args = {(const char *)virt_to_phys((size_t)pathname), 0};
 		uhyve_send(UHYVE_PORT_RMDIR, (unsigned)virt_to_phys((size_t)&args));
 		return args.ret;

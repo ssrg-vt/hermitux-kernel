@@ -3,6 +3,7 @@
 #include <asm/uhyve.h>
 #include <asm/page.h>
 #include <hermit/logging.h>
+#include <hermit/minifs.h>
 
 extern spinlock_irqsave_t lwip_lock;
 extern volatile int libc_sd;
@@ -25,6 +26,10 @@ int sys_unlink(const char *pathname) {
 #endif /* NO_NET */
 
 	if(is_uhyve()) {
+
+		if(minifs_enabled)
+			return minifs_unlink(pathname);
+
 		uhyve_unlink_t uhyve_args = { (const char *) virt_to_phys((size_t) pathname), 0};
 		uhyve_send(UHYVE_PORT_UNLINK, (unsigned)virt_to_phys((size_t)&uhyve_args));
 		return uhyve_args.ret;

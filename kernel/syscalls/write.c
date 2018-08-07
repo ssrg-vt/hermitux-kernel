@@ -3,6 +3,7 @@
 #include <asm/page.h>
 #include <hermit/spinlock.h>
 #include <hermit/logging.h>
+#include <hermit/minifs.h>
 
 extern spinlock_irqsave_t lwip_lock;
 extern volatile int libc_sd;
@@ -47,6 +48,10 @@ ssize_t sys_write(int fd, const char* buf, size_t len)
 #endif
 
 	if (likely(is_uhyve())) {
+
+		if(minifs_enabled)
+			return minifs_write(fd, buf, len);
+
 		uhyve_write_t uhyve_args = {fd, (const char*) virt_to_phys((size_t) buf), len};
 
 		uhyve_send(UHYVE_PORT_WRITE, (unsigned)virt_to_phys((size_t)&uhyve_args));

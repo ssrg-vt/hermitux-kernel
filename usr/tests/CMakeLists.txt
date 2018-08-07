@@ -18,6 +18,7 @@ project(hermit_tests C CXX Fortran Go)
 
 add_executable(hermitux hermitux.c linker.ld)
 set_target_properties(hermitux PROPERTIES LINK_DEPENDS ${CMAKE_SOURCE_DIR}/linker.ld)
+set_target_properties(hermitux PROPERTIES LINK_DEPENDS ${LOCAL_PREFIX_ARCH_LIB_DIR}/libhermit.a)
 target_link_libraries(hermitux -Wl,-T,${CMAKE_SOURCE_DIR}/linker.ld)
 
 # add_executable(hermitux-light hermitux-light.c)

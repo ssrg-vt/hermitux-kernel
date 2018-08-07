@@ -3,6 +3,9 @@
 #include <asm/uhyve.h>
 #include <asm/page.h>
 
+extern uint8_t minifs_enabled;
+char *minifs_slash = "/";
+
 typedef struct {
 	char *buf;
 	size_t size;
@@ -17,6 +20,16 @@ int sys_getcwd(char *buf, size_t size) {
 	}
 
 	if(likely(is_uhyve())) {
+
+		if(minifs_enabled) {
+			if(strlen(minifs_slash) > size-1) {
+				LOG_ERROR("getcwd: size too small\n");
+				return -EINVAL;
+			}
+			strcpy(buf, minifs_slash);
+			return 0;
+		}
+
 		uhyve_getcwd_t uhyve_args = {(char *)virt_to_phys((size_t)buf), size, -1};
 		uhyve_send(UHYVE_PORT_GETCWD, (unsigned)virt_to_phys((size_t)&uhyve_args));
 		return uhyve_args.ret;

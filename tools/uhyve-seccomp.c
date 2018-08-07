@@ -25,7 +25,7 @@ void sigsys_handler(int signum, siginfo_t *siginfo, void *context) {
 
 static int sigsys_handler_install(void) {
 	struct sigaction sa;
- 	
+
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = SA_SIGINFO;
 	sa.sa_sigaction = &sigsys_handler;
@@ -87,6 +87,7 @@ int uhyve_seccomp_init(int vm_fd) {
 	}
 
 	ALLOW_RULE(read);
+	ALLOW_RULE(open);
 	ALLOW_RULE(write);
 	ALLOW_RULE(close);
 	ALLOW_RULE(openat);
@@ -95,6 +96,8 @@ int uhyve_seccomp_init(int vm_fd) {
 	ALLOW_RULE(mkdir);
 	ALLOW_RULE(rmdir);
 	ALLOW_RULE(getcwd);
+	ALLOW_RULE(access);
+	ALLOW_RULE(readlink);
 	ALLOW_RULE(unlink);
 
 	if(setup_vm_kvm_ioctl(vm_fd))
