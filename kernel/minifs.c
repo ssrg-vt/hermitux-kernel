@@ -25,6 +25,8 @@ typedef struct s_file {
 	char *name;
 	uint64_t size;
 	char *pages[MAX_FILE_SIZE_PG]; //TODO this limits the max size
+	int (*read)(int, void *, uint64_t); // custom read function
+	int (*write)(int, const void *, uint64_t); // custom write function
 } file;
 
 typedef struct s_fd {
@@ -157,6 +159,50 @@ out:
 	return ret;
 }
 
+int devnull_write(int fd, void *buf, uint64_t len) {
+	return len;
+}
+
+int devnull_read(int fd, void *buf, uint64_t len) {
+	return 0;
+}
+
+int devzero_write(int fd, void *buf, uint64_t len) {
+	return len;
+}
+
+int devzero_read(int fd, void *buf, uint64_t len) {
+	memcpy(buf, 0x0, len);
+	return len;
+}
+
+/* https://www.codeproject.com/Articles/25172/Simple-Random-Number-Generation */
+static uint32_t getrand(void) {
+	static uint32_t m_z, m_w;
+
+	m_z = 36969 * (m_z & 65535) + (m_z >> 16);
+	m_w = 18000 * (m_w & 65535) + (m_w >> 16);
+	return (m_z << 16) + m_w;
+}
+
+int devrandom_write(int fd, void *buf, uint64_t len) {
+	return len;
+}
+
+int devrandom_read(int fd, void *buf, uint64_t len) {
+	uint8_t ran;
+
+	for(int i=0; i<len; i++) {
+		ran = getrand();
+		memcpy(buf+i, &ran, 1);
+	}
+
+	return len;
+}
+
+int minifs_creat_custom(const char *pathname, mode_t mode, void *read,
+		void *write);
+
 int minifs_init(void) {
 	int hostload_done = 0;
 
@@ -192,6 +238,12 @@ int minifs_init(void) {
 			hostload_done = 1;
 	}
 
+	/* Create pseudo files t oemulate Linux interface */
+	minifs_creat_custom("/dev/null", 0777, devnull_read, devnull_write);
+	minifs_creat_custom("/dev/zero", 0777, devzero_read, devzero_write);
+	minifs_creat_custom("/dev/random", 0777, devrandom_read, devrandom_write);
+	minifs_creat_custom("/dev/urandom", 0777, devrandom_read, devrandom_write);
+
 	return 0;
 }
 
@@ -209,6 +261,8 @@ int minifs_creat(const char *pathname, mode_t mode) {
 				return -ENOMEM;
 			strcpy(files[i].name, pathname);
 			files[i].size = 0;
+			files[i].read = NULL;
+			files[i].write = NULL;
 
 			for(int j=0; j<MAX_FILE_SIZE_PG; j++)
 				files[i].pages[j] = 0;
@@ -222,6 +276,34 @@ int minifs_creat(const char *pathname, mode_t mode) {
 	return -ENOMEM;
 }
 
+/* Used to create pseudo fiels with custom RW functions */
+int minifs_creat_custom(const char *pathname, mode_t mode, void *read,
+		void *write) {
+	int i = 0;
+
+	//LOG_INFO("minifs_create_custom %s\n", pathname);
+
+	for(i=0; i<MAX_FILES; i++) {
+		if(files[i].name == NULL) {
+			files[i].name = kmalloc(strlen(pathname) + 1);
+			if(!files[i].name)
+				return -ENOMEM;
+			strcpy(files[i].name, pathname);
+			files[i].size = 0;
+			files[i].read = read;
+			files[i].write = write;
+
+			for(int j=0; j<MAX_FILE_SIZE_PG; j++)
+				files[i].pages[j] = 0;
+
+			return 0;
+		}
+	}
+
+	LOG_ERROR("minifs_creat: max number of files reached\n");
+	DIE();
+	return -ENOMEM;
+}
 /* This does the exact same thing as minifs_create, but it does not adhere to
  * the creat interface: it returns a pointer to the created file object. This is
  * called from minifs_open when the O_CREAT flag is used, and result in a
@@ -247,7 +329,7 @@ static file * minifs_internal_creat(const char *pathname, mode_t mode) {
 		}
 	}
 
-	LOG_ERROR("minifs_creat: max number of files reached\n");
+	LOG_ERROR("minifs_internal_creat: max number of files reached\n");
 	DIE();
 	return NULL;
 }
@@ -318,8 +400,12 @@ int minifs_close(int fd) {
 int minifs_read(int fd, void *buf, size_t count) {
 	size_t cur_count;
 	size_t total_bytes_to_read = count;
+
 //	LOG_INFO("minifs_read %d for %d bytes (offset %d)\n", fd, count,
 //			fds[fd].offset);
+
+	if(fds[fd].f->read)
+		return fds[fd].f->read(fd, buf, count);
 
 	/* Don't read past the end of the file */
 	if(fds[fd].offset + count > fds[fd].f->size)
@@ -366,11 +452,14 @@ int minifs_write(int fd, const void *buf, size_t count) {
 	size_t cur_count;
 	size_t total_bytes_to_write = count;
 
+//	LOG_INFO("minifs_write %d for %d bytes, offset %d (cur. size %d)\n", fd, count,
+//			fds[fd].offset, fds[fd].f->size);
 	if(!count)
 		return 0;
 
-//	LOG_INFO("minifs_write %d for %d bytes, offset %d (cur. size %d)\n", fd, count,
-//			fds[fd].offset, fds[fd].f->size);
+	/* Do we have a custom write function for this file */
+	if(fds[fd].f->write)
+		return fds[fd].f->write(fd, buf, count);
 
 	/* Iterate over the file's pages concerned by the read */
 	while(count) {
