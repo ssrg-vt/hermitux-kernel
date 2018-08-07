@@ -184,7 +184,7 @@ int sys_clock_getres(clockid_t id, struct timespec *tp);
 int sys_sethostname(char *name, size_t len);
 int sys_setrlimit(int resource, const struct rlimit *rlim);
 int sys_tkill(int tid, int sig);
-int sys_gettid(void);
+tid_t sys_gettid(void);
 int sys_mincore(unsigned long start, size_t len, unsigned char *vec);
 long sys_sigaltstack(const stack_t *ss, stack_t *oss);
 

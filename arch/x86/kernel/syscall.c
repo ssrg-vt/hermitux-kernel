@@ -311,7 +311,7 @@ uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx
 #ifndef DISABLE_SYS_MINCORE
 	case 27:
 		/* mincore */
-		ret = sys_mincore(s->rdi, s->rsi, (unsigned char *)s->rdx);
+		ret = sys_mincore(rdi, rsi, (unsigned char *)rdx);
 		break;
 #endif
 
@@ -535,7 +535,7 @@ uint64_t redirect_syscall(uint64_t rax, uint64_t rdi, uint64_t rsi, uint64_t rdx
 
 #ifndef DISABLE_SYS_SIGALTSTACK
 	case 131:
-		ret = sys_sigaltstack((const stack_t *)s->rdi, (stack_t *)s->rsi);
+		ret = sys_sigaltstack((const stack_t *)rdi, (stack_t *)rsi);
 		break;
 #endif
 

@@ -71,7 +71,7 @@ macro(select_system_calls)
   # Get all the syscalls being made by the executable.
   # The output of identify_syscalls is already in the CMake list format
   set(sc_id_cmd "${CMAKE_CURRENT_LIST_DIR}/../../syscall-identification/identify_syscalls")
-  execute_process(COMMAND ${sc_id_cmd} ${EXEC} WORKING_DIRECTORY
+  execute_process(COMMAND ${sc_id_cmd} ${EXEC} "cmake" WORKING_DIRECTORY
     ${CMAKE_CURRENT_LIST_DIR}/../build OUTPUT_VARIABLE required_syscalls RESULT_VARIABLE id_res)
 
   # Not all system calls could be identified. Add all files and return.
@@ -88,7 +88,7 @@ macro(select_system_calls)
 
   # Append certain system calls to the required list regardless, because they are
   # called elsewhere in the kernel
-  list(APPEND required_syscalls "39")
+  list(APPEND required_syscalls "39" "96" "231")
   list(REMOVE_DUPLICATES required_syscalls)
   list(SORT required_syscalls)
 
@@ -110,6 +110,10 @@ macro(select_system_calls)
     add_kernel_module_sources("syscalls" "${CMAKE_CURRENT_LIST_DIR}/../kernel/syscalls/${fname}")
   endforeach(reqsc)
 
+  # Some non-syscall files are being implemented in the syscalls directory.
+  add_kernel_module_sources("syscalls" "${CMAKE_CURRENT_LIST_DIR}/../kernel/syscalls/yield.c")
+  add_kernel_module_sources("syscalls" "${CMAKE_CURRENT_LIST_DIR}/../kernel/syscalls/gethostname.c")
+  
   message(STATUS "${num_supported} system calls are being included in HermiTux image")
 
   # For each macro set its value depending on whether the corresponding syscall is required or not.

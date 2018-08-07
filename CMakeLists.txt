@@ -191,7 +191,7 @@ build_external(arch_x86_loader ${HERMIT_ROOT}/arch/x86/loader "")
 # add_dependencies(hermit xray)
 
 ## Tests and benchmarks
-build_external(tests ${HERMIT_ROOT}/usr/tests hermit)
+# build_external(tests ${HERMIT_ROOT}/usr/tests hermit)
 # build_external(benchmarks ${HERMIT_ROOT}/usr/benchmarks hermit)
 # build_external(openmpbench ${HERMIT_ROOT}/usr/openmpbench hermit)
 
