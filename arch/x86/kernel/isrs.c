@@ -392,6 +392,13 @@ void syscall_handler(struct state *s)
 			break;
 #endif /* DISABLE_SYS_ACCESS */
 
+#ifndef DISABLE_SYS_SELECT
+		case 23:
+			/* select */
+			s->rax = sys_select(s->rdi, s->rsi, s->rdx, s->r10, s->r8, s->r9);
+			break;
+#endif
+
 #ifndef DISABLE_SYS_SCHED_YIELD
 		case 24:
 			/* sched_yield */
