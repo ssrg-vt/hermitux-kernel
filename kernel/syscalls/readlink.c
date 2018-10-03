@@ -15,7 +15,8 @@ typedef struct {
 int sys_readlink(char *path, char *buf, int bufsiz) {
 
 	if(minifs_enabled) {
-		LOG_ERROR("readlink currently not supported with minifs\n");
+		LOG_ERROR("readlink (%s) currently not supported with minifs\n",
+				path);
 		return -ENOSYS;
 	}
 

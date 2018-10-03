@@ -1036,15 +1036,6 @@ static int vcpu_loop(void)
 				break;
 			}
 
-			case UHYVE_PORT_FCNTL: {
-					unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
-					uhyve_fcntl_t *uhyve_fcntl = (uhyve_fcntl_t *) (guest_mem+data);
-
-					uhyve_fcntl->ret = fcntl(uhyve_fcntl-> fd,
-							uhyve_fcntl->cmd, uhyve_fcntl->arg);
-					break;
-			}
-
 			case UHYVE_PORT_CLOSE: {
 				int ret;
 				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));

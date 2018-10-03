@@ -72,7 +72,6 @@ extern uint64_t tux_size;
 #define UHYVE_PORT_LSEEK		0x504
 /* 0x505 to 0x508 are taken by uhyve network commands */
 #define UHYVE_PORT_UNLINK		0x509
-#define UHYVE_PORT_FCNTL		0x510
 #define UHYVE_PORT_CMDSIZE		0x511
 #define UHYVE_PORT_CMDVAL		0x512
 #define UHYVE_PORT_FSTAT		0x513

@@ -395,7 +395,8 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_SELECT
 		case 23:
 			/* select */
-			s->rax = sys_select(s->rdi, s->rsi, s->rdx, s->r10, s->r8, s->r9);
+			s->rax = sys_select(s->rdi, (void *)s->rsi, (void *)s->rdx,
+					(void *)s->r10, (void *)s->r8);
 			break;
 #endif
 
@@ -457,6 +458,15 @@ void syscall_handler(struct state *s)
 			s->rax = lwip_accept(s->rdi, (struct sockaddr *) s->rsi, (unsigned int *)s->rdx);
 			break;
 #endif /* DISABLE_SYS_ACCEPT */
+
+#ifndef DISABLE_SYS_SENDTO
+		case 44:
+			/* sendto */
+			s->rax = sys_sendto(s->rdi, (void *)s->rsi, s->rdx, s->r10,
+					(const struct sockaddr *)s->r8, s->r9);
+			break;
+#endif
+
 #endif /* NO_NET */
 
 #ifndef NO_NET
@@ -546,6 +556,12 @@ void syscall_handler(struct state *s)
 			s->rax = sys_getcwd((char *)s->rdi, s->rsi);
 			break;
 #endif /* DISABLE_SYS_GETCWD */
+
+#ifndef DISABLE_SYS_CHDIR
+		case 80:
+			s->rax = sys_chdir((const char *)s->rdi);
+			break;
+#endif
 
 #ifndef DISABLE_SYS_MKDIR
 		case 83:
@@ -653,7 +669,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_ARCH_PRCTL
 		case 158:
 			/* arch_prctl */
-			s->rax = sys_arch_prctl(s->rdi, (unsigned long *)s->rsi, s);
+			s->rax = sys_arch_prctl(s->rdi, (unsigned long *)s->rsi, (void *)s->rdx);
 			break;
 #endif /* DISABLE_SYS_ARCH_PRCTL */
 

@@ -30,7 +30,6 @@ typedef enum {
 	UHYVE_PORT_LSEEK		= 0x504,
 	/* 0x505 to 0x508 are taken by uhyve network commands */
 	UHYVE_PORT_UNLINK		= 0x509,
-	UHYVE_PORT_FCNTL		= 0x510,
 	UHYVE_PORT_CMDSIZE		= 0x511,
 	UHYVE_PORT_CMDVAL		= 0x512,
 	UHYVE_PORT_FSTAT		= 0x513,
