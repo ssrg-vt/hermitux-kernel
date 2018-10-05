@@ -30,6 +30,7 @@ typedef enum {
 	UHYVE_PORT_LSEEK		= 0x504,
 	/* 0x505 to 0x508 are taken by uhyve network commands */
 	UHYVE_PORT_UNLINK		= 0x509,
+	UHYVE_PORT_GETDENTS64	= 0x510,
 	UHYVE_PORT_CMDSIZE		= 0x511,
 	UHYVE_PORT_CMDVAL		= 0x512,
 	UHYVE_PORT_FSTAT		= 0x513,
@@ -152,5 +153,12 @@ typedef struct {
 	char hostpath[MINIFS_LOAD_MAXPATH];
 	char guestpath[MINIFS_LOAD_MAXPATH];
 } __attribute__((packed)) uhyve_minifs_load_t;
+
+typedef struct {
+	int fd;
+	struct linux_dirent64 *dirp;
+	unsigned int count;
+	int ret;
+} __attribute__((packed)) uhyve_getdeents64_t;
 
 #endif // UHYVE_SYSCALLS_H

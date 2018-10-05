@@ -114,6 +114,7 @@ struct sigaction;
 struct sockaddr;
 struct rlimit;
 struct sysinfo;
+struct linux_dirent64;
 typedef struct fd_set fd_set;
 typedef unsigned short umode_t;
 typedef uint32_t socklen_t;
@@ -188,6 +189,8 @@ int sys_shutdown(int socket, int how);
 int sys_listen(int s, int backlog);
 int sys_getsockname(int s, struct sockaddr *name, socklen_t *namelen);
 int sys_getpeername(int s, struct sockaddr *name, socklen_t *namelen);
+int sys_getdents64(unsigned int fd, struct linux_dirent64 *dirp,
+		unsigned int count);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;

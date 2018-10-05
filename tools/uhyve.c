@@ -1050,6 +1050,15 @@ static int vcpu_loop(void)
 				break;
 				}
 
+			case UHYVE_PORT_GETDENTS64: {
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_getdeents64_t* arg = (uhyve_getdeents64_t*) (guest_mem+data);
+
+				arg->ret = syscall(SYS_getdents64, arg->fd,
+						guest_mem+(size_t)arg->dirp, arg->count);
+				break;
+				}
+
 			case UHYVE_PORT_NETINFO: {
 					unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
 					uhyve_netinfo_t* uhyve_netinfo = (uhyve_netinfo_t*)(guest_mem+data);

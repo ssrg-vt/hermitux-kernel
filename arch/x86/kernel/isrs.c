@@ -734,6 +734,13 @@ void syscall_handler(struct state *s)
 				break;
 #endif /* DISABLE_SYS_SCHED_GETAFFINITY */
 
+#ifndef DISABLE_SYS_GETDENTS64
+			case 217:
+				/* getdents64 */
+				s->rax = sys_getdents64(s->rdi, (void *)s->rsi, s->rdx);
+				break;
+#endif
+
 #ifndef DISABLE_SYS_SET_TID_ADDRESS
 		case 218:
 			/* set_tid_address */
