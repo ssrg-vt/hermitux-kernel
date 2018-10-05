@@ -1,6 +1,7 @@
 #include <hermit/logging.h>
 #include <hermit/syscall.h>
 #include <asm/uhyve.h>
+#include <hermit/minifs.h>
 
 struct linux_dirent64 {
    uint64_t        d_ino;    /* 64-bit inode number */
