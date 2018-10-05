@@ -39,8 +39,6 @@ int sys_getdents64(unsigned int fd, struct linux_dirent64 *dirp,
 		count, -1};
 	uhyve_send(UHYVE_PORT_GETDENTS64, (unsigned)virt_to_phys((size_t)&arg));
 
-	LOG_INFO("getdents64 returned %d\n", arg.ret);
-
 	if(arg.ret < 0)
 		goto out;
 
