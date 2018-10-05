@@ -4,11 +4,12 @@
 #include <asm/uhyve.h>
 
 typedef struct {
+	int dirfd;
 	const char* name;
 	int flags;
 	int mode;
 	int ret;
-} __attribute__((packed)) uhyve_open_t;
+} __attribute__((packed)) uhyve_openat_t;
 
 int sys_openat(int dirfd, const char *pathname, int flags, int mode) {
 
@@ -17,17 +18,14 @@ int sys_openat(int dirfd, const char *pathname, int flags, int mode) {
 		return -EINVAL;
 	}
 
-	if(pathname[0] == '/' || pathname[0] == '\0') {
-		if (likely(is_uhyve())) {
-			uhyve_open_t uhyve_open = {(const char*)virt_to_phys((size_t)pathname),
-				flags, mode, -1};
+	if (likely(is_uhyve())) {
+		uhyve_openat_t arg = {dirfd,
+			(const char *)virt_to_phys((size_t)pathname), flags, mode, -1};
+		uhyve_send(UHYVE_PORT_OPENAT, virt_to_phys((size_t)&arg));
 
-			uhyve_send(UHYVE_PORT_OPEN,
-				(unsigned)virt_to_phys((size_t) &uhyve_open));
+		return arg.ret;
 
-			return uhyve_open.ret;
-		}
-
+	} else {
 		LOG_ERROR("openat: not supported with qemu isle\n");
 		return -ENOSYS;
 	}

@@ -1067,6 +1067,15 @@ static int vcpu_loop(void)
 				break;
 				}
 
+			case UHYVE_PORT_OPENAT: {
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_openat_t* arg = (uhyve_openat_t*) (guest_mem+data);
+
+				arg->ret = openat(arg->dirfd, guest_mem+(size_t)arg->name,
+						arg->flags,	arg->mode);
+				break;
+				}
+
 			case UHYVE_PORT_NETINFO: {
 					unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
 					uhyve_netinfo_t* uhyve_netinfo = (uhyve_netinfo_t*)(guest_mem+data);

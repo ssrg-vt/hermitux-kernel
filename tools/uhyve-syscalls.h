@@ -42,7 +42,8 @@ typedef enum {
 	UHYVE_PORT_FAULT   		= 0x519,
 	UHYVE_PORT_READLINK 	= 0x520,
 	UHYVE_PORT_MINIFS_LOAD 	= 0x521,
-	UHYVE_PORT_FCNTL		= 0x522
+	UHYVE_PORT_FCNTL		= 0x522,
+	UHYVE_PORT_OPENAT		= 0x523
 } uhyve_syscall_t;
 
 typedef struct {
@@ -161,4 +162,11 @@ typedef struct {
 	int ret;
 } __attribute__((packed)) uhyve_fcntl_t;
 
+typedef struct {
+	int dirfd;
+	const char* name;
+	int flags;
+	int mode;
+	int ret;
+} __attribute__((packed)) uhyve_openat_t;
 #endif // UHYVE_SYSCALLS_H
