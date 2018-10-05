@@ -180,6 +180,14 @@ int sys_select(int maxfdp1, fd_set *readset, fd_set *writeset,
 int sys_sendto(int s, const void *dataptr, size_t size, int flags,
 		const struct sockaddr *to, socklen_t tolen);
 int sys_chdir(const char *path);
+int sys_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
+int sys_accept(int s, struct sockaddr *addr, socklen_t *addrlen);
+int sys_recvfrom(int s, void *mem, size_t len, int flags,
+		struct sockaddr *from, socklen_t *fromlen);
+int sys_shutdown(int socket, int how);
+int sys_listen(int s, int backlog);
+int sys_getsockname(int s, struct sockaddr *name, socklen_t *namelen);
+int sys_getpeername(int s, struct sockaddr *name, socklen_t *namelen);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;
