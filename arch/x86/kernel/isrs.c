@@ -435,6 +435,13 @@ void syscall_handler(struct state *s)
 			break;
 #endif /* DISABLE_SYS_GETPID */
 
+#ifndef DISABLE_SYS_SENDFILE
+		case 40:
+			/* sendfile */
+			s->rax = sys_sendfile(s->rdi, s->rsi, s->rdx, s->r10);
+			break;
+#endif
+
 #ifndef DISABLE_SYS_SOCKET
 		case 41:
 			/* socket */

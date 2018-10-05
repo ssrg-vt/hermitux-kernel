@@ -191,6 +191,7 @@ int sys_getsockname(int s, struct sockaddr *name, socklen_t *namelen);
 int sys_getpeername(int s, struct sockaddr *name, socklen_t *namelen);
 int sys_getdents64(unsigned int fd, struct linux_dirent64 *dirp,
 		unsigned int count);
+size_t sys_sendfile(int out_fd, int in_fd, off_t *offset, size_t count);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;
