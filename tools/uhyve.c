@@ -1059,6 +1059,14 @@ static int vcpu_loop(void)
 				break;
 				}
 
+			case UHYVE_PORT_FCNTL: {
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_fcntl_t* arg = (uhyve_fcntl_t*) (guest_mem+data);
+
+				arg->ret = fcntl(arg->fd, arg->cmd, arg->arg);
+				break;
+				}
+
 			case UHYVE_PORT_NETINFO: {
 					unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
 					uhyve_netinfo_t* uhyve_netinfo = (uhyve_netinfo_t*)(guest_mem+data);
