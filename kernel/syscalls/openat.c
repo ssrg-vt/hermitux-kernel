@@ -17,7 +17,7 @@ int sys_openat(int dirfd, const char *pathname, int flags, int mode) {
 		return -EINVAL;
 	}
 
-	if(pathname[0] == '/') {
+	if(pathname[0] == '/' || pathname[0] == '\0') {
 		if (likely(is_uhyve())) {
 			uhyve_open_t uhyve_open = {(const char*)virt_to_phys((size_t)pathname),
 				flags, mode, -1};
@@ -32,6 +32,7 @@ int sys_openat(int dirfd, const char *pathname, int flags, int mode) {
 		return -ENOSYS;
 	}
 
-	LOG_ERROR("openat: only support absolute pathnames\n");
+	LOG_ERROR("openat: only support absolute pathnames (asked %s)\n",
+			pathname);
 	return -ENOSYS;
 }
