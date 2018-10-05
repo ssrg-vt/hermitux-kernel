@@ -15,6 +15,14 @@ typedef struct {
 int sys_writev(int fd, const struct iovec *iov, unsigned long vlen) {
 	int i, bytes_written, total_bytes_written;
 
+#ifndef NO_NET
+	// do we have an LwIP file descriptor?
+	if (fd & LWIP_FD_BIT) {
+		return -ENOSYS;
+	}
+
+#endif
+
 	if(unlikely(!iov)) {
 		LOG_ERROR("writev: iov is null\n");
 		return -EINVAL;

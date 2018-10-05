@@ -22,10 +22,23 @@ typedef struct {
         int ret;
 } __attribute__((packed)) uhyve_close_t;
 
+extern int hermit_close(int fd);
+
 int sys_close(int fd)
 {
 
 	if (likely(is_uhyve())) {
+
+#ifndef NO_NET
+		// do we have an LwIP file descriptor?
+		if (fd & LWIP_FD_BIT) {
+			int ret = hermit_close(fd);
+			if (ret < 0)
+				return -errno;
+
+			return ret;
+		}
+#endif
 
 		if(minifs_enabled)
 			return minifs_close(fd);

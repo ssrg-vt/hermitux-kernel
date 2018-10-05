@@ -1,7 +1,17 @@
 #include <hermit/syscall.h>
+#include <hermit/logging.h>
 #include <lwip/sockets.h>
 
-ssize_t sys_sendto(int sockfd, const void *buf, size_t len, int flags,
-		const struct sockaddr *dest_addr, socklen_t addrlen) {
-	return lwip_sendto(sockfd, buf, len, flags, dest_addr, addrlen);
+extern int hermit_sendto(int s, const void *dataptr, size_t size, int flags,
+		const struct sockaddr *to, socklen_t tolen);
+
+int sys_sendto(int s, const void *dataptr, size_t size, int flags,
+		const struct sockaddr *to, socklen_t tolen) {
+#ifndef NO_NET
+	return hermit_sendto(s, dataptr, size, flags, to, tolen);
+#else
+	LOG_ERROR("Network disabled, cannot process socket syscall!\n");
+	return -ENOSYS;
+#endif /* NO_NET */
+
 }

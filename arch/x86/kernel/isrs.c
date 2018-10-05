@@ -446,7 +446,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_CONNECT
 		case 42:
 			/* connect */
-			s->rax = lwip_connect(s->rdi, (const struct sockaddr*) s->rsi, s->rdx);
+			s->rax = sys_connect(s->rdi, (const struct sockaddr*) s->rsi, s->rdx);
 			break;
 #endif
 #endif /* NO_NET */
@@ -455,7 +455,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_ACCEPT
 		case 43:
 			/* accept */
-			s->rax = lwip_accept(s->rdi, (struct sockaddr *) s->rsi, (unsigned int *)s->rdx);
+			s->rax = sys_accept(s->rdi, (struct sockaddr *) s->rsi, (unsigned int *)s->rdx);
 			break;
 #endif /* DISABLE_SYS_ACCEPT */
 
@@ -473,7 +473,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_RECVFROM
 		case 45:
 			/* recvfrom */
-			s->rax = lwip_recvfrom(s->rdi, (void *)s->rsi, s->rdx, s->r10, (struct sockaddr *)s->r8, (unsigned int *)s->r9);
+			s->rax = sys_recvfrom(s->rdi, (void *)s->rsi, s->rdx, s->r10, (struct sockaddr *)s->r8, (unsigned int *)s->r9);
 			break;
 #endif /* DISABLE_SYS_RECVFROM */
 #endif /* NO_NET */
@@ -482,7 +482,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_SHUTDOWN
 		case 48:
 			/* shutdown */
-			s->rax = lwip_shutdown(s->rdi, s->rsi);
+			s->rax = sys_shutdown(s->rdi, s->rsi);
 			break;
 #endif /* DISABLE_SYS_SHUTDOWN */
 #endif /* NO_NET */
@@ -500,7 +500,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_LISTEN
 		case 50:
 			/* lsiten */
-			s->rax = lwip_listen(s->rdi, s->rsi);
+			s->rax = sys_listen(s->rdi, s->rsi);
 			break;
 #endif
 #endif /* NO_NET */
@@ -509,9 +509,17 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_GETSOCKNAME
 		case 51:
 			/* getsockname */
-			s->rax = lwip_getsockname(s->rdi, (struct sockaddr *)s->rsi, (unsigned int *)s->rdx);
+			s->rax = sys_getsockname(s->rdi, (struct sockaddr *)s->rsi, (unsigned int *)s->rdx);
 			break;
 #endif
+
+#ifndef DISABLE_SYS_GETPEERNAME
+		case 52:
+			/* getpeername */
+			s->rax = sys_getpeername(s->rdi, (void *)s->rsi, (void *)s->rdx);
+			break;
+#endif
+
 #endif /* NO_NET */
 
 #ifndef DISABLE_SYS_CLONE

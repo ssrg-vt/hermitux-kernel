@@ -2,6 +2,9 @@
 #include <lwip/sockets.h>
 #include <hermit/logging.h>
 
+extern int hermit_bind(int fd, struct sockaddr *addr, socklen_t addrlen);
+
+/* FIXME allow more generic bind, and on different ports */
 int sys_bind(int fd, struct sockaddr *addr, int addrlen) {
 #ifndef NO_NET
 	struct sockaddr_in sa_server;
@@ -14,7 +17,7 @@ int sys_bind(int fd, struct sockaddr *addr, int addrlen) {
 	sa_server.sin_addr = addr_local;
 
 	sa_server.sin_port = htons(8000);
-	return lwip_bind(fd, (struct sockaddr *) &sa_server, sizeof(sa_server));
+	return hermit_bind(fd, (struct sockaddr *) &sa_server, sizeof(sa_server));
 	//return bind(fd, addr, addrlen);
 #else
 	LOG_ERROR("Network disabled, cannot process bind syscall!\n");

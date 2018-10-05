@@ -137,7 +137,8 @@ int sys_rt_sigaction(int signum, struct sigaction *act,
 		struct sigaction *oldact);
 int sys_socket(int domain, int type, int protocol);
 int sys_bind(int fd, struct sockaddr *addr, int addrlen);
-int sys_setsockopt(int fd, int level, int optname, char *optval, int optlen);
+int sys_setsockopt(int fd, int level, int optname, char *optval,
+		socklen_t optlen);
 size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 		unsigned long flags, unsigned long fd, unsigned long off);
 int sys_mkdir(const char *pathname, umode_t mode);
@@ -176,8 +177,8 @@ int sys_mincore(unsigned long start, size_t len, unsigned char *vec);
 long sys_sigaltstack(const stack_t *ss, stack_t *oss);
 int sys_select(int maxfdp1, fd_set *readset, fd_set *writeset,
 		fd_set *exceptset, struct timeval *timeout);
-ssize_t sys_sendto(int sockfd, const void *buf, size_t len, int flags,
-		const struct sockaddr *dest_addr, socklen_t addrlen);
+int sys_sendto(int s, const void *dataptr, size_t size, int flags,
+		const struct sockaddr *to, socklen_t tolen);
 int sys_chdir(const char *path);
 
 struct ucontext;
