@@ -369,6 +369,20 @@ void syscall_handler(struct state *s)
 			break;
 #endif /* DISABLE_SYS_IOCTL */
 
+#ifndef DISABLE_SYS_PREAD64
+		case 17:
+			/* pread64 */
+			s->rax = sys_pread64(s->rdi, (void *)s->rsi, s->rdx, s->r10);
+			break;
+#endif
+
+#ifndef DISABLE_SYS_PWRITE64
+		case 18:
+			/* pwrite64 */
+			s->rax = sys_pwrite64(s->rdi, (void *)s->rsi, s->rdx, s->r10);
+			break;
+#endif
+
 #ifndef DISABLE_SYS_READV
 		case 19:
 			/* readv */
@@ -438,7 +452,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_SENDFILE
 		case 40:
 			/* sendfile */
-			s->rax = sys_sendfile(s->rdi, s->rsi, s->rdx, s->r10);
+			s->rax = sys_sendfile(s->rdi, s->rsi, (void *)s->rdx, s->r10);
 			break;
 #endif
 
