@@ -281,6 +281,9 @@ static void uhyve_atexit(void)
 {
 	uhyve_exit(NULL);
 
+	if(uhyve_profiler_enabled)
+		uhyve_profiler_exit();
+
 	if (vcpu_threads) {
 		for(uint32_t i = 0; i < ncores; i++) {
 			if (pthread_self() == vcpu_threads[i])
@@ -945,8 +948,6 @@ static int vcpu_loop(void)
 					if (cpuid)
 						pthread_exit((int*)(guest_mem+data));
 					else {
-						if(uhyve_profiler_enabled)
-							uhyve_profiler_exit();
 						exit(*(int*)(guest_mem+data));
 					}
 					break;
