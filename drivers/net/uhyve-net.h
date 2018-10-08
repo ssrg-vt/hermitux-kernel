@@ -35,14 +35,7 @@
 
 #define MIN(a, b)	(a) < (b) ? (a) : (b)
 
-#define RX_BUF_LEN 2048
-#define TX_BUF_LEN 2048
-#define TX_BUF_NUM 1		//number of tx buffer
-
-#define UHYVE_PORT_NETINFO      0x505
-#define UHYVE_PORT_NETWRITE     0x506
-#define UHYVE_PORT_NETREAD      0x507
-#define UHYVE_PORT_NETSTAT	0x508
+#define RX_BUF_LEN 3276
 
 // UHYVE_PORT_NETINFO
 typedef struct {
@@ -82,10 +75,6 @@ typedef struct {
 typedef struct uhyve_netif {
 	struct eth_addr *ethaddr;
 	/* Add whatever per-interface state that is needed here. */
-	uint8_t* tx_buf[TX_BUF_NUM];
-	uint32_t tx_queue;
-	uint32_t tx_complete;
-	uint8_t tx_inuse[TX_BUF_NUM];
 	uint8_t* rx_buf;
 } uhyve_netif_t;
 

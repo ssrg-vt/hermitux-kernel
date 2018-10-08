@@ -87,6 +87,12 @@ extern uint64_t tux_size;
 #define UHYVE_PORT_FCNTL 		0x522
 #define UHYVE_PORT_OPENAT 		0x523
 
+// Networkports
+#define UHYVE_PORT_NETINFO             0x505
+#define UHYVE_PORT_NETWRITE            0x506
+#define UHYVE_PORT_NETREAD             0x507
+#define UHYVE_PORT_NETSTAT             0x508
+
 #define BUILTIN_EXPECT(exp, b)		__builtin_expect((exp), (b))
 //#define BUILTIN_EXPECT(exp, b)	(exp)
 #define NORETURN			__attribute__((noreturn))
