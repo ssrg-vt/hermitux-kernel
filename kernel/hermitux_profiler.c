@@ -17,7 +17,6 @@ uint64_t next_id;
 uint64_t max_id;
 
 static void profiler_irq_handler(struct state *s) {
-	LOG_INFO("prof irq received rip 0x%x\n", s->rip);  // TODO remove this
 	samples[next_id++] = s->rip;
 
 	if(tux_prof_samples_num < max_id)
