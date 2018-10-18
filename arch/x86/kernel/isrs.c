@@ -620,6 +620,13 @@ void syscall_handler(struct state *s)
 			break;
 #endif /* DISABLE_SYS_READLINK */
 
+#ifndef DISABLE_SYS_UMASK
+		case 95:
+			/* umask */
+			s->rax = sys_umask(s->rdi);
+			break;
+#endif
+
 #ifndef DISABLE_SYS_GETTIMEOFDAY
 		case 96:
 			/* gettimeofday */
@@ -674,6 +681,12 @@ void syscall_handler(struct state *s)
 			s->rax = sys_getppid();
 			break;
 #endif /* DISABLE_SYS_GETPPID */
+
+#ifndef DISABLE_SYS_SETSID
+		case 112:
+			s->rax = sys_setsid();
+			break;
+#endif
 
 #ifndef DISABLE_SYS_SIGALTSTACK
 		case 131:
