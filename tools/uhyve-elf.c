@@ -46,6 +46,8 @@
 size_t tux_entry = 0;
 size_t tux_size = 0;
 
+#define PIE_OFFSET	0x400000
+
 int uhyve_elf_loader(const char* path)
 {
 	Elf64_Ehdr hdr;
@@ -78,14 +80,14 @@ int uhyve_elf_loader(const char* path)
 		|| hdr.e_type != ET_EXEC || hdr.e_machine != EM_X86_64)
 	{
 		fprintf(stderr, "Inavlide elf file!\n");
-		goto out;
+//		goto out;
 	}
 
-	if (verbose)
+//	if (verbose)
 		fprintf(stderr, "Uhyve's elf loader found entry point at 0x%zx in file"
-				"%s\n", hdr.e_entry, path);
+				"%s\n", hdr.e_entry + PIE_OFFSET, path);
 
-	tux_entry = hdr.e_entry;
+	tux_entry = hdr.e_entry + PIE_OFFSET;
 	buflen = hdr.e_phentsize * hdr.e_phnum;
 	phdr = malloc(buflen);
 	if (!phdr) {
@@ -111,11 +113,11 @@ int uhyve_elf_loader(const char* path)
 		if (phdr[ph_i].p_type != PT_LOAD)
 			continue;
 
-		if (verbose)
-			printf("Load elf file at 0x%zx, file size 0x%zx, memory size 0x%zx\n", paddr, filesz, memsz);
-		tux_size = paddr + memsz - linux_start_address;
+	//	if (verbose)
+			printf("Load elf file at 0x%zx, file size 0x%zx, memory size 0x%zx\n", paddr + PIE_OFFSET, filesz, memsz);
+		tux_size = paddr + memsz - linux_start_address + PIE_OFFSET;
 
-		ret = pread_in_full(fd, guest_mem+paddr-GUEST_OFFSET, filesz, offset);
+		ret = pread_in_full(fd, guest_mem+paddr-GUEST_OFFSET + PIE_OFFSET, filesz, offset);
 		if (ret < 0)
 			goto out;
 
