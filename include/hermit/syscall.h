@@ -194,6 +194,10 @@ int sys_getdents64(unsigned int fd, struct linux_dirent64 *dirp,
 size_t sys_sendfile(int out_fd, int in_fd, off_t *offset, size_t count);
 size_t sys_pread64(int fd, void *buf, size_t count, off_t offset);
 size_t sys_pwrite64(int fd, const void *buf, size_t count, off_t offset);
+size_t sys_mremap(unsigned long addr, unsigned long old_len, unsigned long new_len,
+		unsigned long flags, unsigned long new_addr);
+int sys_umask(int mask);
+int sys_setsid(void);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;
