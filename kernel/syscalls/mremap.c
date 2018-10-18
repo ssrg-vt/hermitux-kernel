@@ -13,9 +13,9 @@ size_t sys_mremap(unsigned long addr, unsigned long old_len, unsigned long new_l
 		return -ENOSYS;
 	}
 
-	ret = sys_mmap(NULL, new_len, 0x0, flags, 0x0, 0x0);
+	ret = sys_mmap((unsigned long)NULL, new_len, 0x0, flags, 0x0, 0x0);
 
-	memcpy(ret, addr, old_len);
+	memcpy((void *)ret, (void *)addr, old_len);
 
 	sys_munmap(addr, old_len);
 
