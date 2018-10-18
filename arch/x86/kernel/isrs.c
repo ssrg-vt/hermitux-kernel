@@ -421,6 +421,13 @@ void syscall_handler(struct state *s)
 			break;
 #endif /* DISABLE_SYS_SCHED_YIELD */
 
+#ifndef DISABLE_SYS_MREMAP
+		case 25:
+			/* mremap */
+			s->rax = sys_mremap(s->rdi, s->rsi, s->rdx, s->r10, s->r8);
+			break;
+#endif
+
 #ifndef DISABLE_SYS_MINCORE
 		case 27:
 			/* mincore */

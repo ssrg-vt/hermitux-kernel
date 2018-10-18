@@ -5,6 +5,8 @@
 #include <hermit/memory.h>
 #include <hermit/mmap_areas.h>
 
+#define MAP_FIXED 0x10
+
 /* We use the concept of 'mmap areas' to track which part of the address space
  * are used for mmap mappings (currently just memory allocation). It is needed
  * to enable on demand virtual to physical mapping for such areas: we check in
@@ -96,6 +98,11 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 
 	if(addr != 0) {
 		LOG_ERROR("Request mmap to specific address\n");
+		return -ENOSYS;
+	}
+
+	if(flags & MAP_FIXED) {
+		LOG_ERROR("mremap: no support for MAP_FIXED\n");
 		return -ENOSYS;
 	}
 
