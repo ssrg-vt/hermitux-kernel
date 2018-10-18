@@ -923,9 +923,9 @@ static int vcpu_loop(void)
 
 				ret = write(uhyve_write->fd, guest_mem+(size_t)uhyve_write->buf, uhyve_write->len);
 				if(ret == -1)
-					uhyve_write->len = -errno;
+					uhyve_write->ret = -errno;
 				else
-					uhyve_write->len = ret;
+					uhyve_write->ret = ret;
 				break;
 				}
 
