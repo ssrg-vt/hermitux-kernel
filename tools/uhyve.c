@@ -935,7 +935,7 @@ static int vcpu_loop(void)
 				uhyve_read_t* uhyve_read = (uhyve_read_t*) (guest_mem+data);
 
 				ret = read(uhyve_read->fd, guest_mem+(size_t)uhyve_read->buf, uhyve_read->len);
-				if(ret == -1) 
+				if(ret == -1)
 					uhyve_read->ret = -errno;
 				else
 					uhyve_read->ret = ret;
