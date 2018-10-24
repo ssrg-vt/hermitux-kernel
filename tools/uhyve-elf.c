@@ -46,7 +46,7 @@
 size_t tux_entry = 0;
 size_t tux_size = 0;
 
-#define PIE_OFFSET	0x400000
+#define PIE_OFFSET	0x410000
 
 int uhyve_elf_loader(const char* path)
 {
