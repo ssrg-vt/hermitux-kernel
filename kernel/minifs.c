@@ -13,7 +13,8 @@
 
 #define MAX_FILES			100000
 #define MAX_FDS				100000
-#define MAX_FILE_SIZE_PG	32
+//#define MAX_FILE_SIZE_PG	32
+#define MAX_FILE_SIZE_PG	64
 
 #define O_RDONLY	    0000
 #define O_WRONLY	    0001
