@@ -41,7 +41,6 @@
 #include <hermit/spinlock.h>
 #include <hermit/tasks.h>
 #include <hermit/logging.h>
-#include <hermit/mmap_areas.h>
 
 #include <asm/multiboot.h>
 #include <asm/irq.h>
@@ -336,42 +335,6 @@ slow_path:
 		spinlock_irqsave_unlock(&page_lock);
 		return;
 	}
-
-	if(mmap_area_check(viraddr)) {
-		/* on demand mmap mapping */
-
-		size_t phyaddr, flags;
-		int ret;
-
-		if (check_pagetables(viraddr)) {
-			spinlock_irqsave_unlock(&page_lock);
-			return;
-		}
-
-		viraddr &= PAGE_MASK;
-
-		phyaddr = get_page();
-		if (BUILTIN_EXPECT(!phyaddr, 0)) {
-			LOG_ERROR("out of memory for mmap: task = %u\n", task->id);
-			goto default_handler;
-		}
-
-		flags = PG_USER|PG_RW;
-		if (has_nx()) // set no execution flag to protect the heap
-			flags |= PG_XD;
-
-		ret = __page_map(viraddr, phyaddr, 1, flags, 0);
-		if (BUILTIN_EXPECT(ret, 0)) {
-			LOG_ERROR("map_region: could not map %#lx to %#lx, task = %u\n", phyaddr, viraddr, task->id);
-			put_page(phyaddr);
-
-			goto default_handler;
-		}
-
-		spinlock_irqsave_unlock(&page_lock);
-		return;
-	}
-
 
 default_handler:
 	spinlock_irqsave_unlock(&page_lock);
