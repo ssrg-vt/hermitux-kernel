@@ -14,7 +14,7 @@ int sys_munmap(size_t viraddr, size_t len) {
 	if (BUILTIN_EXPECT(!len, 0))
 		return -EINVAL;
 
-	/* Free virtual address space */
+	/* Free virtual address space (including the guard pages) */
 	ret = vma_free((size_t)viraddr-PAGE_SIZE,
 			(size_t)viraddr+(npages+1)*PAGE_SIZE);
 
@@ -27,7 +27,7 @@ int sys_munmap(size_t viraddr, size_t len) {
 	if (BUILTIN_EXPECT(!phyaddr, 0))
 		return -EFAULT;
 
-	/* Unmap physical pages */
+	/* Unmap physical pages (guard pages are not mapped */
 	page_unmap(viraddr, npages);
 	put_pages(phyaddr, npages);
 
