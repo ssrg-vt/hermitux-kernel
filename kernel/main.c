@@ -48,7 +48,6 @@
 #include <asm/multiboot.h>
 #include <asm/uhyve.h>
 
-#include <hermit/mmap_areas.h>
 #include <hermit/hermitux_profiler.h>
 
 #ifndef NO_NET
@@ -163,8 +162,6 @@ static int hermit_init(void)
 #ifndef NO_SIGNAL
 	signal_init();
 #endif /* NO_SIGNAL */
-	if(mmap_areas_init())
-		return -1;
 
 	if(hermitux_profiler_init())
 		return -1;
