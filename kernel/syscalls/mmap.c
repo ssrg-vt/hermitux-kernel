@@ -81,8 +81,10 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 		return -EFAULT;
 	}
 
+out:
+
 	/* Emulate a private file mapping */
-	if(fd)
+	if(fd && fd != (int)-1)
 		if(map_file(fd, (void *)viraddr, off, len))
 			return -EFAULT;
 
@@ -98,7 +100,7 @@ int map_file(int fd, void *addr, size_t offset, size_t len) {
 	/* save old offset */
 	old_offset = sys_lseek(fd, 0x0, SEEK_CUR);
 	if(old_offset == -1) {
-		LOG_ERROR("mmap: cannot lseek in file\n");
+		LOG_ERROR("mmap: cannot lseek in file (fd %d)\n", fd);
 		goto out;
 	}
 
