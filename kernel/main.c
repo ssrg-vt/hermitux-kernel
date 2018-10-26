@@ -465,6 +465,13 @@ static int initd(void* arg)
 		uhyve_send(UHYVE_PORT_CMDVAL,
 				(unsigned)virt_to_phys((size_t)&uhyve_cmdval_phys));
 
+		/* If we use minifs the guest has no visibility on the host filesystem,
+		 * but the hermitux loader needs access to the application binary to
+		 * load the program headers. Thus, we move the binary into the minifs
+		 * image here */
+		if(minifs_enabled)
+			minifs_load_from_host(uhyve_cmdval.argv[1], uhyve_cmdval.argv[1]);
+
 		LOG_INFO("Boot time: %d ms\n", (get_clock_tick() * 1000) / TIMER_FREQ);
 		libc_start(uhyve_cmdsize.argc, uhyve_cmdval.argv, uhyve_cmdval.envp);
 

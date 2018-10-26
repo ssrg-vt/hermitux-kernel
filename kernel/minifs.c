@@ -108,7 +108,7 @@ int minifs_load_from_host(const char *filename, const char *dest) {
 		goto out;
 	}
 
-	/* CHeck that the file is not too big */
+	/* Check that the file is not too big */
 	if(filesize > MAX_FILE_SIZE_PG*PAGE_SIZE) {
 		LOG_ERROR("minifs_load_from_host: %s size is superior to the max file "
 				"size (%d)", filename, MAX_FILE_SIZE_PG*PAGE_SIZE);
@@ -301,7 +301,7 @@ int minifs_init(void) {
 			hostload_done = 1;
 	}
 
-	/* Create pseudo files t oemulate Linux interface */
+	/* Create pseudo files to emulate Linux interface */
 	minifs_creat_custom("/dev/null", 0777, devnull_read, devnull_write);
 	minifs_creat_custom("/dev/zero", 0777, devzero_read, devzero_write);
 	minifs_creat_custom("/dev/random", 0777, devrandom_read, devrandom_write);
