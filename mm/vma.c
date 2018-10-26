@@ -33,8 +33,7 @@
 #include <hermit/errno.h>
 #include <hermit/logging.h>
 
-// Linux applications are always located at address 0x400000
-#define tux_start_address	0x400000
+extern uint64_t tux_start_address;
 
 /*
  * Note that linker symbols are not variables, they have no memory allocated for

@@ -25,7 +25,7 @@
 #define RLIMIT_NLIMITS		15
 
 extern size_t kernel_start;
-#define tux_start_address	0x400000
+extern uint64_t tux_start_address;
 
 typedef long long int rlim_t;
 struct rlimit {

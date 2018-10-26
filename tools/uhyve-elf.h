@@ -39,6 +39,7 @@
 
 extern size_t tux_entry;
 extern size_t tux_size;
+extern size_t tux_start_address;
 
 int uhyve_elf_loader(const char*);
 ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset);

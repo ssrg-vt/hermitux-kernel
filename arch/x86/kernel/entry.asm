@@ -81,6 +81,7 @@ align 4
     global tux_prof_samples
     global tux_prof_samples_num
 	global minifs_enabled
+	global tux_start_address
     base dq 0
     limit dq 0
     cpu_freq dd 0
@@ -118,6 +119,7 @@ align 8
     tux_prof_samples dq 0
     tux_prof_samples_num dq 0
     minifs_enabled db 0
+	tux_start_address dq 0
 
 ; Bootstrap page tables are used during the initialization.
 align 4096

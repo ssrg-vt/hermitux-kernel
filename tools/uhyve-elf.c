@@ -50,6 +50,7 @@
 
 size_t tux_entry = 0;
 size_t tux_size = 0;
+size_t tux_start_address = 0;
 
 static uint64_t pie_offset = 0;
 
@@ -144,6 +145,9 @@ int uhyve_elf_loader(const char* path) {
 
 		if (phdr[ph_i].p_type != PT_LOAD)
 			continue;
+
+		if(!tux_start_address || (paddr + pie_offset < tux_start_address))
+			tux_start_address = paddr + pie_offset;
 
 		if (verbose)
 			printf("Load elf file at 0x%zx, file size 0x%zx, memory size "

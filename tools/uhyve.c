@@ -1982,6 +1982,7 @@ int uhyve_loop(int argc, char **argv)
 	*((uint32_t*) (mboot+0x24)) = ncores;
 	*((uint64_t*) (mboot + 0xC0)) = tux_entry;
 	*((uint64_t*) (mboot + 0xC8)) = tux_size;
+	*((uint64_t*) (mboot + 0xE2)) = tux_start_address;
 
 	if(uhyve_gdb_enabled)
 		*((uint8_t*) (mboot + 0xD0)) = 0x1;
