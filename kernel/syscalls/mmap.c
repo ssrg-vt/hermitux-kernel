@@ -48,7 +48,6 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 			return -ENOMEM;
 	} else {
 		viraddr = (flags & MAP_FIXED) ? addr-PAGE_SIZE : PAGE_CEIL(addr);
-		LOG_INFO("PAGE_CEIL(0x%llx) = 0x%llx\n", addr, viraddr);
 		int ret = vma_add(viraddr, viraddr+(npages+2)*PAGE_SIZE, alloc_flags);
 
 		/* FIXME: when the application requests an already mapped range of
@@ -56,8 +55,9 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 		 * requested and remap it to satisfy the current mmap request. We
 		 * just fail miserably for now */
 		if(BUILTIN_EXPECT(ret, 0)) {
-			LOG_ERROR("mmap: cannot vma_add, probably vma range requested is "
-					"already used\n");
+			LOG_ERROR("mmap: cannot vma_add, probably vma range (0x%llx - "
+					"0x%llx) requested is already used\n", viraddr,
+					viraddr+(npages+2)*PAGE_SIZE);
 			return -EFAULT;
 		}
 	}
