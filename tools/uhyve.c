@@ -1206,6 +1206,24 @@ static int vcpu_loop(void)
 				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
 				uhyve_readlink_t *arg = (uhyve_readlink_t *)(guest_mem + data);
 
+				/* many programs access the application binary not through
+				 * argv[0] but through /proc/self/exec, for us it is actually
+				 * proxy so we need to correct that */
+				if(!strcmp(guest_mem+(size_t)arg->path, "/proc/self/exe")) {
+					char abspath[256];
+					realpath(htux_bin, abspath);
+
+					if(arg->bufsz > strlen(abspath)) {
+						strcpy(guest_mem+(size_t)arg->buf, abspath);
+						arg->ret = strlen(abspath);
+					}
+					else
+						arg->ret = -1;
+
+					break;
+
+				}
+
 				ret = readlink(guest_mem+(size_t)arg->path,
 						guest_mem+(size_t)arg->buf, arg->bufsz);
 
