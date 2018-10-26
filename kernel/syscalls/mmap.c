@@ -4,12 +4,15 @@
 #include <hermit/spinlock.h>
 #include <hermit/memory.h>
 
-#define MAP_FIXED 0x10
+#define MAP_FIXED 		0x10
+#define MAP_PRIVATE 	0x02
 
 #define PROT_NONE      0
 #define PROT_READ      1
 #define PROT_WRITE     2
 #define PROT_EXEC      4
+
+int map_file(int fd, void *addr, size_t offset, size_t len);
 
 size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 		unsigned long flags, unsigned long fd, unsigned long off) {
@@ -17,6 +20,11 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 	int err;
 	uint32_t alloc_flags;
 	uint32_t npages = PAGE_CEIL(len) >> PAGE_BITS;
+
+	if(!(flags & MAP_PRIVATE)) {
+		LOG_ERROR("mmap: non-private mapping are not supported\n");
+		return -ENOSYS;
+	}
 
 	if(flags & MAP_FIXED && (addr % PAGE_SIZE != 0)) {
 		LOG_ERROR("mremap: MAP_FIXED needs a page-aligned requested address\n");
@@ -73,5 +81,40 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 		return -EFAULT;
 	}
 
+	/* Emulate a private file mapping */
+	if(fd)
+		if(map_file(fd, (void *)viraddr+PAGE_SIZE, off, len))
+			return -EFAULT;
+
 	return (size_t) (viraddr+PAGE_SIZE);
+}
+
+/* Read into address addr the file fd starting from offset in the file, for len
+ * bytes */
+int map_file(int fd, void *addr, size_t offset, size_t len) {
+	int ret = -1;
+	size_t old_offset;
+
+	/* save old offset */
+	old_offset = sys_lseek(fd, 0x0, SEEK_CUR);
+	if(old_offset == -1) {
+		LOG_ERROR("mmap: cannot lseek in file\n");
+		goto out;
+	}
+
+	/* Set the asked offset */
+	sys_lseek(fd, offset, SEEK_SET);
+
+	/* Read the file in memory */
+	if(sys_read(fd, addr, len) != len) {
+		LOG_ERROR("mmap: cannot read file\n");
+		goto out;
+	}
+
+	/* restore old offset */
+	sys_lseek(fd, old_offset, SEEK_SET);
+	ret = 0;
+
+out:
+	return ret;
 }
