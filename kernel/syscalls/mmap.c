@@ -21,6 +21,8 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 	uint32_t alloc_flags;
 	uint32_t npages = PAGE_CEIL(len) >> PAGE_BITS;
 
+	LOG_INFO("mmap addr 0x%llx, len 0x%llx\n", addr, len);
+
 	if(!(flags & MAP_PRIVATE)) {
 		LOG_ERROR("mmap: non-private mapping are not supported\n");
 		return -ENOSYS;
@@ -39,16 +41,14 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 	if(flags & PROT_WRITE) alloc_flags |= VMA_WRITE;
 	if(flags & PROT_EXEC) alloc_flags |= VMA_EXECUTE;
 
-	/* get free virtual address space. We get two additional virtual pages
-	 * to act at guards: they will not be mapped and will protect against
-	 * overflows */
+	/* get free virtual address space */
 	if(!addr) {
-		viraddr = vma_alloc((npages+2)*PAGE_SIZE, alloc_flags);
+		viraddr = vma_alloc(npages*PAGE_SIZE, alloc_flags);
 		if (BUILTIN_EXPECT(!viraddr, 0))
 			return -ENOMEM;
 	} else {
-		viraddr = (flags & MAP_FIXED) ? addr-PAGE_SIZE : PAGE_CEIL(addr);
-		int ret = vma_add(viraddr, viraddr+(npages+2)*PAGE_SIZE, alloc_flags);
+		viraddr = (flags & MAP_FIXED) ? addr : PAGE_CEIL(addr);
+		int ret = vma_add(viraddr, viraddr+npages*PAGE_SIZE, alloc_flags);
 
 		/* FIXME: when the application requests an already mapped range of
 		 * virtual memory, the kernel is supposed to unmap the part that is
@@ -57,7 +57,7 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 		if(BUILTIN_EXPECT(ret, 0)) {
 			LOG_ERROR("mmap: cannot vma_add, probably vma range (0x%llx - "
 					"0x%llx) requested is already used\n", viraddr,
-					viraddr+(npages+2)*PAGE_SIZE);
+					viraddr+npages*PAGE_SIZE);
 			return -EFAULT;
 		}
 	}
@@ -65,7 +65,7 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 	/* get physical memory */
 	phyaddr = get_pages(npages);
 	if (BUILTIN_EXPECT(!phyaddr, 0)) {
-		vma_free(viraddr, viraddr+(npages+2)*PAGE_SIZE);
+		vma_free(viraddr, viraddr+npages*PAGE_SIZE);
 		return -ENOMEM;
 	}
 
@@ -74,19 +74,19 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 	if(flags & PROT_WRITE) bits |= PG_RW;
 
 	/* map physical pages to VMA */
-	err = page_map(viraddr+PAGE_SIZE, phyaddr, npages, bits);
+	err = page_map(viraddr, phyaddr, npages, bits);
 	if (BUILTIN_EXPECT(err, 0)) {
-		vma_free(viraddr, viraddr+(npages+2)*PAGE_SIZE);
+		vma_free(viraddr, viraddr+npages*PAGE_SIZE);
 		put_pages(phyaddr, npages);
 		return -EFAULT;
 	}
 
 	/* Emulate a private file mapping */
 	if(fd)
-		if(map_file(fd, (void *)viraddr+PAGE_SIZE, off, len))
+		if(map_file(fd, (void *)viraddr, off, len))
 			return -EFAULT;
 
-	return (size_t) (viraddr+PAGE_SIZE);
+	return (size_t)viraddr;
 }
 
 /* Read into address addr the file fd starting from offset in the file, for len

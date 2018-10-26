@@ -9,14 +9,15 @@ int sys_munmap(size_t viraddr, size_t len) {
 	int i, ret;
 	size_t phyaddr;
 
+	LOG_INFO("munmap addr 0x%llx, len 0x%llx\n", viraddr, len);
+
 	if (BUILTIN_EXPECT(!viraddr, 0))
 		return -EINVAL;
 	if (BUILTIN_EXPECT(!len, 0))
 		return -EINVAL;
 
-	/* Free virtual address space (including the guard pages) */
-	ret = vma_free((size_t)viraddr-PAGE_SIZE,
-			(size_t)viraddr+(npages+1)*PAGE_SIZE);
+	/* Free virtual address space */
+	ret = vma_free((size_t)viraddr, (size_t)viraddr+npages*PAGE_SIZE);
 
 	if(ret < 0) {
 		LOG_ERROR("munmap: cannto free VMA\n");
@@ -27,7 +28,7 @@ int sys_munmap(size_t viraddr, size_t len) {
 	if (BUILTIN_EXPECT(!phyaddr, 0))
 		return -EFAULT;
 
-	/* Unmap physical pages (guard pages are not mapped */
+	/* Unmap physical pages */
 	page_unmap(viraddr, npages);
 	put_pages(phyaddr, npages);
 
