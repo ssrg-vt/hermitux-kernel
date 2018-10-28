@@ -2,10 +2,11 @@
 #include <asm/uhyve.h>
 #include <asm/page.h>
 #include <hermit/logging.h>
+#include <hermit/minifs.h>
 
 typedef unsigned int dev_t;
 typedef unsigned int ino_t;
-typedef unsigned short mode_t;
+typedef unsigned mode_t;
 typedef unsigned int nlink_t;
 typedef unsigned int uid_t;
 typedef unsigned short gid_t;
@@ -40,6 +41,10 @@ typedef struct {
 
 int sys_fstat(int fd, struct stat *buf)
 {
+	if(minifs_enabled) {
+		LOG_ERROR("fstat: not supported with minifs\n");
+		return -ENOSYS;
+	}
 
 	if(unlikely(!buf)) {
 		LOG_ERROR("fstat: called with buf argument null\n");
