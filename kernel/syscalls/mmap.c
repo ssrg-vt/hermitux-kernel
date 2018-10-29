@@ -21,7 +21,8 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 	uint32_t alloc_flags;
 	uint32_t npages = PAGE_CEIL(len) >> PAGE_BITS;
 
-	LOG_INFO("mmap addr 0x%llx, len 0x%llx\n", addr, len);
+	LOG_INFO("mmap addr 0x%llx, len 0x%llx, fd %d, offset 0x%llx\n", addr,
+			len, fd, off);
 
 	if(!(flags & MAP_PRIVATE)) {
 		LOG_ERROR("mmap: non-private mapping are not supported\n");
@@ -50,15 +51,24 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 		viraddr = (flags & MAP_FIXED) ? addr : PAGE_CEIL(addr);
 		int ret = vma_add(viraddr, viraddr+npages*PAGE_SIZE, alloc_flags);
 
-		/* FIXME: when the application requests an already mapped range of
+		/* When the application requests an already mapped range of
 		 * virtual memory, the kernel is supposed to unmap the part that is
-		 * requested and remap it to satisfy the current mmap request. We
-		 * just fail miserably for now */
+		 * requested and remap it to satisfy the current mmap request. */
 		if(BUILTIN_EXPECT(ret, 0)) {
-			LOG_ERROR("mmap: cannot vma_add, probably vma range (0x%llx - "
+			vma_free(viraddr, viraddr+npages*PAGE_SIZE);
+
+			/* Unmap physical pages */
+			uint64_t unmap_phyaddr = virt_to_phys(viraddr);
+			page_unmap(viraddr, npages);
+			if(put_pages(unmap_phyaddr, npages) != 0)
+				LOG_ERROR("Error releasing physical pages on re-mmap\n");
+
+			if(vma_add(viraddr, viraddr+npages*PAGE_SIZE, alloc_flags) != 0) {
+				LOG_ERROR("mmap: cannot vma_add, probably vma range (0x%llx - "
 					"0x%llx) requested is already used\n", viraddr,
 					viraddr+npages*PAGE_SIZE);
-			return -EFAULT;
+				return -EFAULT;
+			}
 		}
 	}
 
@@ -81,8 +91,6 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 		return -EFAULT;
 	}
 
-out:
-
 	/* Emulate a private file mapping */
 	if(fd && fd != (int)-1)
 		if(map_file(fd, (void *)viraddr, off, len))
@@ -100,12 +108,15 @@ int map_file(int fd, void *addr, size_t offset, size_t len) {
 	/* save old offset */
 	old_offset = sys_lseek(fd, 0x0, SEEK_CUR);
 	if(old_offset == -1) {
-		LOG_ERROR("mmap: cannot lseek in file (fd %d)\n", fd);
+		LOG_ERROR("mmap: cannot get offset of file (fd %d)\n", fd);
 		goto out;
 	}
 
 	/* Set the asked offset */
-	sys_lseek(fd, offset, SEEK_SET);
+	if(sys_lseek(fd, offset, SEEK_SET) != offset) {
+		LOG_ERROR("mmap: cannot lseek in file (fd %d)\n", fd);
+		goto out;
+	}
 
 	/* Read the file in memory */
 	if(sys_read(fd, addr, len) != len) {
