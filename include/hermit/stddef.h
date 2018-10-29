@@ -47,11 +47,12 @@ extern const size_t image_size;
 
 /* Linux binary size */
 extern uint64_t tux_size;
+extern uint64_t tux_start_address;
 
 #define TIMER_FREQ	100 /* in HZ */
 #define CLOCK_TICK_RATE	1193182 /* 8254 chip's internal oscillator frequency */
 #define CACHE_LINE	64
-#define HEAP_START	(PAGE_2M_CEIL((size_t)&kernel_start + image_size) + 4*PAGE_SIZE + PAGE_CEIL(tux_size))
+#define HEAP_START	(PAGE_CEIL(tux_start_address + tux_size) + 4*PAGE_SIZE)
 #define HEAP_SIZE	(1ULL << 32)
 #define KMSG_SIZE	0x4000
 #define INT_SYSCALL	0x80
