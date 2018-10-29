@@ -1184,7 +1184,7 @@ static int vcpu_loop(void)
 				fprintf(stderr, "GUEST PAGE FAULT @0x%x (RIP @0x%x)\n",
 						arg->addr, arg->rip);
 				sprintf(addr2line_call, "addr2line -a %x -e %s\n", arg->rip,
-						(arg->rip >= linux_start_address) ? htux_bin :
+						(arg->rip >= tux_start_address) ? htux_bin :
 						htux_kernel);
 				system(addr2line_call);
 
