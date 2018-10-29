@@ -2001,6 +2001,9 @@ int uhyve_loop(int argc, char **argv)
 	*((uint64_t*) (mboot + 0xC0)) = tux_entry;
 	*((uint64_t*) (mboot + 0xC8)) = tux_size;
 	*((uint64_t*) (mboot + 0xE2)) = tux_start_address;
+	*((uint64_t*) (mboot + 0xEA)) = tux_ehdr_phoff;
+	*((uint64_t*) (mboot + 0xF2)) = tux_ehdr_phnum;
+	*((uint64_t*) (mboot + 0xFA)) = tux_ehdr_phentsize;
 
 	if(uhyve_gdb_enabled)
 		*((uint8_t*) (mboot + 0xD0)) = 0x1;

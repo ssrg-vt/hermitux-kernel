@@ -51,6 +51,9 @@
 size_t tux_entry = 0;
 size_t tux_size = 0;
 size_t tux_start_address = 0;
+size_t tux_ehdr_phoff = 0;
+size_t tux_ehdr_phnum = 0;
+size_t tux_ehdr_phentsize = 0;
 
 static uint64_t pie_offset = 0;
 
@@ -96,6 +99,12 @@ int uhyve_elf_loader(const char* path) {
 		ret = -1;
 		goto out;
 	}
+
+	/* We need to pass this to the guest so that it knows where the program
+	 * headers are mapped: start address + this offset */
+	tux_ehdr_phoff = hdr.e_phoff;
+	tux_ehdr_phnum = hdr.e_phnum;
+	tux_ehdr_phentsize = hdr.e_phentsize;
 
 	ret = pread_in_full(fd, phdr, buflen, hdr.e_phoff);
 	if (ret < 0)
@@ -152,7 +161,7 @@ int uhyve_elf_loader(const char* path) {
 		if (verbose)
 			printf("Load elf file at 0x%zx, file size 0x%zx, memory size "
 					"0x%zx\n", paddr + pie_offset, filesz, memsz);
-		tux_size = paddr + memsz - linux_start_address + pie_offset;
+		tux_size = paddr + memsz - tux_start_address + pie_offset;
 
 		ret = pread_in_full(fd, guest_mem+paddr-GUEST_OFFSET + pie_offset,
 				filesz, offset);

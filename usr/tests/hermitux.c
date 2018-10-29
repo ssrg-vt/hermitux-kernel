@@ -41,14 +41,20 @@ typedef unsigned long long size_t;
 #define AT_BASE				7
 #define AT_FLAGS			8
 #define AT_ENTRY			9
+#define AT_NOTELF			10
 #define AT_UID				11
 #define AT_EUID				12
 #define AT_GID				13
 #define AT_EGID				14
+#define AT_PLATFORM			15
 #define AT_HWCAP			16
 #define AT_CLKTCK			17
+#define AT_DCACHEBSIZE		19
+#define AT_ICACHEBSIZE		20
+#define AT_UCACHEBSIZE		21
 #define AT_SECURE			23
 #define AT_RANDOM			25
+#define AT_EXECFN			31
 #define AT_SYSINFO_EHDR		33
 #define AT_SYSINFO			32
 
@@ -103,6 +109,10 @@ typedef struct {
 
 extern const size_t tux_entry;
 extern const size_t tux_size;
+extern const size_t tux_start_address;
+extern const size_t tux_ehdr_phoff;
+extern const size_t tux_ehdr_phnum;
+extern const size_t tux_ehdr_phentsize;
 
 extern char **environ;
 
@@ -111,44 +121,17 @@ void inline push_auxv(unsigned long long type, unsigned long long val) {
 	asm volatile("pushq %0" : : "r" (type));
 }
 
-extern int read(int fd, char *buf, uint64_t len);
-extern int open(const char *path, int flags, int mode);
-extern uint64_t lseek(int fd, uint64_t offset, int whence);
-
 #define DIE()	__builtin_trap()
-extern void kprintf(const char *buf, ...);
 
 /* Space allocated for the program headers */
 char phdr[4096];
 Elf64_Ehdr hdr;
 
+char *auxv_platform = "x86_64";
+
 int main(int argc, char** argv) {
 	unsigned long long int libc_argc = argc -1;
 	int i, envc;
-
-	int fd = open(argv[1], O_RDONLY, 0x0);
-	if(fd == -1) {
-		kprintf("[HermiTux] ERROR: cannot open %s to read ELF header\n",
-				argv[1]);
-		DIE();
-	}
-
-	if(read(fd, (char *)&hdr, sizeof(hdr)) != sizeof(Elf64_Ehdr)) {
-		kprintf("[HermiTux] ERROR: cannot read ELF header\n");
-		DIE();
-	}
-
-	uint64_t phdr_len = hdr.e_phentsize * hdr.e_phnum;
-
-	if(lseek(fd, hdr.e_phoff, SEEK_SET) != hdr.e_phoff) {
-		kprintf("[HermiTux] ERROR: cannot lseek\n");
-		DIE();
-	}
-
-	if(read(fd, (char *)phdr, phdr_len) != phdr_len) {
-		kprintf("[HermitTux] ERROR: cannot read program headers\n");
-		DIE();
-	}
 
 	/* count the number of environment variables */
 	envc = 0;
@@ -161,12 +144,13 @@ int main(int argc, char** argv) {
 	push_auxv(AT_NULL, 0x0);
 	push_auxv(AT_IGNORE, 0x0);
 	push_auxv(AT_EXECFD, 0x0);
-	push_auxv(AT_PHDR, (uint64_t)phdr);
-	push_auxv(AT_PHNUM, hdr.e_phnum);
-	push_auxv(AT_PHENT, hdr.e_phentsize);
+	push_auxv(AT_PHDR, tux_start_address + tux_ehdr_phoff);
+	push_auxv(AT_PHNUM, tux_ehdr_phnum);
+	push_auxv(AT_PHENT, tux_ehdr_phentsize);
 	push_auxv(AT_RANDOM, 0x400000);
 	push_auxv(AT_BASE, 0x0);
 	push_auxv(AT_SYSINFO_EHDR, 0x0);
+	push_auxv(AT_SYSINFO, 0x0);
 	push_auxv(AT_PAGESZ, 4096);
 	push_auxv(AT_HWCAP, 0x0);
 	push_auxv(AT_CLKTCK, 0x64); // mimic Linux
@@ -178,11 +162,16 @@ int main(int argc, char** argv) {
 	push_auxv(AT_EGID, 0x0);
 	push_auxv(AT_SECURE, 0x0);
 	push_auxv(AT_SYSINFO, 0x0);
+	push_auxv(AT_EXECFN, 0x0);
+	push_auxv(AT_DCACHEBSIZE, 0x0);
+	push_auxv(AT_ICACHEBSIZE, 0x0);
+	push_auxv(AT_UCACHEBSIZE, 0x0);
+	push_auxv(AT_NOTELF, 0x0);
+	push_auxv(AT_PLATFORM, (uint64_t)auxv_platform);
 
 	/*envp */
 	/* Note that this will push NULL to the stack first, which is expected */
-	asm volatile("pushq %0" : : "i" (0x0));
-	for(i=(envc-1); i>=0; i--)
+	for(i=(envc); i>=0; i--)
 		asm volatile("pushq %0" : : "r" (environ[i]));
 
 	/* argv */
