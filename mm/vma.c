@@ -82,7 +82,7 @@ int vma_init(void)
 				goto out;
 
 		// reserve space for the heap
-		ret = vma_add(PAGE_CEIL(tux_start_address + tux_size),
+		ret = vma_add(PAGE_CEIL(tux_start_address + tux_size) + 4*PAGE_SIZE,
 			HEAP_START+HEAP_SIZE, VMA_NO_ACCESS);
 		if (BUILTIN_EXPECT(ret, 0))
 			goto out;
