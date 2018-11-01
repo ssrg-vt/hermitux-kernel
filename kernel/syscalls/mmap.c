@@ -92,7 +92,7 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 	}
 
 	/* Emulate a private file mapping */
-	if(fd && fd != (int)-1)
+	if(fd && (int)fd != -1)
 		if(map_file(fd, (void *)viraddr, off, len))
 			return -EFAULT;
 
