@@ -21,9 +21,6 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 	uint32_t alloc_flags;
 	uint32_t npages = PAGE_CEIL(len) >> PAGE_BITS;
 
-	LOG_INFO("mmap addr 0x%llx, len 0x%llx, fd %d, offset 0x%llx\n", addr,
-			len, fd, off);
-
 	if(!(flags & MAP_PRIVATE)) {
 		LOG_ERROR("mmap: non-private mapping are not supported\n");
 		return -ENOSYS;
@@ -79,9 +76,8 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 		return -ENOMEM;
 	}
 
-	bits = PG_GLOBAL;
-	if(!(flags & PROT_EXEC)) bits |= PG_NX;
-	if(flags & PROT_WRITE) bits |= PG_RW;
+	/* FIXME: manage flags correctly */
+	bits = PG_GLOBAL | PG_PRESENT | PG_RW;
 
 	/* map physical pages to VMA */
 	err = page_map(viraddr, phyaddr, npages, bits);
@@ -102,7 +98,7 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 /* Read into address addr the file fd starting from offset in the file, for len
  * bytes */
 int map_file(int fd, void *addr, size_t offset, size_t len) {
-	int ret = -1;
+	int bytes_read, ret = -1;
 	size_t old_offset;
 
 	/* save old offset */
@@ -119,8 +115,12 @@ int map_file(int fd, void *addr, size_t offset, size_t len) {
 	}
 
 	/* Read the file in memory */
-	if(sys_read(fd, addr, len) != len) {
-		LOG_ERROR("mmap: cannot read file\n");
+	bytes_read = sys_read(fd, addr, len);
+	if(bytes_read < 0) {
+		/* It is actually OK to read less bytes that requested because one may
+		 * want to mmap a file within a area that is bigger than the file
+		 * itself */
+		LOG_ERROR("mmap: cannot read file (read returns %d)\n", bytes_read);
 		goto out;
 	}
 
