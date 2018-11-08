@@ -127,13 +127,9 @@ int uhyve_elf_loader(const char* path) {
 			}
 		}
 
-		/* ASLR: The range we can load currently is from 0x400000 to
-		 * 0x30000000. Segments need to be page aligne so the number of
-		 * possibilities is (0x30000000 - 0x400000) / 0x1000 = 0x2FC00 (about
-		 * 200000 possibilities) */
-
+		/* We can do a bit of ASLR! */
 		srand(time(0));
-		pie_offset = 0x400000 + PAGE_FLOOR(rand()%(0x30000000 - 0x400000));
+		pie_offset = 0x400000 + PAGE_FLOOR(rand()%(0x10000000 - 0x400000));
 		printf("PIE detected, loading application at 0x%llx\n", pie_offset);
 	}
 
