@@ -147,7 +147,7 @@ int main(int argc, char** argv) {
 	push_auxv(AT_PHDR, tux_start_address + tux_ehdr_phoff);
 	push_auxv(AT_PHNUM, tux_ehdr_phnum);
 	push_auxv(AT_PHENT, tux_ehdr_phentsize);
-	push_auxv(AT_RANDOM, 0x400000);
+	push_auxv(AT_RANDOM, tux_start_address); // FIXME get read random bytes
 	push_auxv(AT_BASE, 0x0);
 	push_auxv(AT_SYSINFO_EHDR, 0x0);
 	push_auxv(AT_SYSINFO, 0x0);
