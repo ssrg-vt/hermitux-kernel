@@ -141,6 +141,8 @@ int vma_free(size_t start, size_t end);
 /** @brief Dump information about this task's VMAs into the terminal. */
 void vma_dump(void);
 
+int vma_is_free(size_t start, size_t size);
+
 #ifdef __cplusplus
 }
 #endif

@@ -3,6 +3,7 @@
 #include <asm/page.h>
 #include <hermit/spinlock.h>
 #include <hermit/memory.h>
+#include <hermit/vma.h>
 
 #define MAP_FIXED 		0x10
 #define MAP_PRIVATE 	0x02
@@ -39,33 +40,34 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 	if(flags & PROT_WRITE) alloc_flags |= VMA_WRITE;
 	if(flags & PROT_EXEC) alloc_flags |= VMA_EXECUTE;
 
+	/* non-fixed mapping are randomized, ~34 bits of entropy */
+	if(!addr && has_rdrand()) {
+		do addr = (HEAP_START + HEAP_SIZE) +
+			rdrand() % (0x800000000000 - (len + HEAP_START + HEAP_SIZE));
+		while(!vma_is_free(PAGE_FLOOR(addr), len));
+	}
+
 	/* get free virtual address space */
-	if(!addr) {
-		viraddr = vma_alloc(npages*PAGE_SIZE, alloc_flags);
-		if (BUILTIN_EXPECT(!viraddr, 0))
-			return -ENOMEM;
-	} else {
-		viraddr = (flags & MAP_FIXED) ? addr : PAGE_CEIL(addr);
-		int ret = vma_add(viraddr, viraddr+npages*PAGE_SIZE, alloc_flags);
+	viraddr = (flags & MAP_FIXED) ? addr : PAGE_FLOOR(addr);
+	int ret = vma_add(viraddr, viraddr+npages*PAGE_SIZE, alloc_flags);
 
-		/* When the application requests an already mapped range of
-		 * virtual memory, the kernel is supposed to unmap the part that is
-		 * requested and remap it to satisfy the current mmap request. */
-		if(BUILTIN_EXPECT(ret, 0)) {
-			vma_free(viraddr, viraddr+npages*PAGE_SIZE);
+	/* When the application requests an already mapped range of
+	 * virtual memory, the kernel is supposed to unmap the part that is
+	 * requested and remap it to satisfy the current mmap request. */
+	if(BUILTIN_EXPECT(ret, 0)) {
+		vma_free(viraddr, viraddr+npages*PAGE_SIZE);
 
-			/* Unmap physical pages */
-			uint64_t unmap_phyaddr = virt_to_phys(viraddr);
-			page_unmap(viraddr, npages);
-			if(put_pages(unmap_phyaddr, npages) != 0)
-				LOG_ERROR("Error releasing physical pages on re-mmap\n");
+		/* Unmap physical pages */
+		uint64_t unmap_phyaddr = virt_to_phys(viraddr);
+		page_unmap(viraddr, npages);
+		if(put_pages(unmap_phyaddr, npages) != 0)
+			LOG_ERROR("Error releasing physical pages on re-mmap\n");
 
-			if(vma_add(viraddr, viraddr+npages*PAGE_SIZE, alloc_flags) != 0) {
-				LOG_ERROR("mmap: cannot vma_add, probably vma range (0x%llx - "
-					"0x%llx) requested is already used\n", viraddr,
-					viraddr+npages*PAGE_SIZE);
-				return -EFAULT;
-			}
+		if(vma_add(viraddr, viraddr+npages*PAGE_SIZE, alloc_flags) != 0) {
+			LOG_ERROR("mmap: cannot vma_add, probably vma range (0x%llx - "
+				"0x%llx) requested is already used\n", viraddr,
+				viraddr+npages*PAGE_SIZE);
+			return -EFAULT;
 		}
 	}
 

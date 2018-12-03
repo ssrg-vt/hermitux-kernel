@@ -127,9 +127,13 @@ int uhyve_elf_loader(const char* path) {
 			}
 		}
 
-		/* We can do a bit of ASLR! */
+		/* Here we can do a bit of ASLR. For now it is commented in order to
+		 * maximize the entropy of the mmap calls made by the application. */
+#if 0
 		srand(time(0));
 		pie_offset = 0x400000 + PAGE_FLOOR(rand()%(0x10000000 - 0x400000));
+#endif
+		pie_offset = 0x400000;
 		printf("PIE detected, loading application at 0x%llx\n", pie_offset);
 	}
 

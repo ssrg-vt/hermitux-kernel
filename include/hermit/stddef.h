@@ -53,7 +53,9 @@ extern uint64_t tux_start_address;
 #define CLOCK_TICK_RATE	1193182 /* 8254 chip's internal oscillator frequency */
 #define CACHE_LINE	64
 #define HEAP_START	(PAGE_CEIL(tux_start_address + tux_size) + 4*PAGE_SIZE)
-#define HEAP_SIZE	(1ULL << 32)
+/* As opposed to HermitCore we can have a reduced heap size as most of native
+ * Linux C libraries will rely on mmap for large memory allocations. */
+#define HEAP_SIZE	(1ULL << 20)
 #define KMSG_SIZE	0x4000
 #define INT_SYSCALL	0x80
 #define MAILBOX_SIZE	128
