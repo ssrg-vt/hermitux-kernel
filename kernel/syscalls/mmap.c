@@ -58,11 +58,17 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 		vma_free(viraddr, viraddr+npages*PAGE_SIZE);
 
 		/* Unmap physical pages */
-		uint64_t unmap_phyaddr = virt_to_phys(viraddr);
 		page_unmap(viraddr, npages);
+
+		/* FIXME: we need to unmap the physical pages! The translation function
+		 * fails probably because there is only partial overlap between the area
+		 * requested and whatever was there before. For now this is a huge leak.
+		 * */
+#if 0
+		uint64_t unmap_phyaddr = virt_to_phys(viraddr);
 		if(put_pages(unmap_phyaddr, npages) != 0)
 			LOG_ERROR("Error releasing physical pages on re-mmap\n");
-
+#endif
 		if(vma_add(viraddr, viraddr+npages*PAGE_SIZE, alloc_flags) != 0) {
 			LOG_ERROR("mmap: cannot vma_add, probably vma range (0x%llx - "
 				"0x%llx) requested is already used\n", viraddr,
