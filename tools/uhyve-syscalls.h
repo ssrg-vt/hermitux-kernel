@@ -22,42 +22,41 @@
 #include <stddef.h>
 
 typedef enum {
-	UHYVE_PORT_WRITE	= 0x499,
-	UHYVE_PORT_OPEN		= 0x500,
-	UHYVE_PORT_CLOSE	= 0x501,
-	UHYVE_PORT_READ		= 0x502,
-	UHYVE_PORT_EXIT		= 0x503,
-	UHYVE_PORT_LSEEK	= 0x504,
+	UHYVE_PORT_WRITE		= 0x499,
+	UHYVE_PORT_OPEN			= 0x500,
+	UHYVE_PORT_CLOSE		= 0x501,
+	UHYVE_PORT_READ			= 0x502,
+	UHYVE_PORT_EXIT			= 0x503,
+	UHYVE_PORT_LSEEK		= 0x504,
 	/* 0x505 to 0x508 are taken by uhyve network commands */
-	UHYVE_PORT_UNLINK	= 0x509,
-	UHYVE_PORT_FCNTL	= 0x510,
-	UHYVE_PORT_CMDSIZE	= 0x511,
-	UHYVE_PORT_CMDVAL	= 0x512,
-	UHYVE_PORT_FSTAT	= 0x513,
-	UHYVE_PORT_GETCWD	= 0x514,
-	UHYVE_PORT_MKDIR    = 0x515,
-	UHYVE_PORT_RMDIR    = 0x516,
-	UHYVE_PORT_ACCESS   = 0x517
+	UHYVE_PORT_UNLINK		= 0x509,
+	UHYVE_PORT_GETDENTS64	= 0x510,
+	UHYVE_PORT_CMDSIZE		= 0x511,
+	UHYVE_PORT_CMDVAL		= 0x512,
+	UHYVE_PORT_FSTAT		= 0x513,
+	UHYVE_PORT_GETCWD		= 0x514,
+	UHYVE_PORT_MKDIR    	= 0x515,
+	UHYVE_PORT_RMDIR    	= 0x516,
+	UHYVE_PORT_ACCESS   	= 0x517,
+	UHYVE_PORT_PFAULT   	= 0x518,
+	UHYVE_PORT_FAULT   		= 0x519,
+	UHYVE_PORT_READLINK 	= 0x520,
+	UHYVE_PORT_MINIFS_LOAD 	= 0x521,
+	UHYVE_PORT_FCNTL		= 0x522,
+	UHYVE_PORT_OPENAT		= 0x523
 } uhyve_syscall_t;
 
 typedef struct {
 	int fd;
 	const char* buf;
 	size_t len;
+	int ret;
 } __attribute__((packed)) uhyve_write_t;
 
 typedef struct {
 	const char* pathname;
 	int ret;
 } __attribute__((packed)) uhyve_unlink_t;
-
-typedef struct {
-	unsigned int fd;
-	unsigned int cmd;
-	unsigned long arg;
-	int ret;
-
-} __attribute__ ((packed)) uhyve_fcntl_t;
 
 typedef struct {
 	const char* name;
@@ -126,4 +125,49 @@ typedef struct {
 	int ret;
 } __attribute__((packed)) uhyve_access_t;
 
+typedef struct {
+	uint64_t rip;
+	uint64_t addr;
+} __attribute__ ((packed)) uhyve_pfault_t;
+
+typedef struct {
+	uint64_t rip;
+	uint32_t int_no;
+} __attribute__ ((packed)) uhyve_fault_t;
+
+typedef struct {
+	char *path;
+	char* buf;
+	int bufsz;
+	ssize_t ret;
+} __attribute__((packed)) uhyve_readlink_t;
+
+/* Warning: this needs to be consistent with what is in kernel/minifs.c! */
+#define MINIFS_LOAD_MAXPATH		128
+typedef struct {
+	char hostpath[MINIFS_LOAD_MAXPATH];
+	char guestpath[MINIFS_LOAD_MAXPATH];
+} __attribute__((packed)) uhyve_minifs_load_t;
+
+typedef struct {
+	int fd;
+	struct linux_dirent64 *dirp;
+	unsigned int count;
+	int ret;
+} __attribute__((packed)) uhyve_getdeents64_t;
+
+typedef struct {
+	int fd;
+	unsigned int cmd;
+	unsigned long arg;
+	int ret;
+} __attribute__((packed)) uhyve_fcntl_t;
+
+typedef struct {
+	int dirfd;
+	const char* name;
+	int flags;
+	int mode;
+	int ret;
+} __attribute__((packed)) uhyve_openat_t;
 #endif // UHYVE_SYSCALLS_H

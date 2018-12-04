@@ -1,10 +1,26 @@
 #include <hermit/syscall.h>
 
+extern unsigned long long syscall_boot_tsc;
+extern unsigned long long syscall_freq;
+
+inline static unsigned long long t_rdtsc(void)
+{
+	unsigned int lo, hi;
+
+	asm volatile ("rdtsc" : "=a"(lo), "=d"(hi) :: "memory");
+
+	return ((unsigned long long)hi << 32ULL | (unsigned long long)lo);
+}
+
 int sys_time(long *tloc) {
-	struct timeval tv;
 
-	if(sys_gettimeofday(&tv, NULL) != 0)
-		return -ENOSYS;
+	long sec;
 
-	return tv.tv_sec;
+	unsigned long long diff = t_rdtsc() - syscall_boot_tsc;
+	sec = diff/syscall_freq;
+
+	if(tloc)
+		*tloc = sec;
+
+	return sec;
 }

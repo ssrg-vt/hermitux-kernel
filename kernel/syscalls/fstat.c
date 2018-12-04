@@ -2,10 +2,11 @@
 #include <asm/uhyve.h>
 #include <asm/page.h>
 #include <hermit/logging.h>
+#include <hermit/minifs.h>
 
 typedef unsigned int dev_t;
 typedef unsigned int ino_t;
-typedef unsigned short mode_t;
+typedef unsigned mode_t;
 typedef unsigned int nlink_t;
 typedef unsigned int uid_t;
 typedef unsigned short gid_t;
@@ -40,18 +41,28 @@ typedef struct {
 
 int sys_fstat(int fd, struct stat *buf)
 {
-	
-	if(is_uhyve()) {
-		uhyve_fstat_t uhyve_args = {fd, -1, 
+	if(minifs_enabled) {
+		LOG_ERROR("fstat: not supported with minifs\n");
+		return -ENOSYS;
+	}
+
+	if(unlikely(!buf)) {
+		LOG_ERROR("fstat: called with buf argument null\n");
+		return -EINVAL;
+	}
+
+	if(likely(is_uhyve())) {
+		uhyve_fstat_t uhyve_args = {fd, -1,
 			(struct stat *)virt_to_phys((size_t)buf)};
 
-		uhyve_send(UHYVE_PORT_FSTAT, 
+		uhyve_send(UHYVE_PORT_FSTAT,
 				(unsigned)virt_to_phys((size_t)&uhyve_args));
 
 		return uhyve_args.ret;
 	}
 
 	/* qemu not supported yet */
+	LOG_ERROR("fstat: not supported with qemu isle\n");
 	return -ENOSYS;
 }
 

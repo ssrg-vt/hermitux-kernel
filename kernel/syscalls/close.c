@@ -3,6 +3,7 @@
 #include <asm/uhyve.h>
 #include <asm/page.h>
 #include <hermit/logging.h>
+#include <hermit/minifs.h>
 
 extern spinlock_irqsave_t lwip_lock;
 extern volatile int libc_sd;
@@ -21,9 +22,27 @@ typedef struct {
         int ret;
 } __attribute__((packed)) uhyve_close_t;
 
+extern int hermit_close(int fd);
+
 int sys_close(int fd)
 {
-	if (is_uhyve()) {
+
+	if (likely(is_uhyve())) {
+
+#ifndef NO_NET
+		// do we have an LwIP file descriptor?
+		if (fd & LWIP_FD_BIT) {
+			int ret = hermit_close(fd);
+			if (ret < 0)
+				return -errno;
+
+			return ret;
+		}
+#endif
+
+		if(minifs_enabled)
+			return minifs_close(fd);
+
 		uhyve_close_t uhyve_close = {fd, -1};
 
 		uhyve_send(UHYVE_PORT_CLOSE, (unsigned)virt_to_phys((size_t) &uhyve_close));
@@ -64,7 +83,7 @@ out:
 
 #else /*NO_NET */
 
-	LOG_ERROR("Network disabled, cannot use qemu isle\n");
+	LOG_ERROR("close: network disabled, cannot use qemu isle\n");
 	return -ENOSYS;
 
 #endif /* NO_NET */

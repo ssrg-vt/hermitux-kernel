@@ -1,4 +1,7 @@
 #include <hermit/syscall.h>
+#include <hermit/logging.h>
+#include <asm/uhyve.h>
+#include <asm/page.h>
 
 typedef unsigned int dev_t;
 typedef unsigned int ino_t;
@@ -29,13 +32,57 @@ struct stat {
 	long __unused[3];
 };
 
+typedef struct {
+	int fd;
+	int ret;
+	struct stat *st;
+} __attribute__ ((packed)) uhyve_fstat_t;
+
+typedef struct {
+	const char* name;
+	int flags;
+	int mode;
+	int ret;
+} __attribute__((packed)) uhyve_open_t;
+
+typedef struct {
+        int fd;
+        int ret;
+} __attribute__((packed)) uhyve_close_t;
+
 int sys_lstat(const char* file, struct stat *st)
 {
 	/* FIXME take care of the symbolic link */
 	int fd, ret;
-	/* 0 is O_RDONLY */
-	fd = sys_open(file, 0x0, 0x0);
-	ret = sys_fstat(fd, st);
+
+	if(unlikely(!file || !st)) {
+		LOG_ERROR("lstat: file and/or st is null\n");
+		return -EINVAL;
+	}
+
+	if(unlikely(!is_uhyve())) {
+		LOG_ERROR("lstat: not supported with qemu isle\n");
+		return -EINVAL;
+	}
+
+	/* perform open, 0x0 is O_RDONLY */
+	uhyve_open_t args_o = {(const char *)virt_to_phys((size_t)file), 0x0, 0x0};
+	uhyve_send(UHYVE_PORT_OPEN, (unsigned)virt_to_phys((size_t)&args_o));
+	if(args_o.ret == -1) {
+		LOG_ERROR("fstat: cannot open file\n");
+		return -EINVAL; /* not sure if correct thing to return here ... */
+	}
+	fd = args_o.ret;
+
+	/* perform fstat */
+	uhyve_fstat_t args_f = {fd, -1, (struct stat *)virt_to_phys((size_t)st)};
+	uhyve_send(UHYVE_PORT_FSTAT, (unsigned)virt_to_phys((size_t)&args_f));
+	ret = args_f.ret;
+
+	/* perform close */
+	uhyve_close_t args_c = {fd, -1};
+	uhyve_send(UHYVE_PORT_CLOSE, (unsigned)virt_to_phys((size_t)&args_c));
+
 	return ret;
 }
 

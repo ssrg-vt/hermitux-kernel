@@ -97,6 +97,9 @@ static void timer_handler(struct state *s)
 #endif
 }
 
+/* we can remove this below for hermitux, it is moved to
+ * kernel/syscall/nanosleep.c */
+#if 0
 int timer_wait(unsigned int ticks)
 {
 	uint64_t eticks = per_core(timer_ticks) + ticks;
@@ -129,6 +132,7 @@ int timer_wait(unsigned int ticks)
 
 	return 0;
 }
+#endif
 
 #define LATCH(f)	((CLOCK_TICK_RATE + f/2) / f)
 #define WAIT_SOME_TIME() do { uint64_t start = rdtsc(); mb(); \

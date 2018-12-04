@@ -3,6 +3,7 @@
 #include <asm/page.h>
 #include <hermit/spinlock.h>
 #include <hermit/logging.h>
+#include <hermit/minifs.h>
 
 extern spinlock_irqsave_t lwip_lock;
 extern volatile int libc_sd;
@@ -22,17 +23,21 @@ typedef struct {
 	int fd;
 	const char* buf;
 	size_t len;
+	int ret;
 } __attribute__((packed)) uhyve_write_t;
 
 ssize_t sys_write(int fd, const char* buf, size_t len)
 {
-	if (BUILTIN_EXPECT(!buf, 0))
+	if (unlikely(!buf && len)) {
+		LOG_ERROR("write: buf is null and len is not\n");
 		return -1;
+	}
 
 #ifndef NO_NET
 	ssize_t i, ret;
 	int s;
 	sys_write_t sysargs = {__NR_write, fd, len};
+
 	// do we have an LwIP file descriptor?
 	if (fd & LWIP_FD_BIT) {
 		ret = lwip_write(fd & ~LWIP_FD_BIT, buf, len);
@@ -43,12 +48,16 @@ ssize_t sys_write(int fd, const char* buf, size_t len)
 	}
 #endif
 
-	if (is_uhyve()) {
-		uhyve_write_t uhyve_args = {fd, (const char*) virt_to_phys((size_t) buf), len};
+	if (likely(is_uhyve())) {
+
+		if(minifs_enabled)
+			return minifs_write(fd, buf, len);
+
+		uhyve_write_t uhyve_args = {fd, (const char*) virt_to_phys((size_t) buf), len, -1};
 
 		uhyve_send(UHYVE_PORT_WRITE, (unsigned)virt_to_phys((size_t)&uhyve_args));
 
-		return uhyve_args.len;
+		return uhyve_args.ret;
 	}
 
 #ifndef NO_NET
@@ -91,7 +100,7 @@ ssize_t sys_write(int fd, const char* buf, size_t len)
 	return i;
 
 #endif /* NO_NET */
-	LOG_ERROR("Network disabled, cannot use qemu isle\n");
+	LOG_ERROR("write: network disabled, cannot use qemu isle\n");
 	return -ENOSYS;
 }
 

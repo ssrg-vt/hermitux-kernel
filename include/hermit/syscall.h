@@ -56,10 +56,14 @@ typedef unsigned int tid_t;
 extern "C" {
 #endif
 
+#define likely(x)      __builtin_expect(!!(x), 1)
+#define unlikely(x)    __builtin_expect(!!(x), 0)
+
 struct sem;
 typedef struct sem sem_t;
 
 typedef void (*signal_handler_t)(int);
+typedef unsigned id_t;
 
 /*
  * HermitCore is a libOS.
@@ -67,12 +71,16 @@ typedef void (*signal_handler_t)(int);
  * => forward declaration of system calls as function
  */
 tid_t sys_getpid(void);
+tid_t sys_getppid(void);
 int sys_fork(void);
 int sys_wait(int* status);
 int sys_execve(const char* name, char * const * argv, char * const * env);
 int sys_getprio(tid_t* id);
+int sys_getpriority(int which, id_t who);
 int sys_setprio(tid_t* id, int prio);
+int sys_setpriority(int which, id_t who, int prio);
 void NORETURN sys_exit(int arg);
+void NORETURN sys_exit_group(int arg);
 ssize_t sys_read(int fd, char* buf, size_t len);
 ssize_t sys_write(int fd, const char* buf, size_t len);
 ssize_t sys_sbrk(ssize_t incr);
@@ -85,7 +93,8 @@ int sys_sem_wait(sem_t* sem);
 int sys_sem_post(sem_t* sem);
 int sys_sem_timedwait(sem_t *sem, unsigned int ms);
 int sys_sem_cancelablewait(sem_t* sem, unsigned int ms);
-int sys_clone(tid_t* id, void* ep, void* argv);
+int sys_clone(unsigned long clone_flags, void *stack, int *ptid, int *ctid,
+		void *arg, void *ep);
 off_t sys_lseek(int fd, off_t offset, int whence);
 size_t sys_get_ticks(void);
 int sys_rcce_init(int session_id);
@@ -103,7 +112,12 @@ struct timespec;
 struct timeval;
 struct sigaction;
 struct sockaddr;
+struct rlimit;
+struct sysinfo;
+struct linux_dirent64;
+typedef struct fd_set fd_set;
 typedef unsigned short umode_t;
+typedef uint32_t socklen_t;
 
 int sys_ioctl(unsigned int fd, unsigned int cmd, unsigned long arg);
 int sys_writev(int fd, const struct iovec *iov, unsigned long vlen);
@@ -112,20 +126,21 @@ int sys_clock_gettime(clockid_t clk_id, struct timespec *tp);
 int sys_gettimeofday(struct timeval *tv, struct timezone *tz);
 int sys_nanosleep(struct timespec *req, struct timespec *rem);
 ssize_t sys_brk(ssize_t val);
-int sys_fcntl(unsigned int fd, unsigned int cmd, unsigned long arg);
+int sys_fcntl(int fd, unsigned int cmd, unsigned long arg);
 int sys_unlink(const char *pathname);
-int sys_arch_prctl(int option, unsigned long *arg2, struct state *s);
+int sys_arch_prctl(int option, unsigned long *arg2, unsigned long *addr);
 int sys_uname(struct utsname *buf);
 int sys_fstat(int fd, struct stat *buf);
 int sys_stat(const char *pathname, struct stat *buf);
 int sys_lstat(const char *pathname, struct stat *buf);
 int sys_getcwd(char *buf, size_t size);
-int sys_rt_sigaction(int signum, const struct sigaction *act, 
+int sys_rt_sigaction(int signum, struct sigaction *act,
 		struct sigaction *oldact);
 int sys_socket(int domain, int type, int protocol);
 int sys_bind(int fd, struct sockaddr *addr, int addrlen);
-int sys_setsockopt(int fd, int level, int optname, char *optval, int optlen);
-size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot, 
+int sys_setsockopt(int fd, int level, int optname, char *optval,
+		socklen_t optlen);
+size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 		unsigned long flags, unsigned long fd, unsigned long off);
 int sys_mkdir(const char *pathname, umode_t mode);
 int sys_rmdir(const char *pathname);
@@ -136,13 +151,53 @@ int sys_getgid(void);
 int sys_getegid(void);
 int sys_openat(int dirfd, const char *pathname, int flags, int mode);
 int sys_tgkill(int tgid, int tid, int sig);
-int sys_readlink(const char *path, char *buf, int bufsiz);
+int sys_readlink(char *path, char *buf, int bufsiz);
 int sys_access(const char *pathname, int mode);
 int sys_time(long *tloc);
-int sys_sched_setaffinity(int pid, unsigned int len, 
+int sys_sched_setaffinity(int pid, unsigned int len,
 		unsigned long *user_mask_ptr);
 long sys_mprotect(size_t addr, size_t len, unsigned long prot);
 int sys_munmap(size_t viraddr, size_t len);
+int sys_sched_getaffinity(int pid, unsigned int len,
+		unsigned long *user_mask_ptr);
+int sys_futex(int *uaddr, int futex_op, int val, const struct timespec *timeout,
+		int *uaddr2, int val3);
+int sys_sched_yield(void);
+long sys_getrlimit(unsigned int resource, struct rlimit *rlim);
+long sys_get_robust_list(int pid, void *head_ptr, size_t *len_ptr);
+long sys_set_robust_list(void *head, size_t len);
+int sys_sysinfo(struct sysinfo *info);
+int sys_prlimit64(int pid, unsigned int resource, struct rlimit *new_rlim,
+		struct rlimit *old_rlim);
+int sys_clock_getres(clockid_t id, struct timespec *tp);
+int sys_sethostname(char *name, size_t len);
+int sys_setrlimit(int resource, const struct rlimit *rlim);
+int sys_tkill(int tid, int sig);
+int sys_gettid(void);
+int sys_mincore(unsigned long start, size_t len, unsigned char *vec);
+long sys_sigaltstack(const stack_t *ss, stack_t *oss);
+int sys_select(int maxfdp1, fd_set *readset, fd_set *writeset,
+		fd_set *exceptset, struct timeval *timeout);
+int sys_sendto(int s, const void *dataptr, size_t size, int flags,
+		const struct sockaddr *to, socklen_t tolen);
+int sys_chdir(const char *path);
+int sys_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
+int sys_accept(int s, struct sockaddr *addr, socklen_t *addrlen);
+int sys_recvfrom(int s, void *mem, size_t len, int flags,
+		struct sockaddr *from, socklen_t *fromlen);
+int sys_shutdown(int socket, int how);
+int sys_listen(int s, int backlog);
+int sys_getsockname(int s, struct sockaddr *name, socklen_t *namelen);
+int sys_getpeername(int s, struct sockaddr *name, socklen_t *namelen);
+int sys_getdents64(unsigned int fd, struct linux_dirent64 *dirp,
+		unsigned int count);
+size_t sys_sendfile(int out_fd, int in_fd, off_t *offset, size_t count);
+size_t sys_pread64(int fd, void *buf, size_t count, off_t offset);
+size_t sys_pwrite64(int fd, const void *buf, size_t count, off_t offset);
+size_t sys_mremap(unsigned long addr, unsigned long old_len, unsigned long new_len,
+		unsigned long flags, unsigned long new_addr);
+int sys_umask(int mask);
+int sys_setsid(void);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;

@@ -100,6 +100,19 @@ static int thread_entry(void* arg, size_t ep)
 	return 0;
 }
 
+static int hermitux_thread_entry(void* arg, size_t ep, void *tls)
+{
+
+	/* Uncomment this if it becomes necessary to keep the two swapgs
+	 * instructions (currently commented) in isyscall */
+	/* asm("swapgs"); */
+
+	entry_point_t call_ep = (entry_point_t) ep;
+	call_ep(arg);
+
+	return 0;
+}
+
 int is_proxy(void)
 {
 	if (is_uhyve())
@@ -131,7 +144,7 @@ size_t* get_current_stack(void)
 	return curr_task->last_stack_pointer;
 }
 
-int create_default_frame(task_t* task, entry_point_t ep, void* arg, uint32_t core_id)
+int create_default_frame(task_t* task, entry_point_t ep, void* arg, uint32_t core_id, void *fs)
 {
 	size_t *stack;
 	struct state *stptr;
@@ -178,11 +191,25 @@ int create_default_frame(task_t* task, entry_point_t ep, void* arg, uint32_t cor
 	/* The instruction pointer shall be set on the first function to be called
 	   after IRETing */
 	stptr->rip = (size_t)thread_entry;
+
+	/* If the fs parameter is set, we are creating a secondary thread through
+	 * the clone syscall and fs needs to point to a specific tls area provided
+	 * by the C library, so we don't use the regular thread entry point that
+	 * would set an incorrect value for fs */
+	if(fs)
+		stptr->rip = (size_t)hermitux_thread_entry;
+
 	stptr->rsi = (size_t)ep; // use second argument to transfer the entry point
 
 	stptr->cs = 0x08;
 	stptr->ss = 0x10;
 	stptr->gs = core_id * ((size_t) &percore_end0 - (size_t) &percore_start);
+
+	/* If we are creating a new thread, fs will be set to the corresponding area
+	 * allocated by the C library */
+	if(fs)
+		stptr->fs = (size_t)fs;
+
 	stptr->rflags = 0x1202;
 	stptr->userrsp = stptr->rsp;
 
@@ -196,6 +223,9 @@ int create_default_frame(task_t* task, entry_point_t ep, void* arg, uint32_t cor
 
 void wait_for_task(void)
 {
+	/* Speeds up network programs */
+	return;
+#if 0
 #ifndef USE_MWAIT
 	HALT;
 #else
@@ -210,6 +240,7 @@ void wait_for_task(void)
 		monitor(queue, 0, 0);
 		mwait(0x2 /* 0x2 = c3, 0xF = c0 */, 1 /* break on interrupt flag */);
 	}
+#endif
 #endif
 }
 

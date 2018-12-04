@@ -14,16 +14,14 @@
 #define ARCH_MAP_VDSO_32	0x2002
 #define ARCH_MAP_VDSO_64	0x2003
 
-int sys_arch_prctl(int option, unsigned long *arg2, struct state *s) {
+int sys_arch_prctl(int option, unsigned long *arg2, unsigned long *addr) {
 
 	switch(option) {
 		case ARCH_SET_GS:
-//			s->gs = (uint64_t)arg2;
 			writegs((uint64_t)arg2);
 			return 0;
 
 		case ARCH_SET_FS:
-//			s->fs = (uint64_t)arg2;
 			writefs((uint64_t)arg2);
 			return 0;
 
@@ -63,7 +61,7 @@ int sys_arch_prctl(int option, unsigned long *arg2, struct state *s) {
 			LOG_ERROR("arch_prctl: unknown option 0x%x\n", option);
 			return -EINVAL;
 	}
-	
+
 	return -ENOSYS;
 }
 

@@ -41,11 +41,14 @@
 #endif /* NO_IRCCE */
 
 #include <hermit/logging.h>
+#include <hermit/minifs.h>
 #include <asm/irq.h>
 #include <asm/page.h>
 #include <asm/uart.h>
 #include <asm/multiboot.h>
 #include <asm/uhyve.h>
+
+#include <hermit/hermitux_profiler.h>
 
 #ifndef NO_NET
 #include <lwip/init.h>
@@ -72,8 +75,14 @@
 #define HERMIT_PORT	0x494E
 #define HERMIT_MAGIC	0x7E317
 
+#ifndef DISABLE_SYS_GETTIMEOFDAY
 /* gettimeofday init function */
 extern void gettimeofday_init(void);
+#endif
+
+#ifndef DISABLE_SYS_CLOCK_GETTIME
+extern void clock_gettime_init(void);
+#endif
 
 #ifndef NO_NET
 static struct netif	default_netif;
@@ -153,6 +162,9 @@ static int hermit_init(void)
 #ifndef NO_SIGNAL
 	signal_init();
 #endif /* NO_SIGNAL */
+
+	if(hermitux_profiler_init())
+		return -1;
 
 	return 0;
 }
@@ -364,6 +376,7 @@ static int init_rcce(void)
 #endif /* NO_IRCCE */
 
 int libc_start(int argc, char** argv, char** env);
+extern void syscall_timing_init();
 
 // init task => creates all other tasks an initialize the LwIP
 static int initd(void* arg)
@@ -418,8 +431,7 @@ static int initd(void* arg)
 	err = init_netifs();
 #endif /* NO_NET */
 
-	/* initialize gettimeofday */
-	gettimeofday_init();
+	syscall_timing_init();
 
 	if(is_uhyve()) {
 		int i;
@@ -447,11 +459,18 @@ static int initd(void* arg)
 		for(i=0; i<uhyve_cmdsize.envc-1; i++)
 			uhyve_cmdval_phys.envp[i] = (char*) virt_to_phys((size_t) uhyve_cmdval.envp[i]);
 		// the last element is always NULL
-		uhyve_cmdval_phys.envp[uhyve_cmdsize.envc-1] = NULL;
+		uhyve_cmdval.envp[uhyve_cmdsize.envc-1] = NULL;
 		uhyve_cmdval_phys.envp = (char**) virt_to_phys((size_t) uhyve_cmdval_phys.envp);
 
 		uhyve_send(UHYVE_PORT_CMDVAL,
 				(unsigned)virt_to_phys((size_t)&uhyve_cmdval_phys));
+
+		/* If we use minifs the guest has no visibility on the host filesystem,
+		 * but the hermitux loader needs access to the application binary to
+		 * load the program headers. Thus, we move the binary into the minifs
+		 * image here */
+		if(minifs_enabled)
+			minifs_load_from_host(uhyve_cmdval.argv[1], uhyve_cmdval.argv[1]);
 
 		LOG_INFO("Boot time: %d ms\n", (get_clock_tick() * 1000) / TIMER_FREQ);
 		libc_start(uhyve_cmdsize.argc, uhyve_cmdval.argv, uhyve_cmdval.envp);
@@ -678,6 +697,11 @@ int hermit_main(void)
 
 	print_status();
 	//vma_dump();
+
+	if(minifs_enabled && minifs_init()) {
+		LOG_ERROR("Cannot initialize minifs\n");
+		sys_exit(-1);
+	}
 
 	create_kernel_task_on_core(NULL, initd, NULL, NORMAL_PRIO, boot_processor);
 

@@ -77,6 +77,14 @@ align 4
     global hcmask
     global tux_entry
     global tux_size
+    global tux_gdb
+    global tux_prof_samples
+    global tux_prof_samples_num
+	global minifs_enabled
+	global tux_start_address
+	global tux_ehdr_phoff
+	global tux_ehdr_phnum
+	global tux_ehdr_phentsize
     base dq 0
     limit dq 0
     cpu_freq dd 0
@@ -110,6 +118,14 @@ align 4
 align 8
     tux_entry dq 0
     tux_size dq 0
+    tux_gdb db 0
+    tux_prof_samples dq 0
+    tux_prof_samples_num dq 0
+    minifs_enabled db 0
+	tux_start_address dq 0
+	tux_ehdr_phoff dq 0
+	tux_ehdr_phnum dq 0
+	tux_ehdr_phentsize dq 0
 
 ; Bootstrap page tables are used during the initialization.
 align 4096
@@ -465,7 +481,9 @@ isyscall:
     push r15
     push 0 ; dummy fs
     push 0 ; dummy gs
-    swapgs
+   ;swapgs ; Pierre: I believe this is not needed (it actually causes issues
+			; with SMP and threads created through clone task as gs becomes 0
+			; on the first syscall when entering the kerne)
 
     ; set pointer at "struct state" as first argument
     mov rdi, rsp
@@ -475,7 +493,7 @@ isyscall:
     call syscall_handler
 
     cli
-    swapgs
+    ;swapgs ; Pierre: I think this is not needed
     add rsp, 16
     pop r15
     pop r14

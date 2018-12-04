@@ -1,6 +1,8 @@
 #include <hermit/syscall.h>
 #include <hermit/tasks.h>
 
+/* not a Linux syscall */
+
 void sys_yield(void)
 {
 #if 0

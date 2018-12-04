@@ -33,8 +33,7 @@
 #include <hermit/errno.h>
 #include <hermit/logging.h>
 
-// Linux applications are always located at address 0x400000
-#define tux_start_address	0x400000
+extern uint64_t tux_start_address;
 
 /*
  * Note that linker symbols are not variables, they have no memory allocated for
@@ -83,7 +82,7 @@ int vma_init(void)
 				goto out;
 
 		// reserve space for the heap
-		ret = vma_add(PAGE_CEIL(tux_start_address + tux_size),
+		ret = vma_add(PAGE_CEIL(tux_start_address + tux_size) + 4*PAGE_SIZE,
 			HEAP_START+HEAP_SIZE, VMA_NO_ACCESS);
 		if (BUILTIN_EXPECT(ret, 0))
 			goto out;
@@ -302,6 +301,24 @@ static void print_vma(vma_t *vma)
 			(vma->flags & VMA_CACHEABLE) ? "" : " (uncached)");
 		vma = vma->next;
 	}
+}
+
+int vma_is_free(size_t start, size_t size) {
+	vma_t *vma = vma_list;
+
+	spinlock_irqsave_lock(&hermit_mm_lock);
+	while(vma) {
+		if((start >= vma->start && start < vma->end) ||
+				((start+size-1) >= vma->start && (start+size-1) < vma->end)) {
+			spinlock_irqsave_unlock(&hermit_mm_lock);
+			return 0;
+		}
+
+		vma = vma->next;
+	}
+	spinlock_irqsave_unlock(&hermit_mm_lock);
+
+	return 1;
 }
 
 void vma_dump(void)

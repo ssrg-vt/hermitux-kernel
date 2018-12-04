@@ -61,8 +61,8 @@
 #include <sys/eventfd.h>
 #include <linux/const.h>
 #include <linux/kvm.h>
-#include <asm/msr-index.h>
 #include <asm/mman.h>
+#include <sys/syscall.h>
 
 #include "uhyve.h"
 #include "uhyve-cpu.h"
@@ -71,6 +71,8 @@
 #include "uhyve-elf.h"
 #include "proxy.h"
 #include "uhyve-gdb.h"
+#include "uhyve-msr.h"
+#include "uhyve-profiler.h"
 
 #include "miniz.h"
 #include "mini_gzip.h"
@@ -78,7 +80,7 @@
 #include "uhyve-seccomp.h"
 
 // define this macro to create checkpoints with KVM's dirty log
-//#define USE_DIRTY_LOG
+#define USE_DIRTY_LOG
 
 #define MAX_FNAME	256
 #define MAX_MSR_ENTRIES	25
@@ -175,12 +177,13 @@ static bool cap_vapic = false;
 static bool full_checkpoint = false;
 static uint32_t ncores = 1;
 static uint8_t* klog = NULL;
-static uint8_t* mboot = NULL;
+uint8_t* mboot = NULL;
 static uint64_t elf_entry;
 static pthread_t* vcpu_threads = NULL;
 static pthread_t net_thread;
 static int* vcpu_fds = NULL;
-static int kvm = -1, vmfd = -1, netfd = -1, efd = -1;
+static int kvm = -1, efd = -1;
+int vmfd = -1, netfd = -1;
 static uint32_t no_checkpoint = 0;
 static pthread_mutex_t kvm_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_barrier_t barrier;
@@ -189,7 +192,10 @@ static __thread int vcpufd = -1;
 static __thread uint32_t cpuid = 0;
 static sem_t net_sem;
 static bool uhyve_gdb_enabled = false;
+static bool uhyve_profiler_enabled = false;
 bool uhyve_seccomp_enabled = false;
+char htux_bin[PATH_MAX+1];
+char htux_kernel[PATH_MAX+1];
 
 size_t guest_size = 0x20000000ULL;
 uint8_t* guest_mem = NULL;
@@ -275,6 +281,9 @@ static void uhyve_atexit(void)
 {
 	uhyve_exit(NULL);
 
+	if(uhyve_profiler_enabled)
+		uhyve_profiler_exit();
+
 	if (vcpu_threads) {
 		for(uint32_t i = 0; i < ncores; i++) {
 			if (pthread_self() == vcpu_threads[i])
@@ -320,8 +329,8 @@ static int load_kernel(uint8_t* mem, const char* path)
 		int fd, ret;
 		int output_file_size = 5*1024*1024;
 
-		printf("COMPRESSED\n");
-		
+		printf("Compressed kernel detected, uncompressing...\n");
+
 		fd = open(path, O_RDONLY);
 		if(fd == -1) {
 			fprintf(stderr, "open %s: %s\n", path, strerror(errno));
@@ -348,7 +357,7 @@ static int load_kernel(uint8_t* mem, const char* path)
 			fprintf(stderr, "error init uncompressing %s\n", path);
 			close(fd); goto out;
 		}
-		
+
 		mini_gz_unpack(&gz, compr_out, 5*1024*1024);
 	}
 
@@ -475,6 +484,12 @@ static int load_kernel(uint8_t* mem, const char* path)
 		}
 		total_size += memsz; // total kernel size
 		*((uint64_t*) (mem+paddr-GUEST_OFFSET + 0x38)) = total_size;
+
+		/* Enable minifs or not */
+		char *str = getenv("HERMIT_MINIFS");
+		if(str && atoi(str))
+			*((uint8_t*) (mem+paddr-GUEST_OFFSET + 0xE1)) = (uint8_t)1;
+
 	}
 
 out:
@@ -520,9 +535,24 @@ static int load_checkpoint(uint8_t* mem, const char* path)
 	 * and aren't able to detect by KVM's dirty page logging
 	 * technique.
 	 */
+	const char* hermit_tux;
+
 	ret = load_kernel(mem, path);
 	if (ret)
 		return ret;
+
+	hermit_tux = getenv("HERMIT_TUX");
+	if (hermit_tux)
+	{
+		if (htux_bin == NULL) {
+			fprintf(stderr, "Name of the ELF file is missing!\n");
+			exit(EXIT_FAILURE);
+		}
+
+		if (uhyve_elf_loader(htux_bin) < 0)
+			exit(EXIT_FAILURE);
+	}
+
 #endif
 
 	i = full_checkpoint ? no_checkpoint : 0;
@@ -893,9 +923,9 @@ static int vcpu_loop(void)
 
 				ret = write(uhyve_write->fd, guest_mem+(size_t)uhyve_write->buf, uhyve_write->len);
 				if(ret == -1)
-					uhyve_write->len = -errno;
+					uhyve_write->ret = -errno;
 				else
-					uhyve_write->len = ret;
+					uhyve_write->ret = ret;
 				break;
 				}
 
@@ -905,7 +935,7 @@ static int vcpu_loop(void)
 				uhyve_read_t* uhyve_read = (uhyve_read_t*) (guest_mem+data);
 
 				ret = read(uhyve_read->fd, guest_mem+(size_t)uhyve_read->buf, uhyve_read->len);
-				if(ret == -1) 
+				if(ret == -1)
 					uhyve_read->ret = -errno;
 				else
 					uhyve_read->ret = ret;
@@ -917,8 +947,9 @@ static int vcpu_loop(void)
 
 					if (cpuid)
 						pthread_exit((int*)(guest_mem+data));
-					else
+					else {
 						exit(*(int*)(guest_mem+data));
+					}
 					break;
 				}
 
@@ -957,13 +988,13 @@ static int vcpu_loop(void)
 				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
 				uhyve_unlink_t *uhyve_unlink = (uhyve_unlink_t *) (guest_mem+data);
 
-				uhyve_unlink->ret = 
+				uhyve_unlink->ret =
 				ret = unlink((const char *)guest_mem+(size_t)uhyve_unlink->pathname);
 				if(ret == -1)
 					uhyve_unlink->ret = -errno;
 				else
 					uhyve_unlink->ret = ret;
-					break;	
+					break;
 				}
 
 			case UHYVE_PORT_MKDIR: {
@@ -976,7 +1007,7 @@ static int vcpu_loop(void)
 					break;
 
 			}
-								   
+
 			case UHYVE_PORT_RMDIR: {
 				int ret;
 				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
@@ -991,7 +1022,7 @@ static int vcpu_loop(void)
 				int ret;
 				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
 				uhyve_fstat_t *uhyve_fstat = (uhyve_fstat_t *) (guest_mem+data);
-				
+
 				ret = fstat(uhyve_fstat->fd, (struct stat *)(guest_mem+(size_t)uhyve_fstat->st));
 
 				uhyve_fstat->ret = (ret == -1) ? -errno : ret;
@@ -1001,18 +1032,9 @@ static int vcpu_loop(void)
 			case UHYVE_PORT_GETCWD: {
 				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
 				uhyve_getcwd_t *uhyve_getcwd = (uhyve_getcwd_t *) (guest_mem+data);
-				
+
 				getcwd((char *)(guest_mem+(size_t)uhyve_getcwd->buf), uhyve_getcwd->size);
 				break;
-			}
-
-			case UHYVE_PORT_FCNTL: {
-					unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
-					uhyve_fcntl_t *uhyve_fcntl = (uhyve_fcntl_t *) (guest_mem+data);
-
-					uhyve_fcntl->ret = fcntl(uhyve_fcntl-> fd, 
-							uhyve_fcntl->cmd, uhyve_fcntl->arg);
-					break;
 			}
 
 			case UHYVE_PORT_CLOSE: {
@@ -1026,6 +1048,32 @@ static int vcpu_loop(void)
 				}
 				else
 					uhyve_close->ret = 0;
+				break;
+				}
+
+			case UHYVE_PORT_GETDENTS64: {
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_getdeents64_t* arg = (uhyve_getdeents64_t*) (guest_mem+data);
+
+				arg->ret = syscall(SYS_getdents64, arg->fd,
+						guest_mem+(size_t)arg->dirp, arg->count);
+				break;
+				}
+
+			case UHYVE_PORT_FCNTL: {
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_fcntl_t* arg = (uhyve_fcntl_t*) (guest_mem+data);
+
+				arg->ret = fcntl(arg->fd, arg->cmd, arg->arg);
+				break;
+				}
+
+			case UHYVE_PORT_OPENAT: {
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_openat_t* arg = (uhyve_openat_t*) (guest_mem+data);
+
+				arg->ret = openat(arg->dirfd, guest_mem+(size_t)arg->name,
+						arg->flags,	arg->mode);
 				break;
 				}
 
@@ -1128,6 +1176,131 @@ static int vcpu_loop(void)
 
 					break;
 				}
+
+			case UHYVE_PORT_PFAULT: {
+				char addr2line_call[128];
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_pfault_t *arg = (uhyve_pfault_t *)(guest_mem + data);
+				fprintf(stderr, "GUEST PAGE FAULT @0x%x (RIP @0x%x)\n",
+						arg->addr, arg->rip);
+				sprintf(addr2line_call, "addr2line -a %x -e %s\n", arg->rip,
+						(arg->rip >= tux_start_address) ? htux_bin :
+						htux_kernel);
+				system(addr2line_call);
+
+				break;
+				}
+
+			case UHYVE_PORT_FAULT: {
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_fault_t *arg = (uhyve_fault_t *)(guest_mem + data);
+
+				fprintf(stderr, "GUEST EXCEPTION %u (RIP @0x%x)\n", arg->int_no,
+						arg->rip);
+
+				break;
+				}
+
+			case UHYVE_PORT_READLINK: {
+				int ret;
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_readlink_t *arg = (uhyve_readlink_t *)(guest_mem + data);
+
+				/* many programs access the application binary not through
+				 * argv[0] but through /proc/self/exec, for us it is actually
+				 * proxy so we need to correct that */
+				if(!strcmp(guest_mem+(size_t)arg->path, "/proc/self/exe")) {
+					char abspath[256];
+					realpath(htux_bin, abspath);
+
+					if(arg->bufsz > strlen(abspath)) {
+						strcpy(guest_mem+(size_t)arg->buf, abspath);
+						arg->ret = strlen(abspath);
+					}
+					else
+						arg->ret = -1;
+
+					break;
+
+				}
+
+				ret = readlink(guest_mem+(size_t)arg->path,
+						guest_mem+(size_t)arg->buf, arg->bufsz);
+
+				arg->ret = (ret == -1) ? -errno : ret;
+				break;
+				}
+
+			/* When using minifs, we can load some files from the host, in that
+			 * case the env. varian;e HERMIT_MINIFS_HOSTLOAD must be set with
+			 * a path to a 'listing' file that has one line per file to laod
+			 * from the host into the guest minifs, with the following format:
+			 * <source file on the host>;<target path on the guest> */
+			case UHYVE_PORT_MINIFS_LOAD: {
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_minifs_load_t *arg = (uhyve_minifs_load_t *)(guest_mem + data);
+				static FILE *minifs_fp = NULL;
+				size_t len, bytes_read = 0;
+				char *line = NULL;
+				char *filename = getenv("HERMIT_MINIFS_HOSTLOAD");
+
+				if(!minifs_fp) {
+					if(filename)
+						minifs_fp = fopen(filename, "r");
+
+					if(!minifs_fp) {
+						/* Could not open the listing ile, or no listing file
+						 * provided, we indicate to the guest that we're done */
+						arg->hostpath[0] = arg->guestpath[0] = '\0';
+						break;
+					}
+				}
+
+				/* Comments in this file are lines starting with '#' */
+				do
+					bytes_read = getline(&line, &len, minifs_fp);
+				while (line[0] == '#' && bytes_read != -1);
+
+				if(bytes_read == -1) {
+					/* End of file, we are done */
+					arg->hostpath[0] = arg->guestpath[0] = '\0';
+					fclose(minifs_fp);
+					break;
+				} else {
+					int guestpath_offset, i = 0;
+
+					/* Set the host path */
+					while(line[i] != ';') {
+						if(i >= MINIFS_LOAD_MAXPATH) {
+							fprintf(stderr, "minifs load from %s: % too long\n",
+									filename, "hostpath");
+							arg->hostpath[0] = arg->guestpath[0] = '\0';
+							break;
+						}
+
+						arg->hostpath[i] = line[i];
+						i++;
+					}
+
+					/* Set the guest path */
+					arg->hostpath[i++] = '\0';
+					guestpath_offset = i;
+					while(line[i] != '\n') {
+						if((i-guestpath_offset) >= MINIFS_LOAD_MAXPATH) {
+							fprintf(stderr, "minifs load from %s: % too long\n",
+									filename, "hostpath");
+							arg->hostpath[0] = arg->guestpath[0] = '\0';
+							break;
+						}
+
+						arg->guestpath[i-guestpath_offset] = line[i];
+						i++;
+					}
+					arg->guestpath[i-guestpath_offset] = '\0';
+				}
+
+				break;
+			}
 
 			default:
 				err(1, "KVM: unhandled KVM_EXIT_IO at port 0x%x, direction %d\n", run->io.port, run->io.direction);
@@ -1408,7 +1581,7 @@ int uhyve_init(char** argv)
 		fscanf(f, "number of cores: %u\n", &ncores);
 		fscanf(f, "memory size: 0x%zx\n", &guest_size);
 		fscanf(f, "checkpoint number: %u\n", &no_checkpoint);
-		fscanf(f, "entry point: 0x%zx", &elf_entry);
+		fscanf(f, "entry point: 0x%zx\n", &elf_entry);
 		fscanf(f, "full checkpoint: %d", &tmp);
 		full_checkpoint = tmp ? true : false;
 
@@ -1425,8 +1598,10 @@ int uhyve_init(char** argv)
 			ncores = (uint32_t) atoi(hermit_cpus);
 
 		const char* full_chk = getenv("HERMIT_FULLCHECKPOINT");
-		if (full_chk && (strcmp(full_chk, "0") != 0))
+		if (full_chk && (strcmp(full_chk, "0") != 0)) {
+			printf("full\n");
 			full_checkpoint = true;
+		}
 	}
 
 	vcpu_threads = (pthread_t*) calloc(ncores, sizeof(pthread_t));
@@ -1566,24 +1741,28 @@ int uhyve_init(char** argv)
 	//if (cap_vapic)
 	//	printf("System supports vapic\n");
 
+	const char* hermit_tux;
+	hermit_tux = getenv("HERMIT_TUX");
+	if (hermit_tux)
+	{
+		if (argv[2] == NULL) {
+			fprintf(stderr, "Hermitux: linux binary missing\n");
+			exit(EXIT_FAILURE);
+		}
+		strcpy(htux_bin, argv[2]);
+		strcpy(htux_kernel, argv[1]);
+	}
+
+
 	if (restart) {
 		if (load_checkpoint(guest_mem, path) != 0)
 			exit(EXIT_FAILURE);
 	} else {
 		if (load_kernel(guest_mem, path) != 0)
 			exit(EXIT_FAILURE);
-	}
-
-	const char* hermit_tux = getenv("HERMIT_TUX");
-	if (hermit_tux)
-	{
-		if (argv[2] == NULL) {
-			fprintf(stderr, "Name of the ELF file is missing!\n");
-			exit(EXIT_FAILURE);
-		}
-
-		if (uhyve_elf_loader(argv[2]) < 0)
-			exit(EXIT_FAILURE);
+		if (hermit_tux)
+			if (uhyve_elf_loader(htux_bin) < 0)
+				exit(EXIT_FAILURE);
 	}
 
 	pthread_barrier_init(&barrier, NULL, ncores);
@@ -1758,7 +1937,7 @@ nextslot:
 	fprintf(f, "number of cores: %u\n", ncores);
 	fprintf(f, "memory size: 0x%zx\n", guest_size);
 	fprintf(f, "checkpoint number: %u\n", no_checkpoint);
-	fprintf(f, "entry point: 0x%zx", elf_entry);
+	fprintf(f, "entry point: 0x%zx\n", elf_entry);
 	if (full_checkpoint)
 		fprintf(f, "full checkpoint: 1");
 	else
@@ -1780,10 +1959,16 @@ int uhyve_loop(int argc, char **argv)
 {
 	const char* hermit_check = getenv("HERMIT_CHECKPOINT");
 	const char *hermit_debug = getenv("HERMIT_DEBUG");
+	const char *hermit_profile = getenv("HERMIT_PROFILE");
 	int ts = 0, i = 0;
 
 	if(hermit_debug && atoi(hermit_debug) != 0)
 		uhyve_gdb_enabled = true;
+
+	if(hermit_profile && atoi(hermit_profile) != 0) {
+		uhyve_profiler_enabled = true;
+		uhyve_profiler_init(atoi(hermit_profile));
+	}
 
 	/* argv[0] is 'proxy', do not count it */
 	uhyve_argc = argc-1;
@@ -1816,6 +2001,13 @@ int uhyve_loop(int argc, char **argv)
 	*((uint32_t*) (mboot+0x24)) = ncores;
 	*((uint64_t*) (mboot + 0xC0)) = tux_entry;
 	*((uint64_t*) (mboot + 0xC8)) = tux_size;
+	*((uint64_t*) (mboot + 0xE2)) = tux_start_address;
+	*((uint64_t*) (mboot + 0xEA)) = tux_ehdr_phoff;
+	*((uint64_t*) (mboot + 0xF2)) = tux_ehdr_phnum;
+	*((uint64_t*) (mboot + 0xFA)) = tux_ehdr_phentsize;
+
+	if(uhyve_gdb_enabled)
+		*((uint8_t*) (mboot + 0xD0)) = 0x1;
 
 	// First CPU is special because it will boot the system. Other CPUs will
 	// be booted linearily after the first one.

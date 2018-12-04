@@ -37,7 +37,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define HERMIT_ELFOSABI	0x42
+#define HERMIT_ELFOSABI	0xFF
 
 /* Pierre: this must be consistent with include/hermit/syscall.h !! */
 #define __HERMIT_exit	0

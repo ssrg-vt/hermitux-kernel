@@ -59,8 +59,14 @@ void switch_context(size_t** stack);
  * @return
  * - 0 on success
  * - -EINVAL (-22) on failure
+ *   Pierre: With hermitux, when a thread is created, the C library allocates
+ *   some memory for its TLS and ask the kernel to make the thread's fs register
+ *   to point to that memory. When fs is set, this function performs that
+ *   action, in addition to having the thread start at a slightly modified entry
+ *   point (the default one would overwrite FS).
+ *   If fs is set to NULL, the function just executes normally.
  */
-int create_default_frame(task_t* task, entry_point_t ep, void* arg, uint32_t core_id);
+int create_default_frame(task_t* task, entry_point_t ep, void* arg, uint32_t core_id, void *fs);
 
 /** @brief Jump to user code
  *
