@@ -1296,6 +1296,7 @@ static int vcpu_loop(void)
 						arg->guestpath[i-guestpath_offset] = line[i];
 						i++;
 					}
+					arg->guestpath[i-guestpath_offset] = '\0';
 				}
 
 				break;
