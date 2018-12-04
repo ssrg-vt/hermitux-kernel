@@ -41,7 +41,6 @@
 #include <hermit/spinlock.h>
 #include <hermit/tasks.h>
 #include <hermit/logging.h>
-#include <hermit/mmap_areas.h>
 
 #include <asm/multiboot.h>
 #include <asm/irq.h>
@@ -337,42 +336,6 @@ slow_path:
 		return;
 	}
 
-	if(mmap_area_check(viraddr)) {
-		/* on demand mmap mapping */
-
-		size_t phyaddr, flags;
-		int ret;
-
-		if (check_pagetables(viraddr)) {
-			spinlock_irqsave_unlock(&page_lock);
-			return;
-		}
-
-		viraddr &= PAGE_MASK;
-
-		phyaddr = get_page();
-		if (BUILTIN_EXPECT(!phyaddr, 0)) {
-			LOG_ERROR("out of memory for mmap: task = %u\n", task->id);
-			goto default_handler;
-		}
-
-		flags = PG_USER|PG_RW;
-		if (has_nx()) // set no execution flag to protect the heap
-			flags |= PG_XD;
-
-		ret = __page_map(viraddr, phyaddr, 1, flags, 0);
-		if (BUILTIN_EXPECT(ret, 0)) {
-			LOG_ERROR("map_region: could not map %#lx to %#lx, task = %u\n", phyaddr, viraddr, task->id);
-			put_page(phyaddr);
-
-			goto default_handler;
-		}
-
-		spinlock_irqsave_unlock(&page_lock);
-		return;
-	}
-
-
 default_handler:
 	spinlock_irqsave_unlock(&page_lock);
 
@@ -392,6 +355,7 @@ default_handler:
 		(s->error & 0x8) ? "reserved bit" : "\b");
 	LOG_ERROR("rax %#lx, rbx %#lx, rcx %#lx, rdx %#lx, rbp %#lx, rsp %#lx rdi %#lx, rsi %#lx, r8 %#lx, r9 %#lx, r10 %#lx, r11 %#lx, r12 %#lx, r13 %#lx, r14 %#lx, r15 %#lx\n",
 		s->rax, s->rbx, s->rcx, s->rdx, s->rbp, s->rsp, s->rdi, s->rsi, s->r8, s->r9, s->r10, s->r11, s->r12, s->r13, s->r14, s->r15);
+	LOG_ERROR("Call site (needs frame pointer activated): %llx\n", *(uint64_t *)(s->rbp + 8));
 	if (task->heap)
 		LOG_ERROR("Heap 0x%llx - 0x%llx\n", task->heap->start, task->heap->end);
 

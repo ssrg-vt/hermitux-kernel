@@ -43,9 +43,7 @@ extern uint64_t base;
 extern uint64_t limit;
 extern uint64_t tux_entry;
 extern uint64_t tux_size;
-
-// Linux applications are always located at address 0x400000
-#define tux_start_address	0x400000
+extern uint64_t tux_start_address;
 
 typedef struct free_list {
 	size_t start, end;

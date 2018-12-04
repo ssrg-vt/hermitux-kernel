@@ -5,9 +5,10 @@
 
 extern char minifs_enabled;
 
-typedef unsigned int mode_t;
+typedef unsigned mode_t;
 
 int minifs_init(void);
+int minifs_load_from_host(const char *filename, const char *dest);
 int minifs_open(const char *pathname, int flags, mode_t mode);
 int minifs_creat(const char *pathname, mode_t mode);
 int minifs_unlink(const char *pathname);

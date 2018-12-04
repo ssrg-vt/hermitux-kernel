@@ -1,14 +1,12 @@
 #include <hermit/syscall.h>
 #include <hermit/logging.h>
+#include <lwip/sockets.h>
 
+extern int hermit_shutdown(int socket, int how);
 
-extern int hermit_socket(int domain, int type, int protocol);
-
-int sys_socket(int domain, int type, int protocol) {
-	int ret;
+int sys_shutdown(int socket, int how) {
 #ifndef NO_NET
-	ret = hermit_socket(domain, type, protocol);
-	return ret;
+	return hermit_shutdown(socket, how);
 #else
 	LOG_ERROR("Network disabled, cannot process socket syscall!\n");
 	return -ENOSYS;

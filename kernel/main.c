@@ -48,7 +48,6 @@
 #include <asm/multiboot.h>
 #include <asm/uhyve.h>
 
-#include <hermit/mmap_areas.h>
 #include <hermit/hermitux_profiler.h>
 
 #ifndef NO_NET
@@ -163,8 +162,6 @@ static int hermit_init(void)
 #ifndef NO_SIGNAL
 	signal_init();
 #endif /* NO_SIGNAL */
-	if(mmap_areas_init())
-		return -1;
 
 	if(hermitux_profiler_init())
 		return -1;
@@ -462,11 +459,18 @@ static int initd(void* arg)
 		for(i=0; i<uhyve_cmdsize.envc-1; i++)
 			uhyve_cmdval_phys.envp[i] = (char*) virt_to_phys((size_t) uhyve_cmdval.envp[i]);
 		// the last element is always NULL
-		uhyve_cmdval_phys.envp[uhyve_cmdsize.envc-1] = NULL;
+		uhyve_cmdval.envp[uhyve_cmdsize.envc-1] = NULL;
 		uhyve_cmdval_phys.envp = (char**) virt_to_phys((size_t) uhyve_cmdval_phys.envp);
 
 		uhyve_send(UHYVE_PORT_CMDVAL,
 				(unsigned)virt_to_phys((size_t)&uhyve_cmdval_phys));
+
+		/* If we use minifs the guest has no visibility on the host filesystem,
+		 * but the hermitux loader needs access to the application binary to
+		 * load the program headers. Thus, we move the binary into the minifs
+		 * image here */
+		if(minifs_enabled)
+			minifs_load_from_host(uhyve_cmdval.argv[1], uhyve_cmdval.argv[1]);
 
 		LOG_INFO("Boot time: %d ms\n", (get_clock_tick() * 1000) / TIMER_FREQ);
 		libc_start(uhyve_cmdsize.argc, uhyve_cmdval.argv, uhyve_cmdval.envp);

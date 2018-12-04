@@ -10,11 +10,20 @@ typedef struct {
 	int fd;
 	const char* buf;
 	size_t len;
+	int ret;
 } __attribute__((packed)) uhyve_write_t;
 
 
 int sys_writev(int fd, const struct iovec *iov, unsigned long vlen) {
 	int i, bytes_written, total_bytes_written;
+
+#ifndef NO_NET
+	// do we have an LwIP file descriptor?
+	if (fd & LWIP_FD_BIT) {
+		return -ENOSYS;
+	}
+
+#endif
 
 	if(unlikely(!iov)) {
 		LOG_ERROR("writev: iov is null\n");
@@ -43,10 +52,10 @@ int sys_writev(int fd, const struct iovec *iov, unsigned long vlen) {
 		else {
 			uhyve_write_t args = {fd,
 				(const char *) virt_to_phys((size_t)(iov[i].iov_base)),
-				iov[i].iov_len};
+				iov[i].iov_len, -1};
 
 			uhyve_send(UHYVE_PORT_WRITE, (unsigned)virt_to_phys((size_t)&args));
-			bytes_written = args.len;
+			bytes_written = args.ret;
 		}
 
 		if(bytes_written < 0)

@@ -115,7 +115,10 @@ struct sigaction;
 struct sockaddr;
 struct rlimit;
 struct sysinfo;
+struct linux_dirent64;
+typedef struct fd_set fd_set;
 typedef unsigned short umode_t;
+typedef uint32_t socklen_t;
 
 #ifndef LWIP_HDR_SOCKETS_H
 struct timeval {
@@ -136,9 +139,9 @@ int sys_clock_gettime(clockid_t clk_id, struct timespec *tp);
 int sys_gettimeofday(struct timeval *tv, struct timezone *tz);
 int sys_nanosleep(struct timespec *req, struct timespec *rem);
 ssize_t sys_brk(ssize_t val);
-int sys_fcntl(unsigned int fd, unsigned int cmd, unsigned long arg);
+int sys_fcntl(int fd, unsigned int cmd, unsigned long arg);
 int sys_unlink(const char *pathname);
-int sys_arch_prctl(int option, unsigned long *arg2);
+int sys_arch_prctl(int option, unsigned long *arg2, unsigned long *addr);
 int sys_uname(struct utsname *buf);
 int sys_fstat(int fd, struct stat *buf);
 int sys_stat(const char *pathname, struct stat *buf);
@@ -148,7 +151,8 @@ int sys_rt_sigaction(int signum, struct sigaction *act,
 		struct sigaction *oldact);
 int sys_socket(int domain, int type, int protocol);
 int sys_bind(int fd, struct sockaddr *addr, int addrlen);
-int sys_setsockopt(int fd, int level, int optname, char *optval, int optlen);
+int sys_setsockopt(int fd, int level, int optname, char *optval,
+		socklen_t optlen);
 size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 		unsigned long flags, unsigned long fd, unsigned long off);
 int sys_mkdir(const char *pathname, umode_t mode);
@@ -187,6 +191,28 @@ int sys_tkill(int tid, int sig);
 tid_t sys_gettid(void);
 int sys_mincore(unsigned long start, size_t len, unsigned char *vec);
 long sys_sigaltstack(const stack_t *ss, stack_t *oss);
+int sys_select(int maxfdp1, fd_set *readset, fd_set *writeset,
+		fd_set *exceptset, struct timeval *timeout);
+int sys_sendto(int s, const void *dataptr, size_t size, int flags,
+		const struct sockaddr *to, socklen_t tolen);
+int sys_chdir(const char *path);
+int sys_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
+int sys_accept(int s, struct sockaddr *addr, socklen_t *addrlen);
+int sys_recvfrom(int s, void *mem, size_t len, int flags,
+		struct sockaddr *from, socklen_t *fromlen);
+int sys_shutdown(int socket, int how);
+int sys_listen(int s, int backlog);
+int sys_getsockname(int s, struct sockaddr *name, socklen_t *namelen);
+int sys_getpeername(int s, struct sockaddr *name, socklen_t *namelen);
+int sys_getdents64(unsigned int fd, struct linux_dirent64 *dirp,
+		unsigned int count);
+size_t sys_sendfile(int out_fd, int in_fd, off_t *offset, size_t count);
+size_t sys_pread64(int fd, void *buf, size_t count, off_t offset);
+size_t sys_pwrite64(int fd, const void *buf, size_t count, off_t offset);
+size_t sys_mremap(unsigned long addr, unsigned long old_len, unsigned long new_len,
+		unsigned long flags, unsigned long new_addr);
+int sys_umask(int mask);
+int sys_setsid(void);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;

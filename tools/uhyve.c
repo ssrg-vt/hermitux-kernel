@@ -182,8 +182,8 @@ static uint64_t elf_entry;
 static pthread_t* vcpu_threads = NULL;
 static pthread_t net_thread;
 static int* vcpu_fds = NULL;
-static int kvm = -1, netfd = -1, efd = -1;
-int vmfd = -1;
+static int kvm = -1, efd = -1;
+int vmfd = -1, netfd = -1;
 static uint32_t no_checkpoint = 0;
 static pthread_mutex_t kvm_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_barrier_t barrier;
@@ -280,6 +280,9 @@ static void uhyve_exit(void* arg)
 static void uhyve_atexit(void)
 {
 	uhyve_exit(NULL);
+
+	if(uhyve_profiler_enabled)
+		uhyve_profiler_exit();
 
 	if (vcpu_threads) {
 		for(uint32_t i = 0; i < ncores; i++) {
@@ -920,9 +923,9 @@ static int vcpu_loop(void)
 
 				ret = write(uhyve_write->fd, guest_mem+(size_t)uhyve_write->buf, uhyve_write->len);
 				if(ret == -1)
-					uhyve_write->len = -errno;
+					uhyve_write->ret = -errno;
 				else
-					uhyve_write->len = ret;
+					uhyve_write->ret = ret;
 				break;
 				}
 
@@ -932,7 +935,7 @@ static int vcpu_loop(void)
 				uhyve_read_t* uhyve_read = (uhyve_read_t*) (guest_mem+data);
 
 				ret = read(uhyve_read->fd, guest_mem+(size_t)uhyve_read->buf, uhyve_read->len);
-				if(ret == -1) 
+				if(ret == -1)
 					uhyve_read->ret = -errno;
 				else
 					uhyve_read->ret = ret;
@@ -945,8 +948,6 @@ static int vcpu_loop(void)
 					if (cpuid)
 						pthread_exit((int*)(guest_mem+data));
 					else {
-						if(uhyve_profiler_enabled)
-							uhyve_profiler_exit();
 						exit(*(int*)(guest_mem+data));
 					}
 					break;
@@ -1036,15 +1037,6 @@ static int vcpu_loop(void)
 				break;
 			}
 
-			case UHYVE_PORT_FCNTL: {
-					unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
-					uhyve_fcntl_t *uhyve_fcntl = (uhyve_fcntl_t *) (guest_mem+data);
-
-					uhyve_fcntl->ret = fcntl(uhyve_fcntl-> fd,
-							uhyve_fcntl->cmd, uhyve_fcntl->arg);
-					break;
-			}
-
 			case UHYVE_PORT_CLOSE: {
 				int ret;
 				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
@@ -1056,6 +1048,32 @@ static int vcpu_loop(void)
 				}
 				else
 					uhyve_close->ret = 0;
+				break;
+				}
+
+			case UHYVE_PORT_GETDENTS64: {
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_getdeents64_t* arg = (uhyve_getdeents64_t*) (guest_mem+data);
+
+				arg->ret = syscall(SYS_getdents64, arg->fd,
+						guest_mem+(size_t)arg->dirp, arg->count);
+				break;
+				}
+
+			case UHYVE_PORT_FCNTL: {
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_fcntl_t* arg = (uhyve_fcntl_t*) (guest_mem+data);
+
+				arg->ret = fcntl(arg->fd, arg->cmd, arg->arg);
+				break;
+				}
+
+			case UHYVE_PORT_OPENAT: {
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_openat_t* arg = (uhyve_openat_t*) (guest_mem+data);
+
+				arg->ret = openat(arg->dirfd, guest_mem+(size_t)arg->name,
+						arg->flags,	arg->mode);
 				break;
 				}
 
@@ -1166,7 +1184,7 @@ static int vcpu_loop(void)
 				fprintf(stderr, "GUEST PAGE FAULT @0x%x (RIP @0x%x)\n",
 						arg->addr, arg->rip);
 				sprintf(addr2line_call, "addr2line -a %x -e %s\n", arg->rip,
-						(arg->rip >= linux_start_address) ? htux_bin :
+						(arg->rip >= tux_start_address) ? htux_bin :
 						htux_kernel);
 				system(addr2line_call);
 
@@ -1187,6 +1205,24 @@ static int vcpu_loop(void)
 				int ret;
 				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
 				uhyve_readlink_t *arg = (uhyve_readlink_t *)(guest_mem + data);
+
+				/* many programs access the application binary not through
+				 * argv[0] but through /proc/self/exec, for us it is actually
+				 * proxy so we need to correct that */
+				if(!strcmp(guest_mem+(size_t)arg->path, "/proc/self/exe")) {
+					char abspath[256];
+					realpath(htux_bin, abspath);
+
+					if(arg->bufsz > strlen(abspath)) {
+						strcpy(guest_mem+(size_t)arg->buf, abspath);
+						arg->ret = strlen(abspath);
+					}
+					else
+						arg->ret = -1;
+
+					break;
+
+				}
 
 				ret = readlink(guest_mem+(size_t)arg->path,
 						guest_mem+(size_t)arg->buf, arg->bufsz);
@@ -1260,6 +1296,7 @@ static int vcpu_loop(void)
 						arg->guestpath[i-guestpath_offset] = line[i];
 						i++;
 					}
+					arg->guestpath[i-guestpath_offset] = '\0';
 				}
 
 				break;
@@ -1964,6 +2001,10 @@ int uhyve_loop(int argc, char **argv)
 	*((uint32_t*) (mboot+0x24)) = ncores;
 	*((uint64_t*) (mboot + 0xC0)) = tux_entry;
 	*((uint64_t*) (mboot + 0xC8)) = tux_size;
+	*((uint64_t*) (mboot + 0xE2)) = tux_start_address;
+	*((uint64_t*) (mboot + 0xEA)) = tux_ehdr_phoff;
+	*((uint64_t*) (mboot + 0xF2)) = tux_ehdr_phnum;
+	*((uint64_t*) (mboot + 0xFA)) = tux_ehdr_phentsize;
 
 	if(uhyve_gdb_enabled)
 		*((uint8_t*) (mboot + 0xD0)) = 0x1;

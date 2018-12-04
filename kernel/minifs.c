@@ -13,7 +13,8 @@
 
 #define MAX_FILES			100000
 #define MAX_FDS				100000
-#define MAX_FILE_SIZE_PG	32
+//#define MAX_FILE_SIZE_PG	32
+#define MAX_FILE_SIZE_PG	64
 
 #define O_RDONLY	    0000
 #define O_WRONLY	    0001
@@ -107,12 +108,16 @@ int minifs_load_from_host(const char *filename, const char *dest) {
 		goto out;
 	}
 
-	/* CHeck that the file is not too big */
+	/* FIXME: this is disabled for now to allow mapping the C library (which
+	 * is quite large) with dynamically compiled programs. */
+#if 0
+	/* Check that the file is not too big */
 	if(filesize > MAX_FILE_SIZE_PG*PAGE_SIZE) {
 		LOG_ERROR("minifs_load_from_host: %s size is superior to the max file "
 				"size (%d)", filename, MAX_FILE_SIZE_PG*PAGE_SIZE);
 		goto out;
 	}
+#endif
 
 	/* Reset file offset */
 	arg_lseek.offset = 0;
@@ -300,7 +305,7 @@ int minifs_init(void) {
 			hostload_done = 1;
 	}
 
-	/* Create pseudo files t oemulate Linux interface */
+	/* Create pseudo files to emulate Linux interface */
 	minifs_creat_custom("/dev/null", 0777, devnull_read, devnull_write);
 	minifs_creat_custom("/dev/zero", 0777, devzero_read, devzero_write);
 	minifs_creat_custom("/dev/random", 0777, devrandom_read, devrandom_write);
@@ -536,6 +541,9 @@ int minifs_write(int fd, const void *buf, size_t count) {
 				PAGE_CEIL(offset) - offset : count;
 		}
 
+		/* FIXME: this is disabled for now to allow mapping the C library (which
+		 * is quite large) with dynamically compiled programs. */
+#if 0
 		/* Check that we don't go over the max file size */
 		if(offset/PAGE_SIZE > MAX_FILE_SIZE_PG) {
 			LOG_ERROR("Trying to write past the max file size (%d)\n",
@@ -543,6 +551,7 @@ int minifs_write(int fd, const void *buf, size_t count) {
 			DIE();
 			return total_bytes_to_write - count;
 		}
+#endif
 
 		/* Allocate if the page does not exist */
 		if(!fds[fd].f->pages[offset/PAGE_SIZE])

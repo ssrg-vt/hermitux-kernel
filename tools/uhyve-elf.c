@@ -36,6 +36,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <time.h>
 
 #include <elf.h>
 
@@ -43,11 +44,20 @@
 #include "uhyve.h"
 #include "uhyve-elf.h"
 
+#define PAGE_BITS			12
+#define PAGE_MASK			((~0UL) << PAGE_BITS)
+#define PAGE_FLOOR(addr) 	((addr) & PAGE_MASK)
+
 size_t tux_entry = 0;
 size_t tux_size = 0;
+size_t tux_start_address = 0;
+size_t tux_ehdr_phoff = 0;
+size_t tux_ehdr_phnum = 0;
+size_t tux_ehdr_phentsize = 0;
 
-int uhyve_elf_loader(const char* path)
-{
+static uint64_t pie_offset = 0;
+
+int uhyve_elf_loader(const char* path) {
 	Elf64_Ehdr hdr;
 	Elf64_Phdr *phdr = NULL;
 	size_t buflen;
@@ -57,9 +67,8 @@ int uhyve_elf_loader(const char* path)
 		fprintf(stderr, "Uhyve's elf loader starts, considering: %s\n", path);
 
 	fd = open(path, O_RDONLY);
-	if (fd == -1)
-	{
-		perror("Unable to open file");
+	if (fd == -1) {
+		fprintf(stderr, "Unable to open application file %s", path);
 		return -1;
 	}
 
@@ -67,42 +76,77 @@ int uhyve_elf_loader(const char* path)
 	if (ret < 0)
 		goto out;
 
-	//  check if the program is a HermitCore file
+	//  check the validity of the binary
 	if (hdr.e_ident[EI_MAG0] != ELFMAG0
 		|| hdr.e_ident[EI_MAG1] != ELFMAG1
 		|| hdr.e_ident[EI_MAG2] != ELFMAG2
 		|| hdr.e_ident[EI_MAG3] != ELFMAG3
 		|| hdr.e_ident[EI_CLASS] != ELFCLASS64
-		|| (hdr.e_ident[EI_OSABI] != ELFOSABI_LINUX &&
-		hdr.e_ident[EI_OSABI] != ELFOSABI_NONE)
-		|| hdr.e_type != ET_EXEC || hdr.e_machine != EM_X86_64)
-	{
-		fprintf(stderr, "Inavlide elf file!\n");
+		|| (hdr.e_ident[EI_OSABI] != ELFOSABI_LINUX
+			&& hdr.e_ident[EI_OSABI] != ELFOSABI_NONE)
+		|| hdr.e_machine != EM_X86_64
+		|| (hdr.e_type != ET_EXEC && hdr.e_type != ET_DYN)) {
+
+		fprintf(stderr, "Inavlid elf file %d!\n", hdr.e_type);
+		ret = -1;
 		goto out;
 	}
 
-	if (verbose)
-		fprintf(stderr, "Uhyve's elf loader found entry point at 0x%zx in file"
-				"%s\n", hdr.e_entry, path);
-
-	tux_entry = hdr.e_entry;
 	buflen = hdr.e_phentsize * hdr.e_phnum;
 	phdr = malloc(buflen);
 	if (!phdr) {
 		fprintf(stderr, "Not enough memory\n");
+		ret = -1;
 		goto out;
 	}
+
+	/* We need to pass this to the guest so that it knows where the program
+	 * headers are mapped: start address + this offset */
+	tux_ehdr_phoff = hdr.e_phoff;
+	tux_ehdr_phnum = hdr.e_phnum;
+	tux_ehdr_phentsize = hdr.e_phentsize;
 
 	ret = pread_in_full(fd, phdr, buflen, hdr.e_phoff);
 	if (ret < 0)
 		goto out;
 
+	if(hdr.e_type == ET_DYN) {
+		/* First check for the absence of PT_INTERP, otherwise we are looking
+		 * at a purely dynamically compiled binary which we do not support
+		 * (we only support static pie/non-pie ones. Getting a static pie
+		 * binary involving some tricks with the linker that makes the binary
+		 * type be ET_DYN but it is actually still a static binary. Look here:
+		 * https://www.openwall.com/lists/musl/2015/06/01/12 */
+
+		for (Elf64_Half ph_i = 0; ph_i < hdr.e_phnum; ph_i++) {
+			if (phdr[ph_i].p_type == PT_INTERP) {
+				fprintf(stderr, "ERROR: HermiTux only supports static "
+						"binaries!\n");
+				ret = -1;
+				goto out;
+			}
+		}
+
+		/* Here we can do a bit of ASLR. For now it is commented in order to
+		 * maximize the entropy of the mmap calls made by the application. */
+#if 0
+		srand(time(0));
+		pie_offset = 0x400000 + PAGE_FLOOR(rand()%(0x10000000 - 0x400000));
+#endif
+		pie_offset = 0x400000;
+		printf("PIE detected, loading application at 0x%llx\n", pie_offset);
+	}
+
+	tux_entry = hdr.e_entry + pie_offset;
+	if(verbose)
+		fprintf(stderr, "Uhyve's elf loader found entry point at 0x%zx in file "
+				"%s\n", hdr.e_entry + pie_offset, path);
+
 	/*
 	 * Load all segments with type "LOAD" from the file at offset
 	 * p_offset, and copy that into in memory.
 	 */
-	for (Elf64_Half ph_i = 0; ph_i < hdr.e_phnum; ph_i++)
-	{
+	for (Elf64_Half ph_i = 0; ph_i < hdr.e_phnum; ph_i++) {
 		uint64_t paddr = phdr[ph_i].p_paddr;
 		size_t offset = phdr[ph_i].p_offset;
 		size_t filesz = phdr[ph_i].p_filesz;
@@ -111,14 +155,21 @@ int uhyve_elf_loader(const char* path)
 		if (phdr[ph_i].p_type != PT_LOAD)
 			continue;
 
+		if(!tux_start_address || (paddr + pie_offset < tux_start_address))
+			tux_start_address = paddr + pie_offset;
+
 		if (verbose)
-			printf("Load elf file at 0x%zx, file size 0x%zx, memory size 0x%zx\n", paddr, filesz, memsz);
-		tux_size = paddr + memsz - linux_start_address;
+			printf("Load elf file at 0x%zx, file size 0x%zx, memory size "
+					"0x%zx\n", paddr + pie_offset, filesz, memsz);
+		tux_size = paddr + memsz - tux_start_address + pie_offset;
 
-		ret = pread_in_full(fd, guest_mem+paddr-GUEST_OFFSET, filesz, offset);
-		if (ret < 0)
+		ret = pread_in_full(fd, guest_mem+paddr-GUEST_OFFSET + pie_offset,
+				filesz, offset);
+
+		if (ret < 0) {
+			fprintf(stderr, "Cannot load segment\n");
 			goto out;
-
+		}
 	}
 
 out:
@@ -127,5 +178,5 @@ out:
 
 	close(fd);
 
-	return 0;
+	return ret;
 }

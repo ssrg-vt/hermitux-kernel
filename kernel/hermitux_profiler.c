@@ -6,6 +6,14 @@
 #include <hermit/stddef.h>
 #include <asm/page.h>
 
+/* TODO: we can write a better profiler here: if the kernel and application are
+ * compiled with -fno-omit-frame-pointer, we can use rbp to unwind the stack
+ * and get the full call stack: see slide 33 here:
+ * https://flosch.eu/papers/2017-xensummit-uniprof-slides.pdf
+ * Basically, rip is the current function, *(rbp+8) is the calling function,
+ * *((*rbp) + 8) is the function calling the calling one, etc.
+ */
+
 #define IRQ_NUM	33 /* corresponds to irq 1 when injected from kvm */
 #define PAGES_FOR_SAMPLES	256
 
@@ -17,7 +25,6 @@ uint64_t next_id;
 uint64_t max_id;
 
 static void profiler_irq_handler(struct state *s) {
-	LOG_INFO("prof irq received rip 0x%x\n", s->rip);  // TODO remove this
 	samples[next_id++] = s->rip;
 
 	if(tux_prof_samples_num < max_id)

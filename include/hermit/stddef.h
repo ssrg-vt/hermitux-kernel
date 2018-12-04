@@ -47,12 +47,15 @@ extern const size_t image_size;
 
 /* Linux binary size */
 extern uint64_t tux_size;
+extern uint64_t tux_start_address;
 
 #define TIMER_FREQ	100 /* in HZ */
 #define CLOCK_TICK_RATE	1193182 /* 8254 chip's internal oscillator frequency */
 #define CACHE_LINE	64
-#define HEAP_START	(PAGE_2M_CEIL((size_t)&kernel_start + image_size) + 4*PAGE_SIZE + PAGE_CEIL(tux_size))
-#define HEAP_SIZE	(1ULL << 32)
+#define HEAP_START	(PAGE_CEIL(tux_start_address + tux_size) + 4*PAGE_SIZE)
+/* As opposed to HermitCore we can have a reduced heap size as most of native
+ * Linux C libraries will rely on mmap for large memory allocations. */
+#define HEAP_SIZE	(1ULL << 20)
 #define KMSG_SIZE	0x4000
 #define INT_SYSCALL	0x80
 #define MAILBOX_SIZE	128
@@ -72,7 +75,7 @@ extern uint64_t tux_size;
 #define UHYVE_PORT_LSEEK		0x504
 /* 0x505 to 0x508 are taken by uhyve network commands */
 #define UHYVE_PORT_UNLINK		0x509
-#define UHYVE_PORT_FCNTL		0x510
+#define UHYVE_PORT_GETDENTS64	0x510
 #define UHYVE_PORT_CMDSIZE		0x511
 #define UHYVE_PORT_CMDVAL		0x512
 #define UHYVE_PORT_FSTAT		0x513
@@ -84,6 +87,14 @@ extern uint64_t tux_size;
 #define UHYVE_PORT_FAULT		0x519
 #define UHYVE_PORT_READLINK 	0x520
 #define UHYVE_PORT_MINIFS_LOAD 	0x521
+#define UHYVE_PORT_FCNTL 		0x522
+#define UHYVE_PORT_OPENAT 		0x523
+
+// Networkports
+#define UHYVE_PORT_NETINFO             0x505
+#define UHYVE_PORT_NETWRITE            0x506
+#define UHYVE_PORT_NETREAD             0x507
+#define UHYVE_PORT_NETSTAT             0x508
 
 #define BUILTIN_EXPECT(exp, b)		__builtin_expect((exp), (b))
 //#define BUILTIN_EXPECT(exp, b)	(exp)

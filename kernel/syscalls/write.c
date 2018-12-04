@@ -23,6 +23,7 @@ typedef struct {
 	int fd;
 	const char* buf;
 	size_t len;
+	int ret;
 } __attribute__((packed)) uhyve_write_t;
 
 ssize_t sys_write(int fd, const char* buf, size_t len)
@@ -52,11 +53,11 @@ ssize_t sys_write(int fd, const char* buf, size_t len)
 		if(minifs_enabled)
 			return minifs_write(fd, buf, len);
 
-		uhyve_write_t uhyve_args = {fd, (const char*) virt_to_phys((size_t) buf), len};
+		uhyve_write_t uhyve_args = {fd, (const char*) virt_to_phys((size_t) buf), len, -1};
 
 		uhyve_send(UHYVE_PORT_WRITE, (unsigned)virt_to_phys((size_t)&uhyve_args));
 
-		return uhyve_args.len;
+		return uhyve_args.ret;
 	}
 
 #ifndef NO_NET

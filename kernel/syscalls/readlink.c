@@ -15,7 +15,8 @@ typedef struct {
 int sys_readlink(char *path, char *buf, int bufsiz) {
 
 	if(minifs_enabled) {
-		LOG_ERROR("readlink currently not supported with minifs\n");
+		LOG_ERROR("readlink (%s) currently not supported with minifs\n",
+				path);
 		return -ENOSYS;
 	}
 
@@ -25,11 +26,19 @@ int sys_readlink(char *path, char *buf, int bufsiz) {
 	}
 
 	if (likely(is_uhyve())) {
-		uhyve_readlink_t args = {path, (char*) virt_to_phys((size_t) buf),
+		/* Let's get a physically contiguous buffer to avoid any issue with
+		 * the host filling it */
+		char *phys_buf = kmalloc(bufsiz);
+		if(!phys_buf)
+			return -ENOMEM;
+
+		uhyve_readlink_t args = {path, (char*) virt_to_phys((size_t) phys_buf),
 			bufsiz, -1};
 
 		uhyve_send(UHYVE_PORT_READLINK, (unsigned)virt_to_phys((size_t)&args));
+		memcpy(buf, phys_buf, bufsiz);
 
+		kfree(phys_buf);
 		return args.ret;
 	}
 

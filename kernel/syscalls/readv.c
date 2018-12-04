@@ -17,6 +17,13 @@ typedef struct {
 int sys_readv(int fd, const struct iovec *iov, unsigned long vlen) {
 	int i, bytes_read, total_bytes_read;
 
+#ifndef NO_NET
+	// do we have an LwIP file descriptor?
+	if (fd & LWIP_FD_BIT)
+		return -ENOSYS;
+
+#endif
+
 	if(unlikely(!iov)) {
 		LOG_ERROR("readv: iov is null\n");
 		return -EINVAL;
@@ -41,7 +48,7 @@ int sys_readv(int fd, const struct iovec *iov, unsigned long vlen) {
 				iov[i].iov_len};
 
 			uhyve_send(UHYVE_PORT_READ, (unsigned)virt_to_phys((size_t)&args));
-			bytes_read = args.len;
+			bytes_read = args.ret;
 		}
 
 		if(unlikely(bytes_read < 0))

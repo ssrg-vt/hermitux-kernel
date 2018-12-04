@@ -15,7 +15,7 @@
 #define ARCH_MAP_VDSO_32	0x2002
 #define ARCH_MAP_VDSO_64	0x2003
 
-int sys_arch_prctl(int option, unsigned long *arg2) {
+int sys_arch_prctl(int option, unsigned long *arg2, unsigned long *addr) {
 
 	switch(option) {
 		case ARCH_SET_GS:
