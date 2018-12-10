@@ -18,6 +18,11 @@ int sys_openat(int dirfd, const char *pathname, int flags, int mode) {
 		return -EINVAL;
 	}
 
+	if(minifs_enabled) {
+		LOG_ERROR("openat: unsupported with minifs\n");
+		return -ENOSYS;
+	}
+
 	if (likely(is_uhyve())) {
 		uhyve_openat_t arg = {dirfd,
 			(const char *)virt_to_phys((size_t)pathname), flags, mode, -1};

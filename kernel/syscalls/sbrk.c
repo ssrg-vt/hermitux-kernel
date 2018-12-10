@@ -5,6 +5,8 @@
 
 extern const void kernel_start;
 
+/* sbrk is not a Linux system call */
+
 ssize_t sys_sbrk(ssize_t incr)
 {
 	ssize_t ret;
