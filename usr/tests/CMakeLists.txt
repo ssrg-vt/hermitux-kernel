@@ -38,7 +38,7 @@ target_link_libraries(hermitux -Wl,-T,${CMAKE_SOURCE_DIR}/linker.ld)
 #target_compile_options(signals PRIVATE -pthread)
 #target_link_libraries(signals pthread)
 
-add_executable(syscall_tester syscall_tester.c)
+#add_executable(syscall_tester syscall_tester.c)
 
 # deployment
 install_local_targets(extra/tests)

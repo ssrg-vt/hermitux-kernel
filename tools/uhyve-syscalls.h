@@ -43,7 +43,12 @@ typedef enum {
 	UHYVE_PORT_READLINK 	= 0x520,
 	UHYVE_PORT_MINIFS_LOAD 	= 0x521,
 	UHYVE_PORT_FCNTL		= 0x522,
-	UHYVE_PORT_OPENAT		= 0x523
+	UHYVE_PORT_OPENAT		= 0x523,
+	UHYVE_PORT_CREAT		= 0x524,
+	UHYVE_PORT_SYNC 		= 0x525,
+	UHYVE_PORT_FSYNC 		= 0x526,
+	UHYVE_PORT_FDATASYNC	= 0x527,
+	UHYVE_PORT_SYNCFS		= 0x528
 } uhyve_syscall_t;
 
 typedef struct {
@@ -170,4 +175,16 @@ typedef struct {
 	int mode;
 	int ret;
 } __attribute__((packed)) uhyve_openat_t;
+
+typedef struct {
+	char *path;
+	int mode;
+	int ret;
+} __attribute__((packed)) uhyve_creat_t;
+
+typedef struct {
+	int fd;
+	int ret;
+} __attribute__((packed)) uhyve_fsync_t;
+
 #endif // UHYVE_SYSCALLS_H

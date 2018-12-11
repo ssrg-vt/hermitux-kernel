@@ -1302,6 +1302,35 @@ static int vcpu_loop(void)
 				break;
 			}
 
+			case UHYVE_PORT_CREAT: {
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_creat_t *arg = (uhyve_creat_t *)(guest_mem + data);
+
+				arg->ret = creat((const char *)(guest_mem+(size_t)arg->path),
+						arg->mode);
+				break;
+			}
+
+			case UHYVE_PORT_SYNC:
+			case UHYVE_PORT_FSYNC:
+			case UHYVE_PORT_FDATASYNC:
+			case UHYVE_PORT_SYNCFS: {
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_fsync_t *arg = (uhyve_fsync_t *)(guest_mem + data);
+
+				if(run->io.port == UHYVE_PORT_SYNC)
+					sync();
+				else if(run->io.port == UHYVE_PORT_SYNCFS)
+					arg->ret = syncfs(arg->fd);
+				else if(run->io.port == UHYVE_PORT_FSYNC)
+					arg->ret = fsync(arg->fd);
+				else if(run->io.port == UHYVE_PORT_FDATASYNC)
+					arg->ret = fdatasync(arg->fd);
+
+				break;
+			}
+
+
 			default:
 				err(1, "KVM: unhandled KVM_EXIT_IO at port 0x%x, direction %d\n", run->io.port, run->io.direction);
 				break;

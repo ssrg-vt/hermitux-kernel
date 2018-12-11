@@ -198,6 +198,11 @@ size_t sys_mremap(unsigned long addr, unsigned long old_len, unsigned long new_l
 		unsigned long flags, unsigned long new_addr);
 int sys_umask(int mask);
 int sys_setsid(void);
+int sys_sync(void);
+int sys_creat(const char *path, int mode);
+int sys_fsync(int fd);
+int sys_fdatasync(int fd);
+int sys_syncfs(int fd);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;

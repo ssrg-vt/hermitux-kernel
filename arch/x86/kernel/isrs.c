@@ -586,6 +586,20 @@ void syscall_handler(struct state *s)
 			break;
 #endif /* DISABLE_SYS_FCNTL */
 
+#ifndef DISABLE_SYS_FSYNC
+		case 74:
+			/* fsync */
+			s->rax = sys_fsync(s->rdi);
+			break;
+#endif
+
+#ifndef DISABLE_SYS_FDATASYNC
+		case 75:
+			/* fdatasync */
+			s->rax = sys_fdatasync(s->rdi);
+			break;
+#endif
+
 #ifndef DISABLE_SYS_GETCWD
 		case 79:
 			/*getcwd */
@@ -612,6 +626,13 @@ void syscall_handler(struct state *s)
 			s->rax = sys_rmdir((const char *)s->rdi);
 			break;
 #endif /* DISABLE_SYS_RMDIR */
+
+#ifndef DISABLE_SYS_CREAT
+		case 85:
+			/* creat */
+			s->rax = sys_creat((const char *)s->rdi, s->rsi);
+			break;
+#endif
 
 #ifndef DISABLE_SYS_UNLINK
 		case 87:
@@ -726,6 +747,13 @@ void syscall_handler(struct state *s)
 		case 160:
 			/* setrlimit */
 			s->rax = sys_setrlimit(s->rdi, (void *)s->rsi);
+			break;
+#endif
+
+#ifndef DISABLE_SYS_SYNC
+		case 162:
+			/* sync */
+			s->rax = sys_sync();
 			break;
 #endif
 
@@ -844,6 +872,13 @@ void syscall_handler(struct state *s)
 			/* prlimit64 */
 			s->rax = sys_prlimit64(s->rdi, s->rsi, (struct rlimit *)s->rdx,
 					(struct rlimit *)s->r10);
+			break;
+#endif
+
+#ifndef DISABLE_SYS_SYNCFS
+		case 306:
+			/* syncfs */
+			s->rax = sys_syncfs(s->rdi);
 			break;
 #endif
 

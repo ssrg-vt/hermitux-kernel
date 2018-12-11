@@ -2,6 +2,7 @@
 #include <hermit/logging.h>
 #include <asm/page.h>
 #include <asm/uhyve.h>
+#include <hermit/minifs.h>
 
 typedef struct {
 	int dirfd;
