@@ -813,8 +813,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_SET_TID_ADDRESS
 		case 218:
 			/* set_tid_address */
-			/* TODO */
-			s->rax = s->rdi;
+			s->rax = sys_set_tid_address((int *)s->rdi);
 			break;
 #endif /* DISABLE_SYS_SET_TID_ADDRESS */
 

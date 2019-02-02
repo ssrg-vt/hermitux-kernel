@@ -203,6 +203,7 @@ int sys_creat(const char *path, int mode);
 int sys_fsync(int fd);
 int sys_fdatasync(int fd);
 int sys_syncfs(int fd);
+long sys_set_tid_address(int *tidptr);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;
