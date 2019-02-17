@@ -1801,7 +1801,7 @@ int uhyve_init(char** argv)
 	int ret = vcpu_init();
 
 	const char* netif_str = getenv("HERMIT_NETIF");
-	if (netif_str)
+	if (netif_str && strcmp(netif_str, ""))
 	{
 		// TODO: strncmp for different network interfaces
 		// for example tun/tap device or uhyvetap device
