@@ -94,6 +94,7 @@ extern uint64_t tux_start_address;
 #define UHYVE_PORT_FSYNC 		0x526
 #define UHYVE_PORT_FDATASYNC	0x527
 #define UHYVE_PORT_SYNCFS		0x528
+#define UHYVE_PORT_GETDENTS		0x529
 
 // Networkports
 #define UHYVE_PORT_NETINFO             0x505

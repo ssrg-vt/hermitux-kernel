@@ -48,7 +48,8 @@ typedef enum {
 	UHYVE_PORT_SYNC 		= 0x525,
 	UHYVE_PORT_FSYNC 		= 0x526,
 	UHYVE_PORT_FDATASYNC	= 0x527,
-	UHYVE_PORT_SYNCFS		= 0x528
+	UHYVE_PORT_SYNCFS		= 0x528,
+	UHYVE_PORT_GETDENTS		= 0x529
 } uhyve_syscall_t;
 
 typedef struct {
@@ -186,5 +187,12 @@ typedef struct {
 	int fd;
 	int ret;
 } __attribute__((packed)) uhyve_fsync_t;
+
+typedef struct {
+	int fd;
+	struct linux_dirent *dirp;
+	unsigned int count;
+	int ret;
+} __attribute__((packed)) uhyve_getdeents_t;
 
 #endif // UHYVE_SYSCALLS_H

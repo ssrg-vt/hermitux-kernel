@@ -600,6 +600,13 @@ void syscall_handler(struct state *s)
 			break;
 #endif
 
+#ifndef DISABLE_SYS_GETDENTS
+		case 78:
+			/* getdents */
+			s->rax = sys_getdents(s->rdi, (void *)s->rsi, s->rdx);
+			break;
+#endif
+
 #ifndef DISABLE_SYS_GETCWD
 		case 79:
 			/*getcwd */
