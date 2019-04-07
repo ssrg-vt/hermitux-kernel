@@ -7,6 +7,7 @@
 
 #define _EFER_LME		8  /* Long mode enable */
 #define EFER_LME		(1<<_EFER_LME)
+#define EFER_LMA		(1<< 10)
 
 #define MSR_IA32_APICBASE		0x0000001b
 #define MSR_IA32_MISC_ENABLE		0x000001a0
