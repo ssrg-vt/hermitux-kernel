@@ -15,6 +15,8 @@
 
 int map_file(int fd, void *addr, size_t offset, size_t len);
 
+int lwip_rand(void);
+
 size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 		unsigned long flags, unsigned long fd, unsigned long off) {
 	size_t viraddr, phyaddr, bits;
@@ -41,9 +43,9 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 	if(flags & PROT_EXEC) alloc_flags |= VMA_EXECUTE;
 
 	/* non-fixed mapping are randomized, ~34 bits of entropy */
-	if(!addr && has_rdrand()) {
+	if(!addr) {
 		do addr = (HEAP_START + HEAP_SIZE) +
-			rdrand() % (0x800000000000 - (len + HEAP_START + HEAP_SIZE));
+			lwip_rand() % (0x800000000000 - (len + HEAP_START + HEAP_SIZE));
 		while(!vma_is_free(PAGE_FLOOR(addr), len));
 	}
 
