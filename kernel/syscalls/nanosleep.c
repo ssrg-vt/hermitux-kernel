@@ -62,27 +62,14 @@ int ns_timer_wait(unsigned int ticks)
 
 void ns_udelay(uint32_t usecs)
 {
-	if (has_rdtscp()) {
-		uint64_t diff, end, start = rdtscp(NULL);
-		uint64_t deadline = get_cpu_frequency() * usecs;
+	uint64_t diff, end, start = get_rdtsc();
+	uint64_t deadline = get_cpu_frequency() * usecs;
 
-		do {
-			end = rdtscp(NULL);
-			rmb();
-			diff = end > start ? end - start : start - end;
-			if ((diff < deadline) && (deadline - diff > 50000))
-				check_workqueues();
-		} while(diff < deadline);
-	} else {
-		uint64_t diff, end, start = rdtsc();
-		uint64_t deadline = get_cpu_frequency() * usecs;
-
-		do {
-			mb();
-			end = rdtsc();
-			diff = end > start ? end - start : start - end;
-			if ((diff < deadline) && (deadline - diff > 50000))
-				check_workqueues();
-		} while(diff < deadline);
-	}
+	do {
+		end = get_rdtsc();
+		rmb();
+		diff = end > start ? end - start : start - end;
+		if ((diff < deadline) && (deadline - diff > 50000))
+			check_workqueues();
+	} while(diff < deadline);
 }
