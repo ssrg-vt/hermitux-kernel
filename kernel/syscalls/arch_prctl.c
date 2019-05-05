@@ -15,7 +15,7 @@
 #define ARCH_MAP_VDSO_64	0x2003
 
 int sys_arch_prctl(int option, unsigned long *arg2, unsigned long *addr) {
-
+#ifndef __aarch64__
 	switch(option) {
 		case ARCH_SET_GS:
 			writegs((uint64_t)arg2);
@@ -61,6 +61,7 @@ int sys_arch_prctl(int option, unsigned long *arg2, unsigned long *addr) {
 			LOG_ERROR("arch_prctl: unknown option 0x%x\n", option);
 			return -EINVAL;
 	}
+#endif
 
 	return -ENOSYS;
 }
