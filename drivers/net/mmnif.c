@@ -74,6 +74,8 @@
 #include <asm/apic.h>
 #endif
 
+#ifndef __aarch64__
+
 #include <net/mmnif.h>
 
 #define TRUE	1
@@ -892,3 +894,5 @@ err_t mmnif_shutdown(void)
 
 	return err;
 }
+
+#endif
