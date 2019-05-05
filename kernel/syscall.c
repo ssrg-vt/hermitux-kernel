@@ -414,15 +414,8 @@ unsigned long long syscall_boot_tsc = 0;
 unsigned long long syscall_freq = 0;
 
 void syscall_timing_init() {
-#ifdef __aarch64__
-#warning "Missing implementation"
-#else
-	unsigned int lo, hi;
-
-	asm volatile ("rdtsc" : "=a"(lo), "=d"(hi) :: "memory");
-	syscall_boot_tsc = ((unsigned long long)hi << 32ULL | (unsigned long long)lo);
+	syscall_boot_tsc = get_rdtsc();
 	syscall_freq = get_cpu_frequency() * 1000000ULL;
-#endif
 }
 
 static spinlock_irqsave_t malloc_lock = SPINLOCK_IRQSAVE_INIT;
