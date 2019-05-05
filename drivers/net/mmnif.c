@@ -895,4 +895,10 @@ err_t mmnif_shutdown(void)
 	return err;
 }
 
+#else
+
+err_t mmnif_init(struct netif *netif)
+{
+	return ERR_MEM;
+}
 #endif
