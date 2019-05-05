@@ -121,6 +121,10 @@ hcip: .byte 10,0,5,2
 hcgateway: .byte 10,0,5,1
 .global hcmask
 hcmask: .byte 255,255,255,0
+.global host_logical_addr
+host_logical_addr: .quad 0
+.global uart_mmio
+uart_mmio: .dword 0
 
 .align 8
 .global tux_entry
@@ -143,11 +147,6 @@ tux_ehdr_phoff: .quad 0
 tux_ehdr_phnum: .quad 0
 .global tux_ehdr_phentsize
 tux_ehdr_phentsize: .quad 0
-.global host_logical_addr
-host_logical_addr: .quad 0
-
-.global uart_mmio
-uart_mmio: .dword 0
 
 .global l0_pgtable
 .align 12

@@ -86,7 +86,6 @@ extern uint64_t tux_start_address;
 #define UHYVE_PORT_CMDSIZE		0x740
 #define UHYVE_PORT_CMDVAL		0x780
 
-#define UHYVE_PORT_UNLINK		0x800
 #define UHYVE_PORT_GETDENTS64		0x840
 #define UHYVE_PORT_FSTAT		0xA40
 #define UHYVE_PORT_GETCWD		0xA80
@@ -105,6 +104,7 @@ extern uint64_t tux_start_address;
 #define UHYVE_PORT_FDATASYNC		0xDC0
 #define UHYVE_PORT_SYNCFS		0xE00
 #define UHYVE_PORT_GETDENTS		0xE40
+#define UHYVE_PORT_UNLINK		0xE80
 
 #define BUILTIN_EXPECT(exp, b)		__builtin_expect((exp), (b))
 //#define BUILTIN_EXPECT(exp, b)	(exp)
