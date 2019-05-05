@@ -1,3 +1,6 @@
+#include <hermit/stddef.h>
+#include <hermit/stdio.h>
+
 #include "hermit/hermitux_profiler.h"
 
 #include <hermit/logging.h>
@@ -25,7 +28,11 @@ uint64_t next_id;
 uint64_t max_id;
 
 static void profiler_irq_handler(struct state *s) {
+#ifdef __aarch64__
+#warning "Implementation missing"
+#else	
 	samples[next_id++] = s->rip;
+#endif
 
 	if(tux_prof_samples_num < max_id)
 		tux_prof_samples_num++;

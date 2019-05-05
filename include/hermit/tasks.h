@@ -224,10 +224,7 @@ int get_task(tid_t id, task_t** task);
  */
 int set_timer(uint64_t deadline);
 
-
-/** @brief check is a timer is expired
- *
- */
+/** @brief check is a timer is expired */
 void check_timers(void);
 
 
@@ -238,13 +235,16 @@ void NORETURN do_abort(void);
 /** @brief This function shall be called by leaving kernel-level tasks */
 void NORETURN leave_kernel_task(void);
 
+/** @brief Release the thread local storage of the current thread */
+void destroy_tls(void);
 
-/** @brief if a task exists with higher priority, HermitCore switch to it.
- */
+/** @brief if a task exists with higher priority, HermitCore switch to it. */
 void check_scheduling(void);
 
-/** @brief This function shutdowns the (ip) network
- */
+/** @brief return true if a task is available and ready. */
+int is_task_available(void);
+
+/** @brief This function shutdowns the (ip) network */
 int network_shutdown(void);
 
 
@@ -284,6 +284,10 @@ static inline void check_workqueues(void)
 /** @brief check if a proxy is available
  */
 int is_proxy(void);
+
+/** @brief initialized the stacks of the idle tasks
+ */
+int set_boot_stack(tid_t id, size_t stack, size_t ist_addr);
 
 #ifdef __cplusplus
 }

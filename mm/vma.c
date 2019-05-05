@@ -32,8 +32,12 @@
 #include <hermit/spinlock.h>
 #include <hermit/errno.h>
 #include <hermit/logging.h>
+#include <asm/io.h>
+#include <asm/irq.h>
 
 extern uint64_t tux_start_address;
+
+#define UHYVE_IRQ_FREELIST 12
 
 /*
  * Note that linker symbols are not variables, they have no memory allocated for
@@ -54,17 +58,24 @@ static vma_t vma_boot = { VMA_MIN, VMA_MIN, VMA_HEAP };
 static vma_t* vma_list = &vma_boot;
 spinlock_irqsave_t hermit_mm_lock = SPINLOCK_IRQSAVE_INIT;
 
+typedef struct free_list free_list_t;
+
+static void uhyve_irq_freelist_handler(struct state* s)
+{
+	outportl(UHYVE_PORT_FREELIST, (unsigned)virt_to_phys((size_t)get_free_list()));
+}
+
 int vma_init(void)
 {
 	int ret;
 
 	LOG_INFO("vma_init: reserve vma region 0x%llx - 0x%llx\n",
 		PAGE_2M_FLOOR((size_t) &kernel_start),
-		PAGE_2M_CEIL((size_t) &kernel_start + image_size));
+		KERNEL_END_CEIL((size_t) &kernel_start + image_size));
 
 	// add Kernel
 	ret  = vma_add(PAGE_2M_FLOOR((size_t) &kernel_start),
-		PAGE_2M_CEIL((size_t) &kernel_start + image_size),
+		KERNEL_END_CEIL((size_t) &kernel_start + image_size),
 		VMA_READ|VMA_WRITE|VMA_EXECUTE|VMA_CACHEABLE);
 	if (BUILTIN_EXPECT(ret, 0))
 		goto out;
@@ -89,6 +100,10 @@ int vma_init(void)
 
 		vma_dump();
 	}
+
+	// install IRQ handler for the migration interface
+	LOG_INFO("freelist channel uses irq %d\n", UHYVE_IRQ_FREELIST);
+	irq_install_handler(32+UHYVE_IRQ_FREELIST, uhyve_irq_freelist_handler);
 
 	// we might move the architecture specific VMA regions to a
 	// seperate function vma_arch_init()

@@ -35,20 +35,20 @@
 #include <hermit/syscall.h>
 #include <hermit/memory.h>
 #include <hermit/spinlock.h>
+#include <hermit/logging.h>
+#include <hermit/minifs.h>
+#include <hermit/hermitux_profiler.h>
+#include <asm/irq.h>
+#include <asm/page.h>
+#include <asm/uart.h>
+#include <asm/uhyve.h>
+#ifdef __x86_64__
+#include <asm/multiboot.h>
+#endif
 
 #ifndef NO_IRCCE
 #include <hermit/rcce.h>
 #endif /* NO_IRCCE */
-
-#include <hermit/logging.h>
-#include <hermit/minifs.h>
-#include <asm/irq.h>
-#include <asm/page.h>
-#include <asm/uart.h>
-#include <asm/multiboot.h>
-#include <asm/uhyve.h>
-
-#include <hermit/hermitux_profiler.h>
 
 #ifndef NO_NET
 #include <lwip/init.h>
@@ -95,16 +95,13 @@ extern volatile int libc_sd;
  * maintaining a value, rather their address is their value.
  */
 extern const void kernel_start;
-extern const void hbss_start;
+extern const void tdata_end;
 extern const void tls_start;
 extern const void tls_end;
 extern const void __bss_start;
 extern const void percore_start;
 extern const void percore_end0;
 extern const void percore_end;
-extern char __BUILD_DATE;
-extern size_t hbmem_base;
-extern size_t hbmem_size;
 
 /* Page frame counters */
 extern atomic_int64_t total_pages;
@@ -143,17 +140,19 @@ extern void signal_init();
 
 static int hermit_init(void)
 {
-	uint32_t i;
+	clock_init();
+
 	size_t sz = (size_t) &percore_end0 - (size_t) &percore_start;
 
 	// initialize .kbss sections
-	memset((void*)&hbss_start, 0x00, (size_t) &__bss_start - (size_t) &hbss_start);
+	memset((void*)&tdata_end, 0x00, (size_t) &__bss_start - (size_t) &tdata_end);
 
 	// initialize .percore section => copy first section to all other sections
-	for(i=1; i<MAX_CORES; i++)
+	for(uint32_t i=1; i<MAX_CORES; i++)
 		memcpy((char*) &percore_start + i*sz, (char*) &percore_start, sz);
 
 	koutput_init();
+
 	system_init();
 	irq_init();
 	timer_init();
@@ -167,15 +166,6 @@ static int hermit_init(void)
 		return -1;
 
 	return 0;
-}
-
-static void print_status(void)
-{
-	static spinlock_t status_lock = SPINLOCK_INIT;
-
-	spinlock_lock(&status_lock);
-	LOG_INFO("CPU %d of isle %d is now online (CR0 0x%zx, CR4 0x%zx)\n", CORE_ID, isle, read_cr0(), read_cr4());
-	spinlock_unlock(&status_lock);
 }
 
 #ifndef NO_NET
@@ -253,6 +243,11 @@ static int init_netifs(void)
 		netifapi_netif_set_default(&default_netif);
 		netifapi_netif_set_up(&default_netif);
 	} else {
+#ifdef __aarch64__
+		LOG_ERROR("Unable to add the network interface\n");
+
+		return -ENODEV;
+#else
 		/* Clear network address because we use DHCP to get an ip address */
 		IP_ADDR4(&gw, 0,0,0,0);
 		IP_ADDR4(&ipaddr, 0,0,0,0);
@@ -284,13 +279,13 @@ success:
 		int ip_counter = 0;
 		/* wait for ip address */
 		while(!ip_2_ip4(&default_netif.ip_addr)->addr && (ip_counter < 20)) {
-			uint64_t end_tsc, start_tsc = rdtsc();
+			uint64_t end_tsc, start_tsc = get_rdtsc();
 
 			do {
 				if (ip_2_ip4(&default_netif.ip_addr)->addr)
 					return 0;
 				check_workqueues();
-				end_tsc = rdtsc();
+				end_tsc = get_rdtsc();
 			} while(((end_tsc - start_tsc) / (get_cpu_frequency() * 1000)) < DHCP_FINE_TIMER_MSECS);
 
 			dhcp_fine_tmr();
@@ -305,6 +300,7 @@ success:
 
 		if (!ip_2_ip4(&default_netif.ip_addr)->addr)
 			return -ENODEV;
+#endif
 	}
 
 	return 0;
@@ -320,7 +316,7 @@ int network_shutdown(void)
 		lwip_close(s);
 	}
 
-	mmnif_shutdown();
+	//mmnif_shutdown();
 	//stats_display();
 
 	return 0;
@@ -336,11 +332,12 @@ int smp_main(void)
 	enable_dynticks();
 #endif
 
-	print_status();
+	print_cpu_status(isle);
 
 	/* wait for the other cpus */
-	while(atomic_int32_read(&cpu_online) < atomic_int32_read(&possible_cpus))
+	while(atomic_int32_read(&cpu_online) < atomic_int32_read(&possible_cpus)) {
 		PAUSE;
+	}
 
 	while(1) {
 		check_workqueues();
@@ -378,7 +375,9 @@ static int init_rcce(void)
 int libc_start(int argc, char** argv, char** env);
 extern void syscall_timing_init();
 
-// init task => creates all other tasks an initialize the LwIP
+char* itoa(uint64_t input, char* str);
+
+// init task => creates all other tasks and initializes the LwIP
 static int initd(void* arg)
 {
 	int i, envc = -1;
@@ -418,8 +417,8 @@ static int initd(void* arg)
 	}
 
 	curr_task->heap->flags = VMA_HEAP|VMA_USER;
-	curr_task->heap->start = PAGE_CEIL(heap);
-	curr_task->heap->end = PAGE_CEIL(heap);
+	curr_task->heap->start = HEAP_START;
+	curr_task->heap->end = HEAP_START;
 
 	// region is already reserved for the heap, we have to change the
 	// property of the first page
@@ -660,28 +659,104 @@ out:
 	return 0;
 }
 
+//#define MEASURE_CONTEXT
+
+#ifdef MEASURE_CONTEXT
+
+#define N	10000
+volatile int finished = 0;
+volatile int started1 = 0;
+volatile int started2 = 0;
+
+static int dummy_task(void* arg)
+{
+	kprintf("Enter dummy loop at core %d\n", CORE_ID);
+
+	// cache warm up
+	reschedule();
+	reschedule();
+
+	// synchronize start
+	started2 = 1;
+	mb();
+	while(started1 == 0)
+		reschedule();
+
+	while (finished == 0)
+	{
+		reschedule();
+	}
+
+	kprintf("Leave dummy loop\n");
+
+	return 0;
+}
+
+static int measure_context(void* arg)
+{
+	unsigned long long start, end;
+
+	kprintf("Enter function at core %d to measure the time for a context switch\n", CORE_ID);
+
+	// cache warm up
+	reschedule();
+	reschedule();
+
+	// synchronize start
+	started1 = 1;
+	mb();
+	while(started2 == 0)
+	reschedule();
+
+	// Save the current Time Stamp Counter value and switch to the second task.
+	start = rdtsc();
+	mb();
+
+	for(uint32_t i = 0; i < N; i++)
+	{
+		reschedule();
+	}
+
+	// Calculate the cycle difference and add it to the sum.
+	end = rdtsc();
+	mb();
+
+	finished = 1;
+
+	reschedule();
+	reschedule();
+
+	kprintf("Average time for a task switch: %lld cycles\n", (end - start) / (N * 2));
+
+	sys_exit(0);
+
+	return 0;
+}
+#endif
+
 int hermit_main(void)
 {
 	hermit_init();
 	system_calibration(); // enables also interrupts
 
-	LOG_INFO("This is Hermit %s, build date %u\n", PACKAGE_VERSION, &__DATE__);
-	LOG_INFO("Isle %d of %d possible isles\n", isle, possible_isles);
+	LOG_INFO("This is Hermit %s, build on %s\n", PACKAGE_VERSION, __DATE__);
+	//LOG_INFO("Isle %d of %d possible isles\n", isle, possible_isles);
 	LOG_INFO("Kernel starts at %p and ends at %p\n", &kernel_start, (size_t)&kernel_start + image_size);
 	LOG_INFO("TLS image starts at %p and ends at %p (size 0x%zx)\n", &tls_start, &tls_end, ((size_t) &tls_end) - ((size_t) &tls_start));
-	LOG_INFO("BBS starts at %p and ends at %p\n", &hbss_start, (size_t)&kernel_start + image_size);
+	LOG_INFO("BBS starts at %p and ends at %p\n", &tdata_end, (size_t)&kernel_start + image_size);
 	LOG_INFO("Per core data starts at %p and ends at %p\n", &percore_start, &percore_end);
 	LOG_INFO("Per core size 0x%zx\n", (size_t) &percore_end0 - (size_t) &percore_start);
-	LOG_INFO("Processor frequency: %u MHz\n", get_cpu_frequency());
+	if (get_cpu_frequency() > 0)
+		LOG_INFO("Processor frequency: %u MHz\n", get_cpu_frequency());
 	LOG_INFO("Total memory: %zd MiB\n", atomic_int64_read(&total_pages) * PAGE_SIZE / (1024ULL*1024ULL));
 	LOG_INFO("Current allocated memory: %zd KiB\n", atomic_int64_read(&total_allocated_pages) * PAGE_SIZE / 1024ULL);
 	LOG_INFO("Current available memory: %zd MiB\n", atomic_int64_read(&total_available_pages) * PAGE_SIZE / (1024ULL*1024ULL));
 	LOG_INFO("Core %d is the boot processor\n", boot_processor);
 	LOG_INFO("System is able to use %d processors\n", possible_cpus);
-	if (mb_info)
-		LOG_INFO("Kernel cmdline: %s\n", (char*) (size_t) mb_info->cmdline);
-	if (hbmem_base)
-		LOG_INFO("Found high bandwidth memory at 0x%zx (size 0x%zx)\n", hbmem_base, hbmem_size);
+	if (get_cmdline())
+		LOG_INFO("Kernel cmdline: %s\n", get_cmdline());
+	if (has_hbmem())
+		LOG_INFO("Found high bandwidth memory at 0x%zx (size 0x%zx)\n", get_hbmem_base(), get_hbmem_size());
 
 #if 0
 	print_pci_adapters();
@@ -695,7 +770,7 @@ int hermit_main(void)
 	while(atomic_int32_read(&cpu_online) < atomic_int32_read(&possible_cpus))
 		PAUSE;
 
-	print_status();
+	print_cpu_status(isle);
 	//vma_dump();
 
 	if(minifs_enabled && minifs_init()) {
@@ -703,7 +778,12 @@ int hermit_main(void)
 		sys_exit(-1);
 	}
 
+#ifdef MEASURE_CONTEXT
+	create_kernel_task_on_core(NULL, dummy_task, NULL, NORMAL_PRIO, boot_processor);
+	create_kernel_task_on_core(NULL, measure_context, NULL, NORMAL_PRIO, boot_processor);
+#else
 	create_kernel_task_on_core(NULL, initd, NULL, NORMAL_PRIO, boot_processor);
+#endif
 
 	while(1) {
 		check_workqueues();

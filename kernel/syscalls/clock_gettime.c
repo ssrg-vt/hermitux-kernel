@@ -22,11 +22,17 @@ extern unsigned long long syscall_boot_tsc;
 
 inline static unsigned long long cgt_rdtsc(void)
 {
+#ifdef __aarch64__
+#warning "Implementation is missing"
+
+	return 0;
+#else
 	unsigned int lo, hi;
 
 	asm volatile ("rdtsc" : "=a"(lo), "=d"(hi) :: "memory");
 
 	return ((unsigned long long)hi << 32ULL | (unsigned long long)lo);
+#endif
 }
 
 int sys_clock_gettime(clockid_t id, struct timespec *tp) {

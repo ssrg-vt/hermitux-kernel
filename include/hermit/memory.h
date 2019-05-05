@@ -36,11 +36,16 @@
 #ifndef __MEMORY_H__
 #define __MEMORY_H__
 
+typedef struct free_list free_list_t;
+
 /** @brief Initialize the memory subsystem */
 int memory_init(void);
 
 /** @brief Request physical page frames */
 size_t get_pages(size_t npages);
+
+/** @brief Returns a pointer to the free_list */
+free_list_t *get_free_list(void);
 
 /** @brief Get a single page
  *
@@ -48,8 +53,14 @@ size_t get_pages(size_t npages);
  */
 static inline size_t get_page(void) { return get_pages(1); }
 
+/** @brief Get a single huge page */
+size_t get_huge_page(void);
+
 /** @brief Get a single zeroed page */
 size_t get_zeroed_page(void);
+
+/** @brief Get a single zeroed huge page */
+size_t get_zeroed_huge_page(void);
 
 /** @brief release physical page frames */
 int put_pages(size_t phyaddr, size_t npages);
@@ -78,7 +89,7 @@ int hbmem_put_pages(size_t phyaddr, size_t npages);
  */
 static inline int hbmem_put_page(size_t phyaddr) { return hbmem_put_pages(phyaddr, 1); }
 
-/** @brief check if high memory bandwidth is available */ 
+/** @brief check if high memory bandwidth is available */
 int is_hbmem_available(void);
 
 /** @brief Initialize the high bandwidth memory subsystem */

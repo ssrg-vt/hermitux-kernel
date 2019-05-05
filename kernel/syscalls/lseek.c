@@ -27,7 +27,11 @@ typedef struct {
 
 off_t sys_lseek(int fd, off_t offset, int whence)
 {
+#ifdef __aarch64__
+#warning "Implementation missing"
 
+	return -ENOSYS;
+#else
 	if (likely(is_uhyve())) {
 
 		if(minifs_enabled)
@@ -60,6 +64,7 @@ off_t sys_lseek(int fd, off_t offset, int whence)
 
 	return off;
 #endif /* NO_NET */
+#endif
 
 	LOG_ERROR("lseek: network disabled, cannot use qemu isle\n");
 	return -ENOSYS;

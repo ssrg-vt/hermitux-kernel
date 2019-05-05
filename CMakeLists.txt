@@ -14,6 +14,11 @@ add_kernel_module_sources("kernel"		"kernel/*.c")
 add_kernel_module_sources("syscalls"	"kernel/syscalls/*.c")
 add_kernel_module_sources("libkern"		"libkern/*.c")
 add_kernel_module_sources("mm"			"mm/*.c")
+if("${TARGET_ARCH}" STREQUAL "x86_64-hermit")
+add_kernel_module_sources("drivers"		"drivers/net/*.c")
+else()
+add_kernel_module_sources("drivers"             "drivers/net/uhyve-net.c")
+endif()
 
 if(NOT ${NO_NET})
 add_kernel_module_sources("drivers"		"drivers/net/*.c")
@@ -58,10 +63,20 @@ foreach(MODULE ${KERNEL_MODULES})
 			PRIVATE -DNO_IRCCE)
 	endif(${NO_IRCCE})
 
+	if("${TARGET_ARCH}" STREQUAL "aarch64-hermit")
+		target_compile_definitions(${MODULE}
+			PRIVATE -DNO_IRCCE)
+	endif()
+
 	if(${NO_SIGNAL})
 		target_compile_definitions(${MODULE}
 			PRIVATE -DNO_SIGNAL)
 	endif(${NO_SIGNAL})
+
+	if("${TARGET_ARCH}" STREQUAL "aarch64-hermit")
+		target_compile_definitions(${MODULE}
+			PRIVATE -DNO_SIGNAL)
+	endif()
 
 	target_compile_options(${MODULE}
 		PRIVATE ${HERMIT_KERNEL_FLAGS})
@@ -77,12 +92,18 @@ foreach(MODULE ${KERNEL_MODULES})
 
 endforeach()
 
-# add arch/x86 and its objects
-# TODO: make this conditional when new architectures are implemented
-add_subdirectory(arch/x86)
+if("${TARGET_ARCH}" STREQUAL "aarch64-hermit")
+# add arch/aarch64 and its objects
+add_subdirectory(arch/aarch64)
+list(APPEND KERNEL_OBJECTS
+	$<TARGET_OBJECTS:${AARCH64_KERNEL_C_TARGET}>)
+else()
+# add arch/x86_64 and its objects
+add_subdirectory(arch/x86_64)
 list(APPEND KERNEL_OBJECTS
 	$<TARGET_OBJECTS:${X86_KERNEL_ASM_TARGET}>
 	$<TARGET_OBJECTS:${X86_KERNEL_C_TARGET}>)
+endif()
 
 # finally build libhermit.a
 add_library(hermit-bootstrap STATIC ${KERNEL_OBJECTS})
@@ -91,7 +112,11 @@ set_target_properties(hermit-bootstrap PROPERTIES
 
 # after compiling ASM sources, we need to post-process them. Adding this
 # dependency makes sure that this is done before hermit is linked
+if("${TARGET_ARCH}" STREQUAL "aarch64-hermit")
+add_dependencies(hermit-bootstrap ${AARCH64_KERNEL_TARGET})
+else()
 add_dependencies(hermit-bootstrap ${X86_KERNEL_TARGET})
+endif()
 
 add_custom_command(
 	TARGET
@@ -137,11 +162,14 @@ install(DIRECTORY include/hermit
 	FILES_MATCHING
 		PATTERN *.h)
 
+install(FILES tools/init.sh
+        DESTINATION tools)
+
 # provide custom target to only install libhermit without its runtimes which is
 # needed during the compilation of the cross toolchain
 add_custom_target(hermit-bootstrap-install
 	DEPENDS
-		hermit-bootstrap
+		hermit-bootstrap ${ARCH_KERNEL_TARGET}
 	COMMAND
 		${CMAKE_COMMAND}
 			-DCMAKE_INSTALL_COMPONENT=bootstrap
@@ -160,8 +188,7 @@ add_custom_target(hermit
 # be relocated for installation
 
 ## HermitCore's own tools such as Qemu/KVM proxy
-build_external(tools ${HERMIT_ROOT}/tools "")
-build_external(arch_x86_loader ${HERMIT_ROOT}/arch/x86/loader "")
+build_external(caves ${HERMIT_ROOT}/caves "")
 
 ## Intel's OpenMP runtime for x86 (libomp)
 #build_external(libiomp ${HERMIT_ROOT}/usr/libomp ""
@@ -185,8 +212,10 @@ build_external(arch_x86_loader ${HERMIT_ROOT}/arch/x86/loader "")
 
 ## Tests and benchmarks
 build_external(tests ${HERMIT_ROOT}/usr/tests hermit)
-# build_external(benchmarks ${HERMIT_ROOT}/usr/benchmarks hermit)
-# build_external(openmpbench ${HERMIT_ROOT}/usr/openmpbench hermit)
+build_external(benchmarks ${HERMIT_ROOT}/usr/benchmarks hermit)
+if("${TARGET_ARCH}" STREQUAL "x86_64-hermit")
+build_external(openmpbench ${HERMIT_ROOT}/usr/openmpbench hermit)
+endif()
 
 ## relocate the local prefix to our install destination
 install(DIRECTORY ${LOCAL_PREFIX_DIR}/
@@ -228,7 +257,7 @@ set(CPACK_SYSTEM_NAME all)
 
 set(CPACK_PACKAGE_VERSION_MAJOR 0)
 set(CPACK_PACKAGE_VERSION_MINOR 2)
-set(CPACK_PACKAGE_VERSION_PATCH 6)
+set(CPACK_PACKAGE_VERSION_PATCH 9)
 
 set(CPACK_PACKAGE_CONTACT "Stefan Lankes <slankes@eonerc.rwth-aachen.de>")
 

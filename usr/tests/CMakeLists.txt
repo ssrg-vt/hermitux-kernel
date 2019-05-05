@@ -12,10 +12,12 @@ project(hermit_tests C CXX Fortran Go)
 # add_executable(hellof hellof.f90)
 # add_executable(pi pi.go)
 
+if("${TARGET_ARCH}" STREQUAL "x86_64-hermit")
 add_executable(hermitux hermitux.c linker.ld)
 set_target_properties(hermitux PROPERTIES LINK_DEPENDS ${CMAKE_SOURCE_DIR}/linker.ld)
 set_target_properties(hermitux PROPERTIES LINK_DEPENDS ${LOCAL_PREFIX_ARCH_LIB_DIR}/libhermit.a)
 target_link_libraries(hermitux -Wl,-T,${CMAKE_SOURCE_DIR}/linker.ld)
+endif()
 
 #add_executable(test-malloc test-malloc.c)
 #add_executable(test-malloc-mt test-malloc-mt.c)

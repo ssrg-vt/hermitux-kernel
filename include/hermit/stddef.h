@@ -43,7 +43,7 @@ extern "C" {
 #endif
 
 // size of the whole application
-extern const size_t image_size;
+extern size_t image_size;
 
 /* Linux binary size */
 extern uint64_t tux_size;
@@ -101,6 +101,8 @@ extern uint64_t tux_start_address;
 #define UHYVE_PORT_NETWRITE            0x506
 #define UHYVE_PORT_NETREAD             0x507
 #define UHYVE_PORT_NETSTAT             0x508
+
+#define UHYVE_PORT_FREELIST 		0x720
 
 #define BUILTIN_EXPECT(exp, b)		__builtin_expect((exp), (b))
 //#define BUILTIN_EXPECT(exp, b)	(exp)

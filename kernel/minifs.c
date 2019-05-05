@@ -9,7 +9,12 @@
 #include <asm/uhyve.h>
 #include <asm/atomic.h>
 
+#ifdef __aarch64__
+#warning "Missing implementation"
+#define DIE()
+#else
 #define DIE()	asm("int $3")
+#endif
 
 #define MAX_FILES			100000
 #define MAX_FDS				100000

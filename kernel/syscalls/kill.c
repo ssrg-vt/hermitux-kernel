@@ -19,6 +19,7 @@ int sys_kill(tid_t dest, int signum)
 
 int hermit_sys_kill(tid_t dest, int signum)
 {
+#ifndef NO_SIGNAL
 	task_t* task;
 	if(BUILTIN_EXPECT(get_task(dest, &task), 0)) {
 		LOG_ERROR("Trying to send signal %d to invalid task %d\n", signum, dest);
@@ -48,7 +49,7 @@ int hermit_sys_kill(tid_t dest, int signum)
 	// send IPI to destination core
 	LOG_DEBUG("  Send signal IPI (%d) to core %d\n", SIGNAL_IRQ, dest_core);
 	apic_send_ipi(dest_core, SIGNAL_IRQ);
+#endif
 
 	return 0;
 }
-

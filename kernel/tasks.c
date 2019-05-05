@@ -73,11 +73,10 @@ DEFINE_PER_CORE(uint32_t, __core_id, 0);
 extern const void boot_stack;
 extern const void boot_ist;
 
-
 #ifdef DYNAMIC_TICKS
 static void update_timer(task_t* first)
 {
-	if(first) {
+	if (first) {
 		if(first->timeout > get_clock_tick()) {
 			timer_deadline((uint32_t) (first->timeout - get_clock_tick()));
 		} else {
@@ -123,9 +122,9 @@ static void timer_queue_push(uint32_t core_id, task_t* task)
 		timer_queue->first = timer_queue->last = task;
 		task->next = task->prev = NULL;
 
-        #ifdef DYNAMIC_TICKS
-		    update_timer(task);
-        #endif
+#ifdef DYNAMIC_TICKS
+		update_timer(task);
+#endif
 	} else {
 		// lookup position where to insert task
 		task_t* tmp = first;
@@ -151,9 +150,9 @@ static void timer_queue_push(uint32_t core_id, task_t* task)
 			if(timer_queue->first == tmp) {
 				timer_queue->first = task;
 
-                #ifdef DYNAMIC_TICKS
-				    update_timer(task);
-                #endif
+#ifdef DYNAMIC_TICKS
+				update_timer(task);
+#endif
 			}
 		}
 	}
@@ -215,11 +214,15 @@ void fpu_handler(void)
 	restore_fpu_state(&task->fpu);
 }
 
+int is_task_available(void)
+{
+	uint32_t core_id = CORE_ID;
+
+	return readyqueues[core_id].nr_tasks > 0 ? 1 : 0;
+}
+
 void check_scheduling(void)
 {
-	if (!is_irq_enabled())
-		return;
-
 	uint32_t prio = get_highest_priority();
 	task_t* curr_task = per_core(current_task);
 
@@ -268,38 +271,46 @@ int multitasking_init(void)
 	}
 
 	task_table[0].prio = IDLE_PRIO;
-	task_table[0].stack = (char*) ((size_t)&boot_stack + core_id * KERNEL_STACK_SIZE);
-	task_table[0].ist_addr = (char*)&boot_ist;
+	task_table[0].stack = NULL; // will be initialized later
+	task_table[0].ist_addr = NULL; // will be initialized later
 	set_per_core(current_task, task_table+0);
-	arch_init_task(task_table+0);
 
 	readyqueues[core_id].idle = task_table+0;
 
 	return 0;
 }
 
-
-int set_idle_task(void)
+int set_boot_stack(tid_t id, size_t stack, size_t ist_addr)
 {
-	uint32_t i, core_id = CORE_ID;
-	int ret = -ENOMEM;
+	if (id < MAX_CORES) {
+		task_table[id].stack = (void*) stack;
+		task_table[id].ist_addr = (void*) ist_addr;
+
+		return 0;
+	}
+
+	return -EINVAL;
+}
+
+tid_t set_idle_task(void)
+{
+	uint32_t core_id = CORE_ID;
+	tid_t id = ~0;
 
 	spinlock_irqsave_lock(&table_lock);
 
-	for(i=0; i<MAX_TASKS; i++) {
+	for(uint32_t i=0; i<MAX_TASKS; i++) {
 		if (task_table[i].status == TASK_INVALID) {
-			task_table[i].id = i;
+			task_table[i].id = id = i;
 			task_table[i].status = TASK_IDLE;
 			task_table[i].last_core = core_id;
 			task_table[i].last_stack_pointer = NULL;
-			task_table[i].stack = (char*) ((size_t)&boot_stack + core_id * KERNEL_STACK_SIZE);
-			task_table[i].ist_addr = create_stack(KERNEL_STACK_SIZE);
+			task_table[i].stack = NULL;
+			task_table[i].ist_addr = NULL;
 			task_table[i].prio = IDLE_PRIO;
 			task_table[i].heap = NULL;
 			readyqueues[core_id].idle = task_table+i;
 			set_per_core(current_task, readyqueues[core_id].idle);
-			arch_init_task(task_table+i);
-			ret = 0;
 
 			break;
 		}
@@ -307,7 +318,7 @@ int set_idle_task(void)
 
 	spinlock_irqsave_unlock(&table_lock);
 
-	return ret;
+	return id;
 }
 
 void finish_task_switch(void)
@@ -323,7 +334,7 @@ void finish_task_switch(void)
 		if (old->status == TASK_FINISHED) {
 			/* cleanup task */
 			if (old->stack) {
-				LOG_INFO("Release stack at 0x%zx\n", old->stack);
+				//LOG_INFO("Release stack at 0x%zx\n", old->stack);
 				destroy_stack(old->stack, DEFAULT_STACK_SIZE);
 				old->stack = NULL;
 			}
@@ -358,7 +369,6 @@ void finish_task_switch(void)
 void NORETURN do_exit(int arg)
 {
 	task_t* curr_task = per_core(current_task);
-	void* tls_addr = NULL;
 	const uint32_t core_id = CORE_ID;
 
 	LOG_INFO("Terminate task: %u, return value %d\n", curr_task->id, arg);
@@ -370,14 +380,11 @@ void NORETURN do_exit(int arg)
 	readyqueues[core_id].nr_tasks--;
 	spinlock_irqsave_unlock(&readyqueues[core_id].lock);
 
-	// do we need to release the TLS?
-	tls_addr = (void*)get_tls();
-	if (tls_addr) {
-		LOG_INFO("Release TLS at %p\n", (char*)tls_addr - curr_task->tls_size);
-		kfree((char*)tls_addr - curr_task->tls_size - TLS_OFFSET);
-	}
+	// release the thread local storage
+	destroy_tls();
 
 	curr_task->status = TASK_FINISHED;
+
 	reschedule();
 
 	irq_nested_enable(flags);
@@ -549,10 +556,8 @@ int wakeup_task(tid_t id)
 	task_t* task;
 	uint32_t core_id;
 	int ret = -EINVAL;
-	uint8_t flags;
 
-	flags = irq_nested_disable();
-
+	spinlock_irqsave_lock(&table_lock);
 	task = &task_table[id];
 	core_id = task->last_core;
 
@@ -560,6 +565,8 @@ int wakeup_task(tid_t id)
 		LOG_DEBUG("wakeup task %d on core %d\n", id, core_id);
 
 		task->status = TASK_READY;
+		spinlock_irqsave_unlock(&table_lock);
+
 		ret = 0;
 
 		spinlock_irqsave_lock(&readyqueues[core_id].lock);
@@ -584,9 +591,9 @@ int wakeup_task(tid_t id)
 		LOG_DEBUG("update nr_tasks on core %d to %d\n", core_id, readyqueues[core_id].nr_tasks);
 
 		spinlock_irqsave_unlock(&readyqueues[core_id].lock);
+	} else {
+		spinlock_irqsave_unlock(&table_lock);
 	}
-
-	irq_nested_enable(flags);
 
 	return ret;
 }
@@ -683,6 +690,13 @@ void check_timers(void)
 		wakeup_task(task->id);
 	}
 
+#ifdef DYNAMIC_TICKS
+	task = readyqueue->timers.first;
+	if (task) {
+		update_timer(task);
+	}
+#endif
+
 	spinlock_irqsave_unlock(&readyqueue->lock);
 }
 
@@ -737,6 +751,7 @@ size_t** scheduler(void)
 		curr_task = task_list_pop_front(&readyqueues[core_id].queue[prio-1]);
 
 		if(BUILTIN_EXPECT(curr_task == NULL, 0)) {
+			kputs("Kernel panic: No task in readyqueue\n");
 			LOG_ERROR("Kernel panic: No task in readyqueue\n");
 			while(1);
 		}
@@ -788,18 +803,6 @@ int get_task(tid_t id, task_t** task)
 	*task = &task_table[id];
 
 	return 0;
-}
-
-
-void reschedule(void)
-{
-	size_t** stack;
-	uint8_t flags;
-
-	flags = irq_nested_disable();
-	if ((stack = scheduler()))
-		switch_context(stack);
-	irq_nested_enable(flags);
 }
 
 int clone_task(tid_t* id, entry_point_t ep, void* arg, uint8_t prio, void *tls)
@@ -902,4 +905,3 @@ out:
 
 	return ret;
 }
-

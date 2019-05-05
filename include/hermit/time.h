@@ -34,6 +34,7 @@
 #ifndef __TIME_H__
 #define __TIME_H__
 
+#include <hermit/stddef.h>
 #include <asm/time.h>
 
 #ifdef __cplusplus
@@ -54,6 +55,9 @@ struct tms {
  * This procedure installs IRQ handlers for timer interrupts
  */
 int timer_init(void);
+
+/** @brief Initialize clock */
+int clock_init(void);
 
 /** @brief Initialized a timer
  *
@@ -81,9 +85,8 @@ static inline uint64_t get_clock_tick(void)
  */
 static inline void sleep(unsigned int sec) { timer_wait(sec*TIMER_FREQ); }
 
-/** @brief Get milliseconds since system boot
- */
-static inline uint64_t get_uptime() { return (get_clock_tick() * 1000) / TIMER_FREQ; }
+/** @brief Get milliseconds since system boot */
+uint64_t get_uptime(void);
 
 #ifdef __cplusplus
 }
