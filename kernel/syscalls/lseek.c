@@ -27,11 +27,6 @@ typedef struct {
 
 off_t sys_lseek(int fd, off_t offset, int whence)
 {
-#ifdef __aarch64__
-#warning "Implementation missing"
-
-	return -ENOSYS;
-#else
 	if (likely(is_uhyve())) {
 
 		if(minifs_enabled)
@@ -39,7 +34,7 @@ off_t sys_lseek(int fd, off_t offset, int whence)
 
 		uhyve_lseek_t uhyve_lseek = { fd, offset, whence };
 
-		outportl(UHYVE_PORT_LSEEK, (unsigned)virt_to_phys((size_t) &uhyve_lseek));
+		uhyve_send(UHYVE_PORT_LSEEK, (unsigned)virt_to_phys((size_t)&uhyve_lseek));
 
 		return uhyve_lseek.offset;
 	}
@@ -64,7 +59,6 @@ off_t sys_lseek(int fd, off_t offset, int whence)
 
 	return off;
 #endif /* NO_NET */
-#endif
 
 	LOG_ERROR("lseek: network disabled, cannot use qemu isle\n");
 	return -ENOSYS;
