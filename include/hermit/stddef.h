@@ -67,42 +67,44 @@ extern uint64_t tux_start_address;
  * now */
 /* #define DYNAMIC_TICKS */
 
-#define UHYVE_PORT_WRITE		0x499
-#define UHYVE_PORT_OPEN			0x500
-#define UHYVE_PORT_CLOSE		0x501
-#define UHYVE_PORT_READ			0x502
-#define UHYVE_PORT_EXIT			0x503
-#define UHYVE_PORT_LSEEK		0x504
-/* 0x505 to 0x508 are taken by uhyve network commands */
-#define UHYVE_PORT_UNLINK		0x509
-#define UHYVE_PORT_GETDENTS64	0x510
-#define UHYVE_PORT_CMDSIZE		0x511
-#define UHYVE_PORT_CMDVAL		0x512
-#define UHYVE_PORT_FSTAT		0x513
-#define UHYVE_PORT_GETCWD		0x514
-#define UHYVE_PORT_MKDIR		0x515
-#define UHYVE_PORT_RMDIR		0x516
-#define UHYVE_PORT_ACCESS		0x517
-#define UHYVE_PORT_PFAULT		0x518
-#define UHYVE_PORT_FAULT		0x519
-#define UHYVE_PORT_READLINK 	0x520
-#define UHYVE_PORT_MINIFS_LOAD 	0x521
-#define UHYVE_PORT_FCNTL 		0x522
-#define UHYVE_PORT_OPENAT 		0x523
-#define UHYVE_PORT_CREAT 		0x524
-#define UHYVE_PORT_SYNC 		0x525
-#define UHYVE_PORT_FSYNC 		0x526
-#define UHYVE_PORT_FDATASYNC	0x527
-#define UHYVE_PORT_SYNCFS		0x528
-#define UHYVE_PORT_GETDENTS		0x529
+#define UHYVE_PORT_WRITE		0x400
+#define UHYVE_PORT_OPEN			0x440
+#define UHYVE_PORT_CLOSE		0x480
+#define UHYVE_PORT_READ			0x500
+#define UHYVE_PORT_EXIT			0x540
+#define UHYVE_PORT_LSEEK		0x580
 
 // Networkports
-#define UHYVE_PORT_NETINFO             0x505
-#define UHYVE_PORT_NETWRITE            0x506
-#define UHYVE_PORT_NETREAD             0x507
-#define UHYVE_PORT_NETSTAT             0x508
+#define UHYVE_PORT_NETINFO		0x600
+#define UHYVE_PORT_NETWRITE		0x640
+#define UHYVE_PORT_NETREAD		0x680
+#define UHYVE_PORT_NETSTAT		0x700
+#define UHYVE_PORT_FREELIST		0x720
 
-#define UHYVE_PORT_FREELIST 		0x720
+/* Ports and data structures for uhyve command line arguments and envp
+ * forwarding */
+#define UHYVE_PORT_CMDSIZE		0x740
+#define UHYVE_PORT_CMDVAL		0x780
+
+#define UHYVE_PORT_UNLINK		0x800
+#define UHYVE_PORT_GETDENTS64		0x840
+#define UHYVE_PORT_FSTAT		0xA40
+#define UHYVE_PORT_GETCWD		0xA80
+#define UHYVE_PORT_MKDIR		0xAC0
+#define UHYVE_PORT_RMDIR		0xB00
+#define UHYVE_PORT_ACCESS		0xB40
+#define UHYVE_PORT_PFAULT		0xB80
+#define UHYVE_PORT_FAULT		0xBC0
+#define UHYVE_PORT_READLINK		0xC00
+#define UHYVE_PORT_MINIFS_LOAD		0xC40
+#define UHYVE_PORT_FCNTL 		0xC80
+#define UHYVE_PORT_OPENAT 		0xCA0
+#define UHYVE_PORT_CREAT 		0xD00
+#define UHYVE_PORT_SYNC 		0xD40
+#define UHYVE_PORT_FSYNC 		0xD80
+#define UHYVE_PORT_FDATASYNC		0xDC0
+#define UHYVE_PORT_SYNCFS		0xE00
+#define UHYVE_PORT_GETDENTS		0xE40
 
 #define BUILTIN_EXPECT(exp, b)		__builtin_expect((exp), (b))
 //#define BUILTIN_EXPECT(exp, b)	(exp)
