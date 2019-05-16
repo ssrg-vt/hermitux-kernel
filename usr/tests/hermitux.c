@@ -29,9 +29,25 @@
 
 #ifdef __aarch64__
 #include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#endif
+
+extern const size_t tux_entry;
+extern const size_t tux_size;
+extern const size_t tux_start_address;
+extern const size_t tux_ehdr_phoff;
+extern const size_t tux_ehdr_phnum;
+extern const size_t tux_ehdr_phentsize;
+
+#ifdef __aarch64__
 
 int main(int argc, char** argv) {
-	printf("Hello from HermiTux\n");
+	fprintf(stderr, "Found Linux entry point at 0x%zx (size 0x%zx)\n", tux_entry, tux_size);
+	fprintf(stderr, "Start address 0x%zx\n", tux_start_address);
+	fprintf(stderr, "ehdr_phoff: 0x%zx\n", tux_ehdr_phoff);
+	fprintf(stderr, "ehdr_phnum: 0x%zx\n", tux_ehdr_phnum);
+	fprintf(stderr, "ehdr_phentsize: 0x%zx\n", tux_ehdr_phentsize);
 
 	return 0;
 }
@@ -119,13 +135,6 @@ typedef struct {
   Elf64_Xword	p_memsz;		/* Segment size in memory */
   Elf64_Xword	p_align;		/* Segment alignment */
 } Elf64_Phdr;
-
-extern const size_t tux_entry;
-extern const size_t tux_size;
-extern const size_t tux_start_address;
-extern const size_t tux_ehdr_phoff;
-extern const size_t tux_ehdr_phnum;
-extern const size_t tux_ehdr_phentsize;
 
 extern char **environ;
 
