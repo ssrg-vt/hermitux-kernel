@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Stefan Lankes, RWTH Aachen University
+ * Copyright (c) 2017-2019, Stefan Lankes, RWTH Aachen University
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,6 +24,19 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+#define DIE()   __builtin_trap()
+
+#ifdef __aarch64__
+#include <stdio.h>
+
+int main(int argc, char** argv) {
+	printf("Hello from HermiTux\n");
+
+	return 0;
+}
+
+#else
 
 /* Needed to load the program headers */
 #define O_RDONLY			0x0
@@ -121,8 +134,6 @@ void inline push_auxv(unsigned long long type, unsigned long long val) {
 	asm volatile("pushq %0" : : "r" (type));
 }
 
-#define DIE()	__builtin_trap()
-
 /* Space allocated for the program headers */
 char phdr[4096];
 Elf64_Ehdr hdr;
@@ -192,3 +203,4 @@ int main(int argc, char** argv) {
 
 	return 0;
 }
+#endif
