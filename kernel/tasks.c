@@ -383,7 +383,6 @@ void NORETURN do_exit(int arg)
 	curr_task->status = TASK_FINISHED;
 
 	if(curr_task->clear_child_tid) {
-		LOG_INFO("Set *%p to 0\n", curr_task->clear_child_tid);
 		*(int *)(curr_task->clear_child_tid)=0;
 		sys_futex(curr_task->clear_child_tid, 1, 1, NULL, NULL, 0);
 	}
