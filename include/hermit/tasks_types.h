@@ -113,6 +113,9 @@ typedef struct task {
 	union fpu_state	fpu;
 	/// Is this the main thread?
 	uint8_t is_main_thread;
+	/// hermitux
+	void *set_child_tid;
+	void *clear_child_tid;
 } task_t;
 
 typedef struct {

@@ -90,7 +90,8 @@ int multitasking_init(void);
  * - 0 on success
  * - -ENOMEM (-12) or -EINVAL (-22) on failure
  */
-int clone_task(tid_t* id, entry_point_t ep, void* arg, uint8_t prio, void *tls);
+int clone_task(tid_t* id, entry_point_t ep, void* arg, uint8_t prio, void *tls,
+		void *set_child_tid, void *clear_child_tid);
 
 
 /** @brief Create a task with a specific entry point
