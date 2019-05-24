@@ -229,9 +229,6 @@ int create_default_frame(task_t* task, entry_point_t ep, void* arg, uint32_t cor
 
 void wait_for_task(void)
 {
-	/* Speeds up network programs */
-	return;
-#if 0
 #ifndef USE_MWAIT
 	HALT;
 #else
@@ -246,7 +243,6 @@ void wait_for_task(void)
 		monitor(queue, 0, 0);
 		mwait(0x2 /* 0x2 = c3, 0xF = c0 */, 1 /* break on interrupt flag */);
 	}
-#endif
 #endif
 }
 
