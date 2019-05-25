@@ -81,6 +81,7 @@ static void timer_handler(struct state *s)
 	/* Increment our 'tick counter' */
 	set_per_core(timer_ticks, per_core(timer_ticks)+1);
 #else
+#error "Please disable DYNAMIC_TICKS for Hermitux."
 	// do we already know the cpu frequency? => if not, use timer interrupt to count the ticks
 	if (!cpu_freq)
 		set_per_core(timer_ticks, per_core(timer_ticks)+1);
@@ -97,9 +98,6 @@ static void timer_handler(struct state *s)
 #endif
 }
 
-/* we can remove this below for hermitux, it is moved to
- * kernel/syscall/nanosleep.c */
-#if 0
 int timer_wait(unsigned int ticks)
 {
 	uint64_t eticks = per_core(timer_ticks) + ticks;
@@ -132,7 +130,6 @@ int timer_wait(unsigned int ticks)
 
 	return 0;
 }
-#endif
 
 #define LATCH(f)	((CLOCK_TICK_RATE + f/2) / f)
 #define WAIT_SOME_TIME() do { uint64_t start = rdtsc(); mb(); \

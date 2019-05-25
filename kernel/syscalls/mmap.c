@@ -1,7 +1,6 @@
 #include <hermit/syscall.h>
 #include <hermit/logging.h>
 #include <asm/page.h>
-#include <hermit/spinlock.h>
 #include <hermit/memory.h>
 #include <hermit/vma.h>
 

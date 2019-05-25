@@ -34,7 +34,7 @@ option(NO_SIGNAL
 	"Disable signal support" OFF)
 
 option(DYNAMIC_TICKS
-	"Don't use a periodic timer event to keep track of time" ON)
+	"Don't use a periodic timer event to keep track of time" OFF)
 
 option(SAVE_FPU
 	"Save FPU registers on context switch" ON)
