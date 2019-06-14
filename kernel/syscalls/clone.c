@@ -22,6 +22,11 @@ int sys_clone(unsigned long clone_flags, void *stack, int *ptid, int *ctid, void
 		return -ENOSYS;
 	}
 
+	/* FIXME: we currently use a mega hack to get the entry point, that only
+	 * works for musl. By adding an additional parameter here we actually
+	 * access the entry point that was left in the corresponding register when
+	 * the user called pthread create. That doesnt work with GlibC because
+	 * there is something else in that register */
 	if(!ep) {
 		LOG_ERROR("clone: called with no valid entry point\n");
 		return -EINVAL;
