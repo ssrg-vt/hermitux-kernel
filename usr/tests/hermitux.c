@@ -27,33 +27,6 @@
 
 #define DIE()   __builtin_trap()
 
-#ifdef __aarch64__
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#endif
-
-extern const size_t tux_entry;
-extern const size_t tux_size;
-extern const size_t tux_start_address;
-extern const size_t tux_ehdr_phoff;
-extern const size_t tux_ehdr_phnum;
-extern const size_t tux_ehdr_phentsize;
-
-#ifdef __aarch64__
-
-int main(int argc, char** argv) {
-	fprintf(stderr, "Found Linux entry point at 0x%zx (size 0x%zx)\n", tux_entry, tux_size);
-	fprintf(stderr, "Start address 0x%zx\n", tux_start_address);
-	fprintf(stderr, "ehdr_phoff: 0x%zx\n", tux_ehdr_phoff);
-	fprintf(stderr, "ehdr_phnum: 0x%zx\n", tux_ehdr_phnum);
-	fprintf(stderr, "ehdr_phentsize: 0x%zx\n", tux_ehdr_phentsize);
-
-	return 0;
-}
-
-#else
-
 /* Needed to load the program headers */
 #define O_RDONLY			0x0
 #define SEEK_SET			0x0
@@ -138,9 +111,29 @@ typedef struct {
 
 extern char **environ;
 
-void inline push_auxv(unsigned long long type, unsigned long long val) {
+extern const size_t tux_entry;
+extern const size_t tux_size;
+extern const size_t tux_start_address;
+extern const size_t tux_ehdr_phoff;
+extern const size_t tux_ehdr_phnum;
+extern const size_t tux_ehdr_phentsize;
+
+static inline void push_auxv(unsigned long long type, unsigned long long val) {
+#ifdef __aarch64__
+	asm volatile("str %0, [sp, #-16]!" :: "r"(val));
+	asm volatile("str %0, [sp, #-16]!" :: "r"(type));
+#else
 	asm volatile("pushq %0" : : "r" (val));
 	asm volatile("pushq %0" : : "r" (type));
+#endif
+}
+
+static inline void push(unsigned long long val) {
+#ifdef __aarch64__
+	asm volatile("str %0, [sp, #-16]!" :: "r"(val));
+#else
+	asm volatile("pushq %0" : : "r" (val));
+#endif
 }
 
 /* Space allocated for the program headers */
@@ -192,16 +185,19 @@ int main(int argc, char** argv) {
 	/*envp */
 	/* Note that this will push NULL to the stack first, which is expected */
 	for(i=(envc); i>=0; i--)
-		asm volatile("pushq %0" : : "r" (environ[i]));
+		push(environ[i]);
 
 	/* argv */
 	/* Same as envp, pushing NULL first */
 	for(i=libc_argc+1;i>0; i--)
-		asm volatile("pushq %0" : : "r" (argv[i]));
+		push(argv[i]);
 
 	/* argc */
-	asm volatile("pushq %0" : : "r" (libc_argc));
+	push(libc_argc);
 
+#ifdef __aarch64__
+	asm volatile("blr %0" : : "r" (tux_entry));
+#else
 	/* with GlibC, the dynamic linker sets in rdx the address of some code
 	 * to be executed at exit (if != 0), however we are not using it and here
 	 * it contains some garbage value, so clear it
@@ -209,7 +205,7 @@ int main(int argc, char** argv) {
 	asm volatile("xor %rdx, %rdx");
 	/* finally, jump to entry point */
 	asm volatile("jmp *%0" : : "r" (tux_entry));
+#endif
 
 	return 0;
 }
-#endif
