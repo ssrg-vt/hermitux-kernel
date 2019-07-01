@@ -381,14 +381,14 @@ _setup_pgtable:
     b.lo    2b
 
     /* Clear rest of the boot page tables */
-3:
+/*3:
     stp     xzr, xzr, [x3], 16
     stp     xzr, xzr, [x3], 16
     stp     xzr, xzr, [x3], 16
     stp     xzr, xzr, [x3], 16
     add     x7, x7, 8
     cmp     x7, 511*PAGE_SIZE
-    b.lo    3b
+    b.lo    3b*/
 
 4:
     ret
