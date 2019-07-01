@@ -268,7 +268,34 @@ oom:
 	return ret;
 }
 
-void do_sync(void *regs)
+static void do_syscall(struct state *s) {
+	//LOG_INFO("Handle syscall %zd\n", s->x8);
+
+	switch(s->x8) {
+	case 29:
+		s->x0 = sys_ioctl(s->x0, s->x1, s->x2);
+		break;
+	case 66:
+		s->x0 = sys_writev(s->x0, (const struct iovec *)s->x1, s->x2);
+		break;
+	case 93:
+		sys_exit(s->x0);
+		LOG_ERROR("Should not reach here after exit ... \n");
+		break;
+	case 94:
+		sys_exit_group(s->x0);
+		LOG_ERROR("Should not reach here after exit_group ... \n");
+		break;
+	case 96:
+		s->x0 = sys_set_tid_address((int *)s->x0);
+		break;
+	default:
+		LOG_ERROR("Unable to handle syscall %zd", s->x8);
+		sys_exit(-EFAULT);
+	}
+}
+
+void do_sync(struct state *regs)
 {
 	uint32_t iar = gicc_read(GICC_IAR);
 	uint32_t esr = read_esr();
@@ -299,6 +326,10 @@ void do_sync(void *regs)
 		} else {
 			LOG_ERROR("Unknown exception\n");
 		}
+	} else if (ec == 0x15) {
+		//LOG_INFO("Receive system call, PC=0x%x\n", pc);
+		do_syscall(regs);
+		return;
 	} else if (ec == 0x3c) {
 		LOG_ERROR("Trap to debugger, PC=0x%x\n", pc);
 	} else {
