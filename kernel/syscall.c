@@ -46,3 +46,27 @@ void syscall_timing_init(void) {
 	syscall_boot_tsc = get_rdtsc();
 	syscall_freq = get_cpu_frequency() * 1000000ULL;
 }
+
+static spinlock_irqsave_t malloc_lock = SPINLOCK_IRQSAVE_INIT;
+
+void __sys_malloc_lock(void)
+{
+	spinlock_irqsave_lock(&malloc_lock);
+}
+
+void __sys_malloc_unlock(void)
+{
+	spinlock_irqsave_unlock(&malloc_lock);
+}
+
+static spinlock_irqsave_t env_lock = SPINLOCK_IRQSAVE_INIT;
+
+void __sys_env_lock(void)
+{
+	spinlock_irqsave_lock(&env_lock);
+}
+
+void __sys_env_unlock(void)
+{
+	spinlock_irqsave_unlock(&env_lock);
+}
