@@ -289,6 +289,5 @@
 #define __LNR_getdents 1065
 #define __LNR_access 1033
 #define __LNR_lstat 1050
-#define __LNR_fstat 1051
 
 #endif
