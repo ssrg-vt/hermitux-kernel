@@ -27,6 +27,11 @@
 
 #define DIE()   __builtin_trap()
 
+/* aarch64 has SP alignment constraints that force use to prepare the stack
+ * on a separate buffer before pushing that buffer 16 bytes by 16 bytes. This
+ * is the size of that buffer */
+#define STACK_BUFFER_SIZE   4096
+
 /* Needed to load the program headers */
 #define O_RDONLY			0x0
 #define SEEK_SET			0x0
@@ -118,10 +123,10 @@ extern const size_t tux_ehdr_phoff;
 extern const size_t tux_ehdr_phnum;
 extern const size_t tux_ehdr_phentsize;
 
-static inline void push_auxv(unsigned long long type, unsigned long long val) {
+/* Push two 8 bytes values on the stack, 'first' then 'second' */
+static inline void push_couple(unsigned long long second, unsigned long long first) {
 #ifdef __aarch64__
-	asm volatile("str %0, [sp, #-16]!" :: "r"(val));
-	asm volatile("str %0, [sp, #-16]!" :: "r"(type));
+    asm volatile("stp %1, %0, [sp, #-16]!" :: "r"(first), "r"(second));
 #else
 	asm volatile("pushq %0" : : "r" (val));
 	asm volatile("pushq %0" : : "r" (type));
@@ -140,11 +145,20 @@ static inline void push(unsigned long long val) {
 char phdr[4096];
 Elf64_Ehdr hdr;
 
-char *auxv_platform = "x86_64";
+/* Space allocated for the buffer we use to prepare the stack */
+uint64_t stack_buffer[STACK_BUFFER_SIZE/8];
+
+#ifdef __aarch64__
+char *auxv_platform = "aarch64";
+#else
+char *auxv_platform = "x86-64";
+#endif
 
 int main(int argc, char** argv) {
 	unsigned long long int libc_argc = argc -1;
 	int i, envc;
+
+	//printf("hello, name: %s\n", argv[1]);
 
 	/* count the number of environment variables */
 	envc = 0;
@@ -154,46 +168,65 @@ int main(int argc, char** argv) {
 	 * be read by the C library (i.e. argc in the end) */
 
 	/* auxv */
-	push_auxv(AT_NULL, 0x0);
-	push_auxv(AT_IGNORE, 0x0);
-	push_auxv(AT_EXECFD, 0x0);
-	push_auxv(AT_PHDR, tux_start_address + tux_ehdr_phoff);
-	push_auxv(AT_PHNUM, tux_ehdr_phnum);
-	push_auxv(AT_PHENT, tux_ehdr_phentsize);
-	push_auxv(AT_RANDOM, tux_start_address); // FIXME get read random bytes
-	push_auxv(AT_BASE, 0x0);
-	push_auxv(AT_SYSINFO_EHDR, 0x0);
-	push_auxv(AT_SYSINFO, 0x0);
-	push_auxv(AT_PAGESZ, 4096);
-	push_auxv(AT_HWCAP, 0x0);
-	push_auxv(AT_CLKTCK, 0x64); // mimic Linux
-	push_auxv(AT_FLAGS, 0x0);
-	push_auxv(AT_ENTRY, tux_entry);
-	push_auxv(AT_UID, 0x0);
-	push_auxv(AT_EUID, 0x0);
-	push_auxv(AT_GID, 0x0);
-	push_auxv(AT_EGID, 0x0);
-	push_auxv(AT_SECURE, 0x0);
-	push_auxv(AT_SYSINFO, 0x0);
-	push_auxv(AT_EXECFN, 0x0);
-	push_auxv(AT_DCACHEBSIZE, 0x0);
-	push_auxv(AT_ICACHEBSIZE, 0x0);
-	push_auxv(AT_UCACHEBSIZE, 0x0);
-	push_auxv(AT_NOTELF, 0x0);
-	push_auxv(AT_PLATFORM, (uint64_t)auxv_platform);
+	push_couple(AT_NULL, 0x0);
+	push_couple(AT_IGNORE, 0x0);
+	push_couple(AT_EXECFD, 0x0);
+	push_couple(AT_PHDR, tux_start_address + tux_ehdr_phoff);
+	push_couple(AT_PHNUM, tux_ehdr_phnum);
+	push_couple(AT_PHENT, tux_ehdr_phentsize);
+	push_couple(AT_RANDOM, tux_start_address); // FIXME get read random bytes
+	push_couple(AT_BASE, 0x0);
+	push_couple(AT_SYSINFO_EHDR, 0x0);
+	push_couple(AT_SYSINFO, 0x0);
+	push_couple(AT_PAGESZ, 4096);
+	push_couple(AT_HWCAP, 0x0);
+	push_couple(AT_CLKTCK, 0x64); // mimic Linux
+	push_couple(AT_FLAGS, 0x0);
+	push_couple(AT_ENTRY, tux_entry);
+	push_couple(AT_UID, 0x0);
+	push_couple(AT_EUID, 0x0);
+	push_couple(AT_GID, 0x0);
+	push_couple(AT_EGID, 0x0);
+	push_couple(AT_SECURE, 0x0);
+	push_couple(AT_SYSINFO, 0x0);
+	push_couple(AT_EXECFN, argv[1]);
+	push_couple(AT_DCACHEBSIZE, 0x0);
+	push_couple(AT_ICACHEBSIZE, 0x0);
+	push_couple(AT_UCACHEBSIZE, 0x0);
+	push_couple(AT_NOTELF, 0x0);
+	push_couple(AT_PLATFORM, (uint64_t)auxv_platform);
+
+	/* aarch64's SP must always be 16 bytes so we can only push 8 bytes
+	 * elements 2 by 2. Also the SP when jumpign to the entry point must point
+	 * right on argc, followed by argv and so on. So, prepare a buffer that we
+	 * will push 16 bytes by 16 bytes to the stack, and use 8 bytes of padding
+	 * if needed in the form of a fake environment variable. THis buffer has
+	 * a size of a page. */
+	int offset = 0;
+
+
+	if((envc + libc_argc + 1) % 2 != 0)
+		stack_buffer[offset++] = "DUMMY_ENV_VAR=DUMMY_VAL";
 
 	/*envp */
 	/* Note that this will push NULL to the stack first, which is expected */
-	for(i=(envc); i>=0; i--)
-		push(environ[i]);
+	for(i=(envc); i>=0; i--) {
+		stack_buffer[offset++] = environ[i];
+	}
 
 	/* argv */
 	/* Same as envp, pushing NULL first */
-	for(i=libc_argc+1;i>0; i--)
-		push(argv[i]);
+	for(i=libc_argc+1;i>0; i--) {
+		stack_buffer[offset++] = argv[i];
+	}
 
 	/* argc */
-	push(libc_argc);
+	stack_buffer[offset++] = libc_argc;
+
+	/* Now push everything to the stack. keep in mind we made sure that
+	 * stack_buffer has an even number of members so it won't overflow here */
+	for(i = 0; i < offset; i += 2)
+		push_couple(stack_buffer[i+1], stack_buffer[i]);
 
 #ifdef __aarch64__
 	asm volatile("blr %0" : : "r" (tux_entry));
