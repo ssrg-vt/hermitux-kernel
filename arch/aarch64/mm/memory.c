@@ -203,13 +203,13 @@ void* page_alloc(size_t sz, uint32_t flags)
 {
 	size_t viraddr = 0;
 	size_t phyaddr;
-	uint32_t npages = PAGE_FLOOR(sz) >> PAGE_BITS;
+	uint32_t npages = PAGE_CEIL(sz) >> PAGE_BITS;
 	size_t pflags = PG_PRESENT|PG_GLOBAL; //|PG_XD;
 
 	if (BUILTIN_EXPECT(!npages, 0))
 		goto oom;
 
-	viraddr = vma_alloc(PAGE_FLOOR(sz), flags);
+	viraddr = vma_alloc(PAGE_CEIL(sz), flags);
 	if (BUILTIN_EXPECT(!viraddr, 0))
 		goto oom;
 

@@ -271,7 +271,9 @@ default_handler:
 	 * In principle, uhyve_send is a function call to the hypervisor.
 	 * => It is safe to pass data, which are stored on the stack.
 	 */
-	uhyve_send(UHYVE_PORT_PFAULT, (unsigned)virt_to_phys((size_t)&arg));
+//    uhyve_send(UHYVE_PORT_PFAULT, (unsigned)virt_to_phys((size_t)&arg));
+    LOG_ERROR("PAGE FAULT @%p (PC: %p)\n", viraddr, pc);
+
 
 	return -EINVAL;
 }

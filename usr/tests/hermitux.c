@@ -158,8 +158,6 @@ int main(int argc, char** argv) {
 	unsigned long long int libc_argc = argc -1;
 	int i, envc;
 
-	//printf("hello, name: %s\n", argv[1]);
-
 	/* count the number of environment variables */
 	envc = 0;
 	for (char **env = environ; *env; ++env) envc++;
@@ -196,37 +194,37 @@ int main(int argc, char** argv) {
 	push_couple(AT_NOTELF, 0x0);
 	push_couple(AT_PLATFORM, (uint64_t)auxv_platform);
 
-	/* aarch64's SP must always be 16 bytes so we can only push 8 bytes
-	 * elements 2 by 2. Also the SP when jumpign to the entry point must point
-	 * right on argc, followed by argv and so on. So, prepare a buffer that we
-	 * will push 16 bytes by 16 bytes to the stack, and use 8 bytes of padding
-	 * if needed in the form of a fake environment variable. THis buffer has
-	 * a size of a page. */
-	int offset = 0;
+    /* aarch64's SP must always be 16 bytes so we can only push 8 bytes
+     * elements 2 by 2. Also the SP when jumpign to the entry point must point
+     * right on argc, followed by argv and so on. So, prepare a buffer that we
+     * will push 16 bytes by 16 bytes to the stack, and use 8 bytes of padding
+     * if needed in the form of a fake environment variable. THis buffer has
+     * a size of a page. */
+    int offset = 0;
 
 
-	if((envc + libc_argc + 1) % 2 != 0)
-		stack_buffer[offset++] = "DUMMY_ENV_VAR=DUMMY_VAL";
+    if((envc + libc_argc + 1) % 2 != 0)
+        stack_buffer[offset++] = "DUMMY_ENV_VAR=DUMMY_VAL";
 
 	/*envp */
 	/* Note that this will push NULL to the stack first, which is expected */
 	for(i=(envc); i>=0; i--) {
-		stack_buffer[offset++] = environ[i];
-	}
+        stack_buffer[offset++] = environ[i];
+    }
 
 	/* argv */
 	/* Same as envp, pushing NULL first */
 	for(i=libc_argc+1;i>0; i--) {
 		stack_buffer[offset++] = argv[i];
-	}
+    }
 
 	/* argc */
 	stack_buffer[offset++] = libc_argc;
 
-	/* Now push everything to the stack. keep in mind we made sure that
-	 * stack_buffer has an even number of members so it won't overflow here */
-	for(i = 0; i < offset; i += 2)
-		push_couple(stack_buffer[i+1], stack_buffer[i]);
+    /* Now push everything to the stack. keep in mind we made sure that
+     * stack_buffer has an even number of members so it won't overflow here */
+    for(i = 0; i < offset; i += 2)
+        push_couple(stack_buffer[i+1], stack_buffer[i]);
 
 #ifdef __aarch64__
 	asm volatile("blr %0" : : "r" (tux_entry));
