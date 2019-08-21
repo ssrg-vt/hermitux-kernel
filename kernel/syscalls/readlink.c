@@ -32,8 +32,8 @@ int sys_readlink(char *path, char *buf, int bufsiz) {
 		if(!phys_buf)
 			return -ENOMEM;
 
-		uhyve_readlink_t args = {path, (char*) virt_to_phys((size_t) phys_buf),
-			bufsiz, -1};
+		uhyve_readlink_t args = {(char *) virt_to_phys((size_t) path),
+            (char*) virt_to_phys((size_t) phys_buf), bufsiz, -1};
 
 		uhyve_send(UHYVE_PORT_READLINK, (unsigned)virt_to_phys((size_t)&args));
 		memcpy(buf, phys_buf, bufsiz);
