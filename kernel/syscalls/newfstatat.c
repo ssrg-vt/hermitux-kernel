@@ -67,35 +67,38 @@ struct stat {
 #endif /* AARCH64 */
 
 typedef struct {
-	int fd;
-	int ret;
-	struct stat *st;
-} __attribute__ ((packed)) uhyve_fstat_t;
+	int dirfd;
+	char *filename;
+	struct stat *buf;
+    int flag;
+    int ret;
+} __attribute__ ((packed)) uhyve_newfstatat_t;
 
-int sys_fstat(int fd, struct stat *buf)
+int sys_newfstatat(int dirfd, char *filename, struct stat *buf, int flag)
 {
 	if(minifs_enabled) {
-		LOG_ERROR("fstat: not supported with minifs\n");
+		LOG_ERROR("newfstatat: not supported with minifs\n");
 		return -ENOSYS;
 	}
 
 	if(unlikely(!buf)) {
-		LOG_ERROR("fstat: called with buf argument null\n");
+		LOG_ERROR("newfstatat: called with buf argument null\n");
 		return -EINVAL;
 	}
 
 	if(likely(is_uhyve())) {
-		uhyve_fstat_t uhyve_args = {fd, -1,
-			(struct stat *)virt_to_phys((size_t)buf)};
+		uhyve_newfstatat_t uhyve_args = {dirfd,
+            (char *)virt_to_phys((size_t)filename),
+			(struct stat *)virt_to_phys((size_t)buf), flag, -1};
 
-		uhyve_send(UHYVE_PORT_FSTAT,
+		uhyve_send(UHYVE_PORT_NEWFSTATAT,
 				(unsigned)virt_to_phys((size_t)&uhyve_args));
 
 		return uhyve_args.ret;
 	}
 
 	/* qemu not supported yet */
-	LOG_ERROR("fstat: not supported with qemu isle\n");
+	LOG_ERROR("newfstatat: not supported with qemu isle\n");
 	return -ENOSYS;
 }
 

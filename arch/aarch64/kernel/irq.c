@@ -310,6 +310,21 @@ static void do_syscall(struct state *s) {
 #endif /* DISABLE_SYS_STAT */
 #endif
 
+#ifndef DISABLE_SYS_NEWFSTATAT
+        case __LNR_newfstatat:
+            /* newfstatat */
+            s->x0 = sys_newfstatat(s->x0, (char *)s->x1, (struct stat *)s->x2,
+                    s->x3);
+            break;
+#endif
+
+#ifndef DISABLE_SYS_READLINKAT
+        case __LNR_readlinkat:
+            /* readlinkat */
+            s->x0 = sys_readlinkat(s->x0, (char *)s->x1, (char *)s->x2, s->x3);
+            break;
+#endif
+
 #ifndef DISABLE_SYS_FSTAT
 		case __LNR_fstat:
 			/* fstat */
@@ -630,6 +645,13 @@ static void do_syscall(struct state *s) {
 			s->x0 = sys_getcwd((char *)s->x0, s->x1);
 			break;
 #endif /* DISABLE_SYS_GETCWD */
+
+#ifndef DISABLE_SYS_FACCESSAT
+        case __LNR_faccessat:
+            /* faccessat */
+            s->x0 = sys_faccessat(s->x0, (const char *)s->x1, s->x2, s->x3);
+            break;
+#endif
 
 #ifndef DISABLE_SYS_CHDIR
 		case __LNR_chdir:

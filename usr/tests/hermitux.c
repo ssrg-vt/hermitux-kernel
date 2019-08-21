@@ -227,6 +227,8 @@ int main(int argc, char** argv) {
         push_couple(stack_buffer[i+1], stack_buffer[i]);
 
 #ifdef __aarch64__
+    /* We clear x0, same issue as with x86-64 for rdx, see below */
+	asm volatile("mov x0, #0");
 	asm volatile("blr %0" : : "r" (tux_entry));
 #else
 	/* with GlibC, the dynamic linker sets in rdx the address of some code

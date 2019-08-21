@@ -207,6 +207,9 @@ int sys_syncfs(int fd);
 long sys_set_tid_address(int *tidptr);
 int sys_getdents(unsigned int fd, struct linux_dirent *dirp,
 		unsigned int count);
+int sys_readlinkat(int dirfd, const char *path, char *buf, int bufsiz);
+int sys_faccessat(int dirfd, const char *pathname, int mode, int flags);
+int sys_newfstatat(int dirfd, char *filename, struct stat *buf, int flag);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;
