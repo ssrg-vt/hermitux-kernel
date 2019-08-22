@@ -349,8 +349,9 @@ static void do_syscall(struct state *s) {
 #ifndef DISABLE_SYS_MMAP /* encompasses mmap and munmap */
 		case __LNR_mmap:
 			/* mmap */
-			s->x0 = sys_mmap(s->x0, s->x1, s->x2, s->x3, s->x5,
-					s->x4);
+			s->x0 = sys_mmap(s->x0, s->x1, s->x2, s->x3, s->x4,
+					s->x5);
+
 			break;
 #endif /* DISABLE_SYS_MMAP */
 
@@ -440,7 +441,7 @@ static void do_syscall(struct state *s) {
 		case __LNR_select:
 			/* select */
 			s->x0 = sys_select(s->x0, (void *)s->x1, (void *)s->x2,
-					(void *)s->x3, (void *)s->x5);
+					(void *)s->x3, (void *)s->x4);
 			break;
 #endif
 
@@ -454,7 +455,7 @@ static void do_syscall(struct state *s) {
 #ifndef DISABLE_SYS_MREMAP
 		case __LNR_mremap:
 			/* mremap */
-			s->x0 = sys_mremap(s->x0, s->x1, s->x2, s->x3, s->x5);
+			s->x0 = sys_mremap(s->x0, s->x1, s->x2, s->x3, s->x4);
 			break;
 #endif
 
@@ -523,7 +524,7 @@ static void do_syscall(struct state *s) {
 		case __LNR_sendto:
 			/* sendto */
 			s->x0 = sys_sendto(s->x0, (void *)s->x1, s->x2, s->x3,
-					(const struct sockaddr *)s->x5, s->x4);
+					(const struct sockaddr *)s->x4, s->x5);
 			break;
 #endif
 
@@ -533,7 +534,7 @@ static void do_syscall(struct state *s) {
 #ifndef DISABLE_SYS_RECVFROM
 		case __LNR_recvfrom:
 			/* recvfrom */
-			s->x0 = sys_recvfrom(s->x0, (void *)s->x1, s->x2, s->x3, (struct sockaddr *)s->x5, (unsigned int *)s->x4);
+			s->x0 = sys_recvfrom(s->x0, (void *)s->x1, s->x2, s->x3, (struct sockaddr *)s->x4, (unsigned int *)s->x5);
 			break;
 #endif /* DISABLE_SYS_RECVFROM */
 #endif /* NO_NET */
@@ -585,7 +586,7 @@ static void do_syscall(struct state *s) {
 #ifndef DISABLE_SYS_CLONE
 		case __LNR_clone:
 			/* clone */
-			s->x0 = sys_clone(s->x0, (void *)s->x1, (int *)s->x2, (int *)s->x3, (void *)s->x5, (void *)s->x4);
+			s->x0 = sys_clone(s->x0, (void *)s->x1, (int *)s->x2, (int *)s->x3, (void *)s->x4, (void *)s->x5);
 			break;
 #endif /* DISABLE_SYS_CLONE */
 
@@ -600,7 +601,7 @@ static void do_syscall(struct state *s) {
 #ifndef DISABLE_SYS_SETSOCKOPT
 		case __LNR_setsockopt:
 			/* setsockopt */
-			s->x0 = sys_setsockopt(s->x0, s->x1, s->x2, (char *)s->x3, s->x5);
+			s->x0 = sys_setsockopt(s->x0, s->x1, s->x2, (char *)s->x3, s->x4);
 			break;
 #endif /* DISABLE_SYS_SETSOCKOPT */
 
