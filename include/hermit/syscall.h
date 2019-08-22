@@ -210,6 +210,8 @@ int sys_getdents(unsigned int fd, struct linux_dirent *dirp,
 int sys_readlinkat(int dirfd, const char *path, char *buf, int bufsiz);
 int sys_faccessat(int dirfd, const char *pathname, int mode, int flags);
 int sys_newfstatat(int dirfd, char *filename, struct stat *buf, int flag);
+int sys_unlinkat(int dirfd, const char *pathname, int flags);
+int sys_mkdirat(int dirfd, const char *pathname,  umode_t mode);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;

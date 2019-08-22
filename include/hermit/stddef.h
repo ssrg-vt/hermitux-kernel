@@ -108,6 +108,8 @@ extern uint64_t tux_start_address;
 #define UHYVE_PORT_READLINKAT	0xEC0
 #define UHYVE_PORT_FACCESSAT	0xF00
 #define UHYVE_PORT_NEWFSTATAT	0xF40
+#define UHYVE_PORT_MKDIRAT	    0xF80
+#define UHYVE_PORT_UNLINKAT     0xFC0
 
 #define BUILTIN_EXPECT(exp, b)		__builtin_expect((exp), (b))
 //#define BUILTIN_EXPECT(exp, b)	(exp)

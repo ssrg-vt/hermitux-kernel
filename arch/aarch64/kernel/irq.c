@@ -659,6 +659,20 @@ static void do_syscall(struct state *s) {
 			break;
 #endif
 
+#ifndef DISABLE_SYS_MKDIRAT
+        case __LNR_mkdirat:
+            /* mkdirat */
+            s->x0 = sys_mkdirat(s->x0, (const char *)s->x1, s->x2);
+            break;
+#endif
+
+#ifndef DISABLE_SYS_UNLINKAT
+        case __LNR_unlinkat:
+            /* unlinkat */
+            s->x0 = sys_unlinkat(s->x0, (const char *)s->x1, s->x2);
+            break;
+#endif
+
 #ifndef DISABLE_SYS_MKDIR
 		case __LNR_mkdir:
 			/* mkdir */
