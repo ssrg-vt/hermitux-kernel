@@ -22,7 +22,11 @@ extern unsigned long long syscall_boot_tsc;
 
 inline static unsigned long long cgt_rdtsc(void)
 {
+#if __aarch64__
+    return get_cntpct();
+#else
 	return get_rdtsc();
+#endif
 }
 
 int sys_clock_gettime(clockid_t id, struct timespec *tp) {
