@@ -187,7 +187,7 @@ int main(int argc, char** argv) {
 	push_couple(AT_EGID, 0x0);
 	push_couple(AT_SECURE, 0x0);
 	push_couple(AT_SYSINFO, 0x0);
-	push_couple(AT_EXECFN, argv[1]);
+	push_couple(AT_EXECFN, (unsigned long long)argv[1]);
 	push_couple(AT_DCACHEBSIZE, 0x0);
 	push_couple(AT_ICACHEBSIZE, 0x0);
 	push_couple(AT_UCACHEBSIZE, 0x0);
@@ -202,20 +202,21 @@ int main(int argc, char** argv) {
      * a size of a page. */
     int offset = 0;
 
-
-    if((envc + libc_argc + 1) % 2 != 0)
-        stack_buffer[offset++] = "DUMMY_ENV_VAR=DUMMY_VAL";
-
 	/*envp */
 	/* Note that this will push NULL to the stack first, which is expected */
 	for(i=(envc); i>=0; i--) {
-        stack_buffer[offset++] = environ[i];
+        stack_buffer[offset++] = (uint64_t)environ[i];
     }
+
+    /* We use a fake environment variable to add padding on the stack if
+     * needed, in the case we need to align the final SP */
+    if(((envc + libc_argc + 1) % 2) != 0)
+        stack_buffer[offset++] = (uint64_t)"DUMMY_ENV_VAR=DUMMY_VAL";
 
 	/* argv */
 	/* Same as envp, pushing NULL first */
 	for(i=libc_argc+1;i>0; i--) {
-		stack_buffer[offset++] = argv[i];
+		stack_buffer[offset++] = (uint64_t)argv[i];
     }
 
 	/* argc */
@@ -223,6 +224,8 @@ int main(int argc, char** argv) {
 
     /* Now push everything to the stack. keep in mind we made sure that
      * stack_buffer has an even number of members so it won't overflow here */
+    if(offset % 2)
+        DIE();
     for(i = 0; i < offset; i += 2)
         push_couple(stack_buffer[i+1], stack_buffer[i]);
 
