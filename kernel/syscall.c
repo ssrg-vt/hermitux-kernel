@@ -43,8 +43,13 @@ unsigned long long syscall_boot_tsc = 0;
 unsigned long long syscall_freq = 0;
 
 void syscall_timing_init(void) {
+#if __aarch64__
+    syscall_boot_tsc = get_cntpct();
+    syscall_freq = get_cntfrq();
+#else
 	syscall_boot_tsc = get_rdtsc();
 	syscall_freq = get_cpu_frequency() * 1000000ULL;
+#endif
 }
 
 static spinlock_irqsave_t malloc_lock = SPINLOCK_IRQSAVE_INIT;

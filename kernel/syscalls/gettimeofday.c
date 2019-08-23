@@ -8,7 +8,11 @@ extern unsigned long long syscall_boot_tsc;
 
 inline static unsigned long long gtod_rdtsc(void)
 {
+#if __aarch64__
+    return get_cntpct();
+#else
 	return get_rdtsc();
+#endif
 }
 
 int sys_gettimeofday(struct timeval *tv, struct timezone *tz) {
