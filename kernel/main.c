@@ -72,6 +72,8 @@
 #include <net/uhyve-net.h>
 #endif /* NO_NET */
 
+#include <asm/br_syscall_handler.h>
+
 #define HERMIT_PORT	0x494E
 #define HERMIT_MAGIC	0x7E317
 
@@ -470,6 +472,14 @@ static int initd(void* arg)
 		 * image here */
 		if(minifs_enabled)
 			minifs_load_from_host(uhyve_cmdval.argv[1], uhyve_cmdval.argv[1]);
+
+#if __aarch64__
+        /* Do not remove this print statement, it forces the usage of
+         * br_syscall_handler and otherwise it will be compiled out. It is
+         * called not directly from the source code but by the binary
+         * rewritten code */
+        LOG_INFO("br_syscall_handler is @%p\n", &br_syscall_handler);
+#endif
 
 		LOG_INFO("Boot time: %d ms\n", (get_clock_tick() * 1000) / TIMER_FREQ);
 		libc_start(uhyve_cmdsize.argc, uhyve_cmdval.argv, uhyve_cmdval.envp);
