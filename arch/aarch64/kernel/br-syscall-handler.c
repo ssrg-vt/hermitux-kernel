@@ -20,6 +20,12 @@ int br_syscall_handler(uint64_t x0, uint64_t x1, uint64_t x2, uint64_t x3,
         case 29:
             return sys_ioctl(x0, x1, x2);
 
+        case 56:
+            return sys_openat(x0, (void *)x1, x2, x3);
+
+        case 57:
+            return sys_close(x0);
+
         case 64:
             return sys_write(x0, (void *)x1, x2);
 
