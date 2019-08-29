@@ -26,15 +26,27 @@ int br_syscall_handler(uint64_t x0, uint64_t x1, uint64_t x2, uint64_t x3,
         case 57:
             return sys_close(x0);
 
+        case 63:
+            return sys_read(x0, (void *)x1, x2);
+
         case 64:
             return sys_write(x0, (void *)x1, x2);
 
         case 66:
             return sys_writev(x0, (void *)x1, x2);
 
+        case 79:
+            return sys_newfstatat(x0, (void *)x1, (void *)x2, x3);
+
+        case 80:
+            return sys_fstat(x0, (void *)x1);
+
         case 94:
             sys_exit_group(x0);
             /* does not return */
+
+        case 113:
+            return sys_clock_gettime(x0, (void *)x1);
 
         case 173:
             return sys_getppid();
