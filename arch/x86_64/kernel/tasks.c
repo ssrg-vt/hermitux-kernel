@@ -267,7 +267,6 @@ void wait_for_task(void)
 			"c" (0) /* break on interrupt flag */ : "memory");
 	}
 #endif
-#endif
 }
 
 void wakeup_core(uint32_t core_id)

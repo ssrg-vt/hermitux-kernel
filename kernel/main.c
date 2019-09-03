@@ -72,7 +72,9 @@
 #include <net/uhyve-net.h>
 #endif /* NO_NET */
 
+#if __aarch64__
 #include <asm/br_syscall_handler.h>
+#endif
 
 #define HERMIT_PORT	0x494E
 #define HERMIT_MAGIC	0x7E317
@@ -349,30 +351,6 @@ int smp_main(void)
 	return 0;
 }
 #endif
-
-#ifndef NO_IRCCE
-static int init_rcce(void)
-{
-	size_t addr, flags = PG_GLOBAL|PG_RW;
-
-	addr = vma_alloc(PAGE_SIZE, VMA_READ|VMA_WRITE|VMA_CACHEABLE);
-	if (BUILTIN_EXPECT(!addr, 0))
-		return -ENOMEM;
-	if (has_nx())
-		flags |= PG_XD;
-	if (page_map(addr, phy_rcce_internals, 1, flags)) {
-		vma_free(addr, addr + PAGE_SIZE);
-		return -ENOMEM;
-	}
-
-	rcce_lock = (islelock_t*) addr;
-	rcce_mpb = (rcce_mpb_t*) (addr + CACHE_LINE*(RCCE_MAXNP+1));
-
-	LOG_INFO("Map rcce_lock at %p and rcce_mpb at %p\n", rcce_lock, rcce_mpb);
-
-	return 0;
-}
-#endif /* NO_IRCCE */
 
 int libc_start(int argc, char** argv, char** env);
 extern void syscall_timing_init();

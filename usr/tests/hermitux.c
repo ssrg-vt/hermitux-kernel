@@ -128,8 +128,8 @@ static inline void push_couple(unsigned long long second, unsigned long long fir
 #ifdef __aarch64__
     asm volatile("stp %1, %0, [sp, #-16]!" :: "r"(first), "r"(second));
 #else
-	asm volatile("pushq %0" : : "r" (val));
-	asm volatile("pushq %0" : : "r" (type));
+	asm volatile("pushq %0" : : "r" (first));
+	asm volatile("pushq %0" : : "r" (second));
 #endif
 }
 

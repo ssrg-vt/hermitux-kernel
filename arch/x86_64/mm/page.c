@@ -304,7 +304,7 @@ void page_fault_handler(struct state *s)
 		return;
 
 slow_path:
-		for(i=0; i<OVERMAP; i++) {
+		for(int i=0; i<OVERMAP; i++) {
 			int ret;
 			viraddr += i*PAGE_SIZE;
 			/*
