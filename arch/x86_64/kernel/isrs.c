@@ -851,6 +851,38 @@ void syscall_handler(struct state *s)
 			break;
 #endif /* DISABLE_SYS_OPENAT */
 
+#ifndef DISABLE_SYS_MKDIRAT
+        case 258:
+            s->rax = sys_mkdirat(s->rdi, (void *)s->rsi, s->rdx);
+            break;
+#endif
+
+#ifndef DISABLE_SYS_NEWFSTATAT
+        case 262:
+            s->rax = sys_newfstatat(s->rdi, (void *)s->rsi, (void *)s->rdx,
+                    s->r10);
+            break;
+#endif
+
+#ifndef DISABLE_SYS_UNLINKAT
+        case 263:
+            s->rax = sys_unlinkat(s->rdi, (void *)s->rsi, s->rdx);
+            break;
+#endif
+
+#ifndef DISABLE_SYS_READLINKAT
+        case 267:
+            s->rax = sys_readlinkat(s->rdi, (void *)s->rsi, (void *)s->rdx,
+                    s->r10);
+            break;
+#endif
+
+#ifndef DISABLE_SYS_FACCESSAT
+        case 269:
+            s->rax = sys_faccessat(s->rdi, (void *)s->rsi, s->rdx, s->r10);
+            break;
+#endif
+
 #ifndef DISABLE_SYS_EXIT_GROUP
 		case 231:
 			/* exit_group */
