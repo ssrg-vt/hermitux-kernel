@@ -57,6 +57,8 @@ extern const void percore_end0;
 
 extern uint64_t base;
 
+/* In hermitux TLS is managed by the C library */
+#if 0
 static int init_tls(void)
 {
 	task_t* curr_task = per_core(current_task);
@@ -87,6 +89,7 @@ static int init_tls(void)
 
 	return 0;
 }
+#endif
 
 void destroy_tls(void)
 {
@@ -102,9 +105,11 @@ void destroy_tls(void)
 
 static int thread_entry(void* arg, size_t ep)
 {
-
+    /* In hermitux TLS is managed by the C library */
+#if 0
 	if (init_tls())
 		return -ENOMEM;
+#endif
 
 	//vma_dump();
 
@@ -237,9 +242,6 @@ int create_default_frame(task_t* task, entry_point_t ep, void* arg, uint32_t cor
 
 void wait_for_task(void)
 {
-	/* Speeds up network programs */
-	return;
-
 	irq_disable();
 	if (is_task_available()) {
 		irq_enable();

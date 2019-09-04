@@ -9,8 +9,6 @@ int sys_munmap(size_t viraddr, size_t len) {
 	int ret;
 	size_t phyaddr;
 
-	LOG_INFO("munmap addr 0x%llx, len 0x%llx\n", viraddr, len);
-
 	if (BUILTIN_EXPECT(!viraddr, 0))
 		return -EINVAL;
 	if (BUILTIN_EXPECT(!len, 0))

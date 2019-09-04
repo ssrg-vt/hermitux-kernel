@@ -381,9 +381,16 @@ void NORETURN do_exit(int arg)
 	spinlock_irqsave_unlock(&readyqueues[core_id].lock);
 
 	// release the thread local storage
-	destroy_tls();
+    // not needed in hermitux
+	// destroy_tls();
 
 	curr_task->status = TASK_FINISHED;
+
+    if(curr_task->clear_child_tid) {
+#define FUTEX_WAKE 1
+        *(int *)(curr_task->clear_child_tid)=0;
+        sys_futex(curr_task->clear_child_tid, FUTEX_WAKE, 1, NULL, NULL, 0);
+    }
 
 	reschedule();
 
@@ -490,6 +497,8 @@ int create_task(tid_t* id, entry_point_t ep, void* arg, uint8_t prio, uint32_t c
 			task_table[i].signal_handler = NULL;
 			/* Other threads are created with clone_task */
 			task_table[i].is_main_thread = 1;
+			task_table[i].set_child_tid = NULL;
+			task_table[i].clear_child_tid = NULL;
 
 			if (id)
 				*id = i;
@@ -805,7 +814,8 @@ int get_task(tid_t id, task_t** task)
 	return 0;
 }
 
-int clone_task(tid_t* id, entry_point_t ep, void* arg, uint8_t prio, void *tls)
+int clone_task(tid_t* id, entry_point_t ep, void* arg, uint8_t prio, void *tls,
+        void *set_child_tid, void *clear_child_tid)
 {
 	int ret = -EINVAL;
 	uint32_t i;
@@ -860,7 +870,9 @@ int clone_task(tid_t* id, entry_point_t ep, void* arg, uint8_t prio, void *tls)
 			task_table[i].ist_addr = ist;
 			task_table[i].lwip_err = 0;
 			task_table[i].signal_handler = NULL;
-			task_table[i].is_main_thread = 0; 
+			task_table[i].is_main_thread = 0;
+			task_table[i].set_child_tid = NULL;
+			task_table[i].clear_child_tid = NULL;
 
 			if (id)
 				*id = i;
