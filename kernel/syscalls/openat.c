@@ -20,6 +20,9 @@ int sys_openat(int dirfd, const char *pathname, int flags, int mode) {
 	}
 
 	if(minifs_enabled) {
+        if(pathname[0] == '/')
+            return minifs_open(pathname, flags, mode);
+
 		LOG_ERROR("openat: unsupported with minifs\n");
 		return -ENOSYS;
 	}

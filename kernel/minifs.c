@@ -299,6 +299,8 @@ int minifs_init(void) {
 	for(int i=0; i<MAX_FDS; i++)
 		fds[i].f = NULL;
 
+    LOG_WARNING("No minifs hostload for aarch64 for now\n");
+#if 0
 	/* Load files from the host if needed with help from uhyve */
 	while(!hostload_done) {
 		uhyve_minifs_load_t arg;
@@ -309,6 +311,7 @@ int minifs_init(void) {
 		else
 			hostload_done = 1;
 	}
+#endif
 
 	/* Create pseudo files to emulate Linux interface */
 	minifs_creat_custom("/dev/null", 0777, devnull_read, devnull_write);
