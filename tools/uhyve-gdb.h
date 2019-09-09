@@ -109,6 +109,8 @@ struct uhyve_gdb_regs {
     uint32_t es;
     uint32_t fs;
     uint32_t gs;
+    
+    char pad[392]; /* weird, recent GDB is expecting more space here */
 };
 
 #endif /* UHYVE_GDB_H */

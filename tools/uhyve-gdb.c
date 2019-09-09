@@ -820,8 +820,9 @@ int uhyve_gdb_read_registers(int vcpufd,
 	kvm_ioctl(vcpufd, KVM_GET_REGS, &kregs);
 	kvm_ioctl(vcpufd, KVM_GET_SREGS, &sregs);
 
-    if (*len < sizeof(struct uhyve_gdb_regs))
+    if (*len < sizeof(struct uhyve_gdb_regs)) {
         return -1;
+    }
 
     *len = sizeof(struct uhyve_gdb_regs);
 
@@ -839,6 +840,10 @@ int uhyve_gdb_read_registers(int vcpufd,
     gregs->r9 = kregs.r9;
     gregs->r10 = kregs.r10;
     gregs->r11 = kregs.r11;
+    gregs->r12 = kregs.r12;
+    gregs->r13 = kregs.r13;
+    gregs->r14 = kregs.r14;
+    gregs->r15 = kregs.r15;
 
     gregs->rip = kregs.rip;
     gregs->eflags = kregs.rflags;
@@ -883,6 +888,10 @@ int uhyve_gdb_write_registers(int vcpufd,
     kregs.r9 = gregs->r9;
     kregs.r10 = gregs->r10;
     kregs.r11 = gregs->r11;
+    kregs.r12 = gregs->r12;
+    kregs.r13 = gregs->r13;
+    kregs.r14 = gregs->r14;
+    kregs.r15 = gregs->r15;
 
     kregs.rip = gregs->rip;
     kregs.rflags = gregs->eflags;
