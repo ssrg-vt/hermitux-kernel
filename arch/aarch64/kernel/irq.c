@@ -985,7 +985,18 @@ void do_sync(struct state *regs)
 		}
 	} else if (ec == 0x15) {
 		//LOG_INFO("Receive system call, PC=0x%x\n", pc);
+
+        /* Pierre: irqs are automatically disabled by the hardware when an
+         * interrupt is received but we need to re-enable them. Otherwise, we
+         * can get a deadlock when a syscall code tries to sleep on a mutex:
+         * for example accept() will. The sleep is implemented by the core
+         * voluntarily sending an exception that will trigger the scheduler
+         * execution and the selection of another task. */
+
+		irq_enable();
 		do_syscall(regs);
+		irq_disable();
+
 		return;
 	} else if (ec == 0x3c) {
 		LOG_ERROR("Trap to debugger, PC=0x%x\n", pc);
