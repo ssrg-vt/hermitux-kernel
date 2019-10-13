@@ -22,7 +22,7 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 	uint32_t npages = PAGE_CEIL(len) >> PAGE_BITS;
 
 	if(!(flags & MAP_PRIVATE)) {
-		LOG_ERROR("mmap: non-private mapping are not supported\n");
+		LOG_ERROR("mmap: non-private mappings are not supported\n");
 		return -ENOSYS;
 	}
 
