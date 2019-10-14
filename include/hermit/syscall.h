@@ -146,6 +146,7 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 int sys_mkdir(const char *pathname, umode_t mode);
 int sys_rmdir(const char *pathname);
 int sys_madvise(unsigned long start, size_t len_in, int behavior);
+int sys_dup2(int oldfd, int newfd);
 int sys_geteuid(void);
 int sys_getuid(void);
 int sys_getgid(void);
