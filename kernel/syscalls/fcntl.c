@@ -48,6 +48,8 @@ int sys_fcntl(int fd, unsigned int cmd, unsigned long arg) {
 		}
 
 		switch(cmd) {
+			case F_GETFL:
+			case F_GETFD:
 			case F_SETFD:
 				u_arg.fd = fd;
 				u_arg.cmd = cmd;

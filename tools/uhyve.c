@@ -1339,6 +1339,14 @@ static int vcpu_loop(void)
 				break;
 			}
 
+			case UHYVE_PORT_DUP2: {
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_dup2_t *arg = (uhyve_dup2_t *)(guest_mem + data);
+
+				arg->ret = dup2(arg->oldfd, arg->newfd);
+				break;
+			}
+
 
 			default:
 				err(1, "KVM: unhandled KVM_EXIT_IO at port 0x%x, direction %d\n", run->io.port, run->io.direction);
