@@ -23,6 +23,8 @@
 #define SEEK_CUR		1
 #define SEEK_END		2
 
+#define IS_OPEN(fd) fds && fds[fd].f != NULL
+
 typedef struct s_file {
 	char *name;
 	uint64_t size;
@@ -262,6 +264,23 @@ int meminfo_read(int fd, void *buf, uint64_t len) {
 	return len;
 }
 
+int minifs_dup2(int oldfd, int newfd) {
+
+	if (!IS_OPEN(oldfd) || newfd > MAX_FDS) {
+		return -EBADF;
+	}
+
+	if (IS_OPEN(newfd) && !minifs_close(newfd)) {
+		LOG_ERROR("minifs_dup2: failed to close open file with fd: %d\n",
+			newfd);
+		return -1;
+	}
+
+	fds[newfd].f = fds[oldfd].f;
+	fds[newfd].offset = fds[oldfd].offset;
+
+	return 0;
+}
 
 int meminfo_write(int fd, const void *buf, uint64_t len) {
 	return len;
