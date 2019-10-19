@@ -23,7 +23,7 @@
 #define SEEK_CUR		1
 #define SEEK_END		2
 
-#define IS_OPEN(fd) fds && fds[fd].f != NULL
+#define IS_OPEN(fd) (fds && (fds[fd].f != NULL))
 
 typedef struct s_file {
 	char *name;
