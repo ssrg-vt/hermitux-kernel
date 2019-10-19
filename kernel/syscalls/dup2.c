@@ -1,8 +1,11 @@
 #include <hermit/syscall.h>
 #include <hermit/logging.h>
+#include <hermit/errno.h>
 #include <asm/uhyve.h>
 #include <asm/page.h>
 #include <hermit/minifs.h>
+
+extern int hermit_dup2(int oldfd, int newfd);
 
 typedef struct {
     int oldfd;
@@ -11,17 +14,17 @@ typedef struct {
 } __attribute__ ((packed)) uhyve_dup2_t;
 
 
-/**
- * Currently this implementation does not support the following:
- *  - checking if oldfd is valid
- *  - minifs file descriptors
- *  - LwIP file descriptors
- */
 int sys_dup2(int oldfd, int newfd)
 {
-
     if (unlikely(newfd == oldfd))
         return newfd;
+
+#ifndef NO_NET
+    if ((oldfd & LWIP_FD_BIT) || (newfd & LWIP_FD_BIT)) {
+        LOG_ERROR("dup2: sockets not supported\n");
+        return -ENOSYS;
+    }
+#endif
 
     if (likely(is_uhyve())) {
 
