@@ -442,6 +442,14 @@ void syscall_handler(struct state *s)
 			break;
 #endif /* DISABLE_SYS_MADVISE */
 
+#ifndef DISABLE_SYS_DUP2
+		case 33:
+			/* dup2 */
+			s->rax = sys_dup2(s->rdi, s->rsi);
+			break;
+#endif /* DISABLE_SYS_DUP2 */
+
+
 #ifndef DISABLE_SYS_NANOSLEEP
 		case 35:
 			/* nanosleep */

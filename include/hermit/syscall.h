@@ -207,6 +207,7 @@ int sys_syncfs(int fd);
 long sys_set_tid_address(int *tidptr);
 int sys_getdents(unsigned int fd, struct linux_dirent *dirp,
 		unsigned int count);
+int sys_dup2(int oldfd, int newfd);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;

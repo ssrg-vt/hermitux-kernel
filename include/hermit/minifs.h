@@ -18,5 +18,12 @@ int minifs_write(int fd, const void *buf, size_t count);
 uint64_t minifs_lseek(int fd, uint64_t offset, int whence);
 int minifs_mkdir(const char *pathname, mode_t mode);
 int minifs_rmdir(const char *pathname);
+/**
+ * MiniFS implementation of dup2.
+ * Attempts to follow Linux convention of
+ * error handling with regards to 
+ * bad file descriptors.
+*/
+int minifs_dup2(int oldfd, int newfd);
 
 #endif /* MINI_FS_H */
