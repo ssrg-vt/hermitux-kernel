@@ -561,7 +561,8 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_CLONE
 		case 56:
 			/* clone */
-			s->rax = sys_clone(s->rdi, (void *)s->rsi, (int *)s->rdx, (int *)s->r10, (void *)s->r8, (void *)s->r9);
+			s->rax = sys_clone(s->rdi, (void *)s->rsi, (int *)s->rdx,
+                    (int *)s->r10, (void *)s->r8, s);
 			break;
 #endif /* DISABLE_SYS_CLONE */
 

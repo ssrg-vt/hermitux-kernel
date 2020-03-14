@@ -66,7 +66,8 @@ void switch_context(size_t** stack);
  *   point (the default one would overwrite FS).
  *   If fs is set to NULL, the function just executes normally.
  */
-int create_default_frame(task_t* task, entry_point_t ep, void* arg, uint32_t core_id, void *fs);
+int create_default_frame(task_t* task, entry_point_t ep, void* arg,
+        uint32_t core_id, struct state *s);
 
 /** @brief Jump to user code
  *

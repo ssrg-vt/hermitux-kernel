@@ -803,6 +803,42 @@ sighandler_epilog:
 
     jmp [rsp - 5 * 8]	; jump to rip from saved state
 
+; this is the return path after clone for the child thread. The parameter in
+; rdi is a pointer to a struct state (see arch/x86/include/stddef.h
+; representing the value of the registers when the clone syscall was made.
+; Basically we simulate a return from syscall with a few differences:
+global __clone_entry
+__clone_entry:
+    cli
+    mov r15, [rdi+16]
+    mov r14, [rdi+24]
+    mov r13, [rdi+32]
+    mov r12, [rdi+40]
+    ; r11 destroyed by the kernel
+    mov r10, [rdi+56]
+    mov r9, [rdi+64]
+
+    ; syscall success -> return 0
+    xor rax, rax
+    mov rbx, [rdi+112]
+    ; kernel destroys rcx (here we use it as a 'scratchpad')
+    mov rdx, [rdi+120]
+    mov rbp, [rdi+96]
+    mov rsi, [rdi+88]
+
+    ; The stack was given by user space in rsi (clone's 2nd parameter)
+    mov rsp, [rdi+88]
+
+    ; fs also provided by the user space
+    mov rcx, [rdi+8]
+    wrfsbase rcx
+
+    ; finally jump to the entry point in rcx
+    mov rcx, [rdi+128]
+    mov rdi, [rdi+80]
+    sti
+    jmp rcx
+
 SECTION .data
 
 align 4096

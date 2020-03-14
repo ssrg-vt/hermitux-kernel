@@ -435,7 +435,8 @@ uint32_t get_next_core_id(void)
 	return core_id;
 }
 
-int create_task(tid_t* id, entry_point_t ep, void* arg, uint8_t prio, uint32_t core_id)
+int create_task(tid_t* id, entry_point_t ep, void* arg, uint8_t prio,
+        uint32_t core_id)
 {
 	int ret = -ENOMEM;
 	uint32_t i;
@@ -814,8 +815,8 @@ void reschedule(void)
 	irq_nested_enable(flags);
 }
 
-int clone_task(tid_t* id, entry_point_t ep, void* arg, uint8_t prio, void *tls,
-		void *set_child_tid, void *clear_child_tid)
+int clone_task(tid_t* id, entry_point_t ep, void* arg, uint8_t prio,
+		void *set_child_tid, void *clear_child_tid, struct state *s)
 {
 	int ret = -EINVAL;
 	uint32_t i;
@@ -877,7 +878,7 @@ int clone_task(tid_t* id, entry_point_t ep, void* arg, uint8_t prio, void *tls,
 			if (id)
 				*id = i;
 
-			ret = create_default_frame(task_table+i, ep, arg, core_id, tls);
+			ret = create_default_frame(task_table+i, ep, arg, core_id, s);
 			if (ret)
 				goto out;
 

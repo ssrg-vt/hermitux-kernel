@@ -9,8 +9,10 @@
 #define CLONE_CHILD_CLEARTID	0x00200000
 #define CLONE_CHILD_SETTID		0x01000000
 
-int sys_clone(unsigned long clone_flags, void *stack, int *ptid, int *ctid, void *arg,
-		void *ep)
+extern void __clone_entry(struct state *s);
+
+int sys_clone(unsigned long clone_flags, void *stack, int *ptid, int *ctid,
+        void *tls, struct state *state)
 {
 	tid_t id;
 
@@ -22,22 +24,20 @@ int sys_clone(unsigned long clone_flags, void *stack, int *ptid, int *ctid, void
 		return -ENOSYS;
 	}
 
-	/* FIXME: we currently use a mega hack to get the entry point, that only
-	 * works for musl. By adding an additional parameter here we actually
-	 * access the entry point that was left in the corresponding register when
-	 * the user called pthread create. That doesnt work with GlibC because
-	 * there is something else in that register */
-	if(!ep) {
-		LOG_ERROR("clone: called with no valid entry point\n");
-		return -EINVAL;
-	}
-
 	/* To understand how set/clear_child_tidwork, see the man page for
 	 * set_tid_address */
 	void *set_child_tid = (clone_flags & CLONE_CHILD_SETTID) ? ctid : NULL;
 	void *clear_child_tid = (clone_flags & CLONE_CHILD_CLEARTID) ? ctid : NULL;
-	int ret = clone_task(&id, ep, arg, per_core(current_task)->prio, arg,
-			set_child_tid, clear_child_tid);
+
+    /* We will restore fs to the right value when returning in the child */
+    state->fs = (uint64_t)tls;
+
+	/* clone_task will take care of copyign state on the stack of the created
+     * thread and pass it as the parameter of __clone_entry so that we can be
+     * reetrant */
+    int ret = clone_task(&id, (int(*)(void *))__clone_entry, NULL,
+            per_core(current_task)->prio, set_child_tid, clear_child_tid,
+            state);
 
 	if(ret)
 		return ret;

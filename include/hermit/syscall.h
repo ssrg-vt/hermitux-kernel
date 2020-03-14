@@ -94,7 +94,7 @@ int sys_sem_post(sem_t* sem);
 int sys_sem_timedwait(sem_t *sem, unsigned int ms);
 int sys_sem_cancelablewait(sem_t* sem, unsigned int ms);
 int sys_clone(unsigned long clone_flags, void *stack, int *ptid, int *ctid,
-		void *arg, void *ep);
+		void *tls, struct state *state);
 off_t sys_lseek(int fd, off_t offset, int whence);
 size_t sys_get_ticks(void);
 int sys_rcce_init(int session_id);

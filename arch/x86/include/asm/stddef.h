@@ -151,41 +151,41 @@ typedef struct mregs {
 /// This defines what the stack looks like after the task context is saved
 struct state {
 	/// GS register
-	uint64_t gs;
+	uint64_t gs;                        //GS: state + 0
 	/// FS regsiter for TLS support
-	uint64_t fs;
+	uint64_t fs;                        //FS: state + 8
 	/// R15 register
-	uint64_t r15;
+	uint64_t r15;                       //r15: state + 16
 	/// R14 register
-	uint64_t r14;
+	uint64_t r14;                        //r14: state + 24
 	/// R13 register
-	uint64_t r13;
+	uint64_t r13;                       //r13: state + 32
 	/// R12 register
-	uint64_t r12;
+	uint64_t r12;                       //r12: state + 40
 	/// R11 register
-	uint64_t r11;
+	uint64_t r11;                       //r13: state + 48
 	/// R10 register
-	uint64_t r10;
+	uint64_t r10;                       //r10: state + 56
 	/// R9 register
-	uint64_t r9;
+	uint64_t r9;                        //r9: state + 64
 	/// R8 register
-	uint64_t r8;
+	uint64_t r8;                        //r8: state + 72
 	/// RDI register
-	uint64_t rdi;
+	uint64_t rdi;                       //rdi: state + 80
 	/// RSI register
-	uint64_t rsi;
+	uint64_t rsi;                       //rsi: state + 88
 	/// RBP register
-	uint64_t rbp;
+	uint64_t rbp;                       //rbp: state + 96
 	/// (pseudo) RSP register
-	uint64_t rsp;
+	uint64_t rsp;                       //rsp: state + 104
 	/// RBX register
-	uint64_t rbx;
+	uint64_t rbx;                       //rbx: state + 112
 	/// RDX register
-	uint64_t rdx;
+	uint64_t rdx;                       //rdx: state + 120
 	/// RCX register
-	uint64_t rcx;
+	uint64_t rcx;                       //rcx: state + 128
 	/// RAX register
-	uint64_t rax;
+	uint64_t rax;                       //rax: state + 136
 
 	/// Interrupt number
 	uint64_t int_no;
