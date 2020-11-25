@@ -406,6 +406,13 @@ void syscall_handler(struct state *s)
 			break;
 #endif /* DISABLE_SYS_ACCESS */
 
+#ifndef DISABLE_SYS_PIPE
+        case 22:
+            /* pipe */
+            s->rax = sys_pipe((int *)s->rdi);
+            break;
+#endif
+
 #ifndef DISABLE_SYS_SELECT
 		case 23:
 			/* select */
@@ -867,6 +874,14 @@ void syscall_handler(struct state *s)
 			LOG_ERROR("Should not reach here after exit_group ... \n");
 			break;
 #endif /* DISABLE_SYS_EXIT_GROUP */
+
+#ifndef DISABLE_SYS_NEWFSTATAT
+        case 262:
+            /* newfstatat */
+            s->rax = sys_newfstatat(s->rdi, (void *)s->rsi, (void *)s->rdx,
+                    s->r10);
+            break;
+#endif
 
 #ifndef DISABLE_SYS_SET_ROBUST_LIST
 		case 273:

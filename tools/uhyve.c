@@ -1347,6 +1347,27 @@ static int vcpu_loop(void)
 				break;
 			}
 
+            case UHYVE_PORT_PIPE: {
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_pipe_t *arg = (uhyve_pipe_t *)(guest_mem + data);
+
+				arg->ret = pipe(arg->filedes);
+				break;
+			}
+
+			case UHYVE_PORT_NEWFSTATAT: {
+				int ret;
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_newfstatat_t *args = (uhyve_newfstatat_t *) (guest_mem+data);
+
+				ret = syscall(SYS_newfstatat, args->dirfd,
+                        (const char *)(guest_mem+(size_t)args->name),
+                        (struct stat *)(guest_mem+(size_t)args->st),
+                        args->flag);
+
+				args->ret = (ret == -1) ? -errno : ret;
+					break;
+				}
 
 			default:
 				err(1, "KVM: unhandled KVM_EXIT_IO at port 0x%x, direction %d\n", run->io.port, run->io.direction);
