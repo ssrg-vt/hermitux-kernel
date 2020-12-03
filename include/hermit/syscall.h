@@ -116,6 +116,7 @@ struct rlimit;
 struct sysinfo;
 struct linux_dirent64;
 struct linux_dirent;
+struct pollfd;
 typedef struct fd_set fd_set;
 typedef unsigned short umode_t;
 typedef uint32_t socklen_t;
@@ -210,6 +211,7 @@ int sys_getdents(unsigned int fd, struct linux_dirent *dirp,
 int sys_dup2(int oldfd, int newfd);
 int sys_pipe(int *filedes);
 int sys_newfstatat(int dirfd, const char *name, struct stat *buf, int flag);
+int sys_poll(struct pollfd *ufds, unsigned int nfds, int timeout_msecs);
 
 struct ucontext;
 typedef struct ucontext ucontext_t;

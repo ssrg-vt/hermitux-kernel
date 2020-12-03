@@ -309,6 +309,13 @@ void syscall_handler(struct state *s)
 			break;
 #endif /* DISABLE_SYS_LSTAT */
 
+#ifndef DISABLE_SYS_POLL
+        case 7:
+            /* poll */
+            s->rax = sys_poll((void *)s->rdi, s->rsi, s->rdx);
+            break;
+#endif
+
 #ifndef DISABLE_SYS_LSEEK
 		case 8:
 			/* lseek */
@@ -327,7 +334,7 @@ void syscall_handler(struct state *s)
 #ifndef DISABLE_SYS_MPROTECT
 		case 10:
 			/* mprotect */
-			s->rax = sys_mprotect(s->rsi, s->rdi, s->rdx);
+			s->rax = sys_mprotect(s->rdi, s->rsi, s->rdx);
 			break;
 #endif /* DISABLE_SYS_MPROTECT */
 
