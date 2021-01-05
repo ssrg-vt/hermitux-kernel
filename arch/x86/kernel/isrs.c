@@ -44,6 +44,8 @@
 #include <asm/idt.h>
 #include <asm/apic.h>
 
+#include <hermit/syscall-config.h>
+
 #include <asm/uhyve.h>
 
 char *syscalls_names[250];
