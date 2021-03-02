@@ -303,24 +303,6 @@ static void print_vma(vma_t *vma)
 	}
 }
 
-int vma_is_free(size_t start, size_t size) {
-	vma_t *vma = vma_list;
-
-	spinlock_irqsave_lock(&hermit_mm_lock);
-	while(vma) {
-		if((start >= vma->start && start < vma->end) ||
-				((start+size-1) >= vma->start && (start+size-1) < vma->end)) {
-			spinlock_irqsave_unlock(&hermit_mm_lock);
-			return 0;
-		}
-
-		vma = vma->next;
-	}
-	spinlock_irqsave_unlock(&hermit_mm_lock);
-
-	return 1;
-}
-
 void vma_dump(void)
 {
 	LOG_INFO("VMAs:\n");

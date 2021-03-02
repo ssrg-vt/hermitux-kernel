@@ -17,7 +17,7 @@ int map_file(int fd, void *addr, size_t offset, size_t len);
 size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 		unsigned long flags, unsigned long fd, unsigned long off) {
 	size_t viraddr, phyaddr, bits;
-	int err;
+	int err, ret;
 	uint32_t alloc_flags;
 	uint32_t npages = PAGE_CEIL(len) >> PAGE_BITS;
 
@@ -39,16 +39,18 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 	if(flags & PROT_WRITE) alloc_flags |= VMA_WRITE;
 	if(flags & PROT_EXEC) alloc_flags |= VMA_EXECUTE;
 
-	/* non-fixed mapping are randomized, ~34 bits of entropy */
-	if(!addr && has_rdrand()) {
-		do addr = (HEAP_START + HEAP_SIZE) +
-			rdrand() % (0x800000000000 - (len + HEAP_START + HEAP_SIZE));
-		while(!vma_is_free(PAGE_FLOOR(addr), len));
+	ret = 0;
+	if(!addr) {
+		do {
+			/* non-fixed mapping are randomized, ~34 bits of entropy */
+			addr = (HEAP_START + HEAP_SIZE) +
+				rdrand() % (0x800000000000 - (len + HEAP_START + HEAP_SIZE));
+			viraddr = PAGE_FLOOR(addr);
+		} while(vma_add(viraddr, viraddr + npages*PAGE_SIZE, alloc_flags));
+	} else {
+		viraddr = (flags & MAP_FIXED) ? addr : PAGE_FLOOR(addr);
+		ret = vma_add(viraddr, viraddr + npages*PAGE_SIZE, alloc_flags);
 	}
-
-	/* get free virtual address space */
-	viraddr = (flags & MAP_FIXED) ? addr : PAGE_FLOOR(addr);
-	int ret = vma_add(viraddr, viraddr+npages*PAGE_SIZE, alloc_flags);
 
 	/* When the application requests an already mapped range of
 	 * virtual memory, the kernel is supposed to unmap the part that is
