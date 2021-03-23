@@ -1190,9 +1190,9 @@ static int vcpu_loop(void)
 				char addr2line_call[128];
 				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
 				uhyve_pfault_t *arg = (uhyve_pfault_t *)(guest_mem + data);
-				fprintf(stderr, "GUEST PAGE FAULT @0x%x (RIP @0x%x)\n",
+				fprintf(stderr, "GUEST PAGE FAULT @0x%llx (RIP @0x%llx)\n",
 						arg->addr, arg->rip);
-				sprintf(addr2line_call, "addr2line -a %x -e %s\n", arg->rip,
+				sprintf(addr2line_call, "addr2line -a %llx -e %s\n", arg->rip,
 						(arg->rip >= tux_start_address) ? htux_bin :
 						htux_kernel);
 				system(addr2line_call);
