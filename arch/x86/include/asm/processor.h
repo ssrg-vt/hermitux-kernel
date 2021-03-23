@@ -491,9 +491,9 @@ static inline void clts(void)
  *
  *  Returns a hardware generated random value.
  */
-inline static uint32_t rdrand(void)
+inline static uint64_t rdrand(void)
 {
-	uint32_t val;
+	uint64_t val;
 	uint8_t rc;
 
 	do {
