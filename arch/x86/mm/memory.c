@@ -163,7 +163,10 @@ int put_pages(size_t phyaddr, size_t npages)
 		} else if (phyaddr == curr->end) {
 			curr->end += npages*PAGE_SIZE;
 			goto out;
-		} if (phyaddr > curr->end) {
+		}
+
+#if 0
+        if (phyaddr > curr->end) {
 			free_list_t* n = kmalloc(sizeof(free_list_t));
 
 			if (BUILTIN_EXPECT(!n, 0))
@@ -176,9 +179,26 @@ int put_pages(size_t phyaddr, size_t npages)
 			n->next = curr->next;
 			curr->next = n;
 		}
+#endif
 
 		curr = curr->next;
 	}
+
+    if(!curr) {
+        free_list_t* n = kmalloc(sizeof(free_list_t));
+
+        if (BUILTIN_EXPECT(!n, 0))
+            goto out_err;
+
+        /* add new element */
+        n->start = phyaddr;
+        n->end = phyaddr + npages * PAGE_SIZE;
+        n->prev = NULL;
+        n->next = free_start;
+        free_start->prev = n;
+        free_start = n;
+    }
+
 out:
 	spinlock_unlock(&list_lock);
 
