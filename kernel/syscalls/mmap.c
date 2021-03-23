@@ -57,7 +57,11 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 	 * requested and remap it to satisfy the current mmap request. */
 	if(BUILTIN_EXPECT(ret, 0)) {
 		uint64_t unmap_phyaddr = virt_to_phys(viraddr);
-		int x = vma_free(viraddr, viraddr+npages*PAGE_SIZE);
+
+		if(vma_free(viraddr, viraddr+npages*PAGE_SIZE)) {
+			LOG_ERROR("mmap: can't free overlap with previous mapping!\n");
+			return -EFAULT;
+		}
 
 		/* Unmap physical pages */
 		page_unmap(viraddr, npages);
