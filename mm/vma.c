@@ -181,7 +181,9 @@ int vma_free(size_t start, size_t end)
 	// search vma
 	vma = *list;
 	while (vma) {
-		if (start >= vma->start && end <= vma->end) break;
+		if ((start >= vma->start && end <= vma->end) ||    // if there is any
+                (end >= vma->start && end <= vma->end) ||  // overlap
+                (start >= vma->start && start <= vma->end)) break;
 		vma = vma->next;
 	}
 

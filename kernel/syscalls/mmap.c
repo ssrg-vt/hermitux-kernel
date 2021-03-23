@@ -56,20 +56,16 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 	 * virtual memory, the kernel is supposed to unmap the part that is
 	 * requested and remap it to satisfy the current mmap request. */
 	if(BUILTIN_EXPECT(ret, 0)) {
-		vma_free(viraddr, viraddr+npages*PAGE_SIZE);
+		uint64_t unmap_phyaddr = virt_to_phys(viraddr);
+		int x = vma_free(viraddr, viraddr+npages*PAGE_SIZE);
 
 		/* Unmap physical pages */
 		page_unmap(viraddr, npages);
 
-		/* FIXME: we need to unmap the physical pages! The translation function
-		 * fails probably because there is only partial overlap between the area
-		 * requested and whatever was there before. For now this is a huge leak.
-		 * */
-#if 0
-		uint64_t unmap_phyaddr = virt_to_phys(viraddr);
+		/* unmap the physical pages */
 		if(put_pages(unmap_phyaddr, npages) != 0)
 			LOG_ERROR("Error releasing physical pages on re-mmap\n");
-#endif
+
 		if(vma_add(viraddr, viraddr+npages*PAGE_SIZE, alloc_flags) != 0) {
 			LOG_ERROR("mmap: cannot vma_add, probably vma range (0x%llx - "
 				"0x%llx) requested is already used\n", viraddr,

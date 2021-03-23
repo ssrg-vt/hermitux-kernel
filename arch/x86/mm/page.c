@@ -220,12 +220,17 @@ int page_unmap(size_t viraddr, size_t npages)
 	spinlock_irqsave_lock(&page_lock);
 
 	/* Start iterating through the entries.
-	 * Only the PGT entries are removed. Tables remain allocated. */
+	 * Only the PGT entries are removed. Tables remain allocated.
+     * However we need to check that higher level tables exist before trying
+     * to write inside. */
 	size_t vpn, start = viraddr>>PAGE_BITS;
-	for (vpn=start; vpn<start+npages; vpn++) {
-		self[0][vpn] = 0;
-		tlb_flush_one_page(vpn << PAGE_BITS, 0);
-	}
+	for (vpn=start; vpn<start+npages; vpn++)
+		if ((self[3][vpn >> 3*PAGE_MAP_BITS] & PG_PRESENT))
+			if ((self[2][vpn >> 2*PAGE_MAP_BITS] & PG_PRESENT))
+				if ((self[1][vpn >> PAGE_MAP_BITS] & PG_PRESENT)) {
+					self[0][vpn] = 0;
+					tlb_flush_one_page(vpn << PAGE_BITS, 0);
+				}
 
 	ipi_tlb_flush();
 
