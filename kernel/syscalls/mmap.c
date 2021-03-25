@@ -43,8 +43,7 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 	if(!addr) {
 		do {
 			/* non-fixed mapping are randomized, ~34 bits of entropy */
-			addr = (HEAP_START + HEAP_SIZE) +
-				rdrand() % (0x800000000000 - (len + HEAP_START + HEAP_SIZE));
+			addr = (HEAP_START + HEAP_SIZE) + rdrand() % 0x800000000000;
 			viraddr = PAGE_FLOOR(addr);
 		} while(vma_add(viraddr, viraddr + npages*PAGE_SIZE, alloc_flags));
 	} else {
