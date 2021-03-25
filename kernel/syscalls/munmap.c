@@ -7,7 +7,6 @@
 int sys_munmap(size_t viraddr, size_t len) {
 	uint32_t npages = PAGE_CEIL(len) >> PAGE_BITS;
 	int ret;
-	size_t phyaddr;
 
 	if (BUILTIN_EXPECT(!viraddr, 0))
 		return -EINVAL;
@@ -15,21 +14,12 @@ int sys_munmap(size_t viraddr, size_t len) {
 		return -EINVAL;
 
 	/* Free virtual address space */
-	ret = vma_free((size_t)viraddr, (size_t)viraddr+npages*PAGE_SIZE);
+	ret = vma_free((size_t)viraddr, (size_t)viraddr+npages*PAGE_SIZE, 1);
 
 	if(ret < 0) {
 		LOG_ERROR("munmap: cannot free VMA\n");
 		return ret;
 	}
-
-	phyaddr = virt_to_phys((size_t)viraddr);
-	if (BUILTIN_EXPECT(!phyaddr, 0))
-		return -EFAULT;
-
-	/* Unmap physical pages */
-	page_unmap(viraddr, npages);
-	if(put_pages(phyaddr, npages) != 0)
-		LOG_ERROR("munmap: error releasing physical pages\n");
 
 	return 0;
 }

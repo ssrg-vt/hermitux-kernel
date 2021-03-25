@@ -147,7 +147,7 @@ void* palloc(size_t sz, uint32_t flags)
 	// get continous physical pages
 	phyaddr = get_pages(npages);
 	if (BUILTIN_EXPECT(!phyaddr, 0)) {
-		vma_free(viraddr, viraddr+npages*PAGE_SIZE);
+		vma_free(viraddr, viraddr+npages*PAGE_SIZE, 0);
 		return NULL;
 	}
 
@@ -157,7 +157,7 @@ void* palloc(size_t sz, uint32_t flags)
 	// map physical pages to VMA
 	err = page_map(viraddr, phyaddr, npages, bits);
 	if (BUILTIN_EXPECT(err, 0)) {
-		vma_free(viraddr, viraddr+npages*PAGE_SIZE);
+		vma_free(viraddr, viraddr+npages*PAGE_SIZE, 0);
 		put_pages(phyaddr, npages);
 		return NULL;
 	}
@@ -184,7 +184,7 @@ void* create_stack(size_t sz)
 	// get continous physical pages
 	phyaddr = get_pages(npages);
 	if (BUILTIN_EXPECT(!phyaddr, 0)) {
-		vma_free(viraddr, viraddr+(npages+2)*PAGE_SIZE);
+		vma_free(viraddr, viraddr+(npages+2)*PAGE_SIZE, 0);
 		return NULL;
 	}
 
@@ -193,7 +193,7 @@ void* create_stack(size_t sz)
 	// map physical pages to VMA
 	err = page_map(viraddr+PAGE_SIZE, phyaddr, npages, bits);
 	if (BUILTIN_EXPECT(err, 0)) {
-		vma_free(viraddr, viraddr+(npages+2)*PAGE_SIZE);
+		vma_free(viraddr, viraddr+(npages+2)*PAGE_SIZE, 0);
 		put_pages(phyaddr, npages);
 		return NULL;
 	}
@@ -218,7 +218,7 @@ int destroy_stack(void* viraddr, size_t sz)
 		return -ENOMEM;
 
 	// unmap and destroy stack
-	vma_free((size_t)viraddr-PAGE_SIZE, (size_t)viraddr+(npages+1)*PAGE_SIZE);
+	vma_free((size_t)viraddr-PAGE_SIZE, (size_t)viraddr+(npages+1)*PAGE_SIZE, 0);
 	page_unmap((size_t)viraddr, npages);
 	put_pages(phyaddr, npages);
 

@@ -230,7 +230,7 @@ void* page_alloc(size_t sz, uint32_t flags)
 	phyaddr = get_pages(npages);
 	if (BUILTIN_EXPECT(!phyaddr, 0))
 	{
-		vma_free(viraddr, viraddr+npages*PAGE_SIZE);
+		vma_free(viraddr, viraddr+npages*PAGE_SIZE, 0);
 		viraddr = 0;
 		goto oom;
 	}
@@ -243,7 +243,7 @@ void* page_alloc(size_t sz, uint32_t flags)
 	int ret = page_map(viraddr, phyaddr, npages, pflags);
 	if (BUILTIN_EXPECT(ret, 0))
 	{
-		vma_free(viraddr, viraddr+npages*PAGE_SIZE);
+		vma_free(viraddr, viraddr+npages*PAGE_SIZE, 0);
 		put_pages(phyaddr, npages);
 		viraddr = 0;
 	}
@@ -261,7 +261,7 @@ void page_free(void* viraddr, size_t sz)
 
 	phyaddr = virt_to_phys((size_t)viraddr);
 
-	vma_free((size_t) viraddr, (size_t) viraddr + PAGE_CEIL(sz));
+	vma_free((size_t) viraddr, (size_t) viraddr + PAGE_CEIL(sz), 0);
 
 	if (phyaddr)
 		put_pages(phyaddr, PAGE_CEIL(sz) >> PAGE_BITS);

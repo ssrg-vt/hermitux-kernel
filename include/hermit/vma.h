@@ -136,7 +136,7 @@ size_t vma_alloc(size_t size, uint32_t flags);
  * - 0 on success
  * - -EINVAL (-22) on failure
  */
-int vma_free(size_t start, size_t end);
+int vma_free(size_t start, size_t end, int unmap_and_put);
 
 /** @brief Dump information about this task's VMAs into the terminal. */
 void vma_dump(void);

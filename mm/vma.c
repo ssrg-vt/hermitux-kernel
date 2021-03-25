@@ -32,6 +32,7 @@
 #include <hermit/spinlock.h>
 #include <hermit/errno.h>
 #include <hermit/logging.h>
+#include <hermit/memory.h>
 
 extern uint64_t tux_start_address;
 
@@ -165,7 +166,28 @@ found:
 	return start;
 }
 
-int vma_free(size_t start, size_t end)
+/* Unmap a virtual area range and free the corresponding physical pages.
+ * Needs to be called with hermit_mm_lock held */
+int do_unmap_and_put(size_t viraddr, size_t npages) {
+    size_t unmap_phyaddr = virt_to_phys(viraddr);
+
+    /* Unmap physical pages */
+    page_unmap(viraddr, npages);
+
+    /* unmap the physical pages */
+    if(put_pages(unmap_phyaddr, npages) != 0)
+        return -1;
+
+    return 0;
+}
+
+/* FIXME This is not 100% perfect: from mmap it is possible for this to be
+ * called on an area that spans several vmas as well as holes, for now we
+ * only free a single vma here...
+ * The real fix here would be to 1) have the vma_list sorted and 2) iterate
+ * over it properly, deleting as well as resizing all the VMAs covered by the
+ * area defined by [start, end] */
+int vma_free(size_t start, size_t end, int unmap_and_put)
 {
 	spinlock_irqsave_t* lock = &hermit_mm_lock;
 	vma_t* vma;
@@ -193,7 +215,9 @@ int vma_free(size_t start, size_t end)
 	}
 
 	// free/resize vma
-	if (start == vma->start && end == vma->end) {
+	if ((start == vma->start && end == vma->end) ||
+            (start == vma->start && end > vma->end) ||
+            (end == vma->end && start < vma->start)) {
 		if (vma == *list)
 			*list = vma->next; // update list head
 		if (vma->prev)
@@ -201,12 +225,21 @@ int vma_free(size_t start, size_t end)
 		if (vma->next)
 			vma->next->prev = vma->prev;
 		kfree(vma);
+
+        if(unmap_and_put && do_unmap_and_put(vma->start, (vma->end-vma->start)/PAGE_SIZE))
+            LOG_ERROR("error unmap_and_put\n");
 	}
-	else if (start == vma->start)
+	else if (start == vma->start) {
+        if(unmap_and_put && do_unmap_and_put(start, (end-start)/PAGE_SIZE))
+            LOG_ERROR("error unmap_and_put\n");
+
 		vma->start = end;
-	else if (end == vma->end)
+    } else if (end == vma->end) {
+         if(unmap_and_put && do_unmap_and_put(start, (end-start)/PAGE_SIZE))
+            LOG_ERROR("error unmap_and_put\n");
+
 		vma->end = start;
-	else {
+    } else {
 		vma_t* new = kmalloc(sizeof(vma_t));
 		if (BUILTIN_EXPECT(!new, 0)) {
 			spinlock_irqsave_unlock(lock);

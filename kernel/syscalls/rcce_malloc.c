@@ -46,7 +46,7 @@ size_t sys_rcce_malloc(int session_id, int ue)
 		goto out;
 
 	if (page_map(vaddr, rcce_mpb[i].mpb[ue], RCCE_MPB_SIZE / PAGE_SIZE, PG_RW|PG_USER|PG_PRESENT)) {
-		vma_free(vaddr, vaddr + 2*PAGE_SIZE);
+		vma_free(vaddr, vaddr + 2*PAGE_SIZE, 0);
 		goto out;
 	}
 

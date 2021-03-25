@@ -56,19 +56,10 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 	 * virtual memory, the kernel is supposed to unmap the part that is
 	 * requested and remap it to satisfy the current mmap request. */
 	if(BUILTIN_EXPECT(ret, 0)) {
-		uint64_t unmap_phyaddr = virt_to_phys(viraddr);
-
-		if(vma_free(viraddr, viraddr+npages*PAGE_SIZE)) {
+		if(vma_free(viraddr, viraddr+npages*PAGE_SIZE, 1)) {
 			LOG_ERROR("mmap: can't free overlap with previous mapping!\n");
 			return -EFAULT;
 		}
-
-		/* Unmap physical pages */
-		page_unmap(viraddr, npages);
-
-		/* unmap the physical pages */
-		if(put_pages(unmap_phyaddr, npages) != 0)
-			LOG_ERROR("Error releasing physical pages on re-mmap\n");
 
 		if(vma_add(viraddr, viraddr+npages*PAGE_SIZE, alloc_flags) != 0) {
 			LOG_ERROR("mmap: cannot vma_add, probably vma range (0x%llx - "
@@ -81,7 +72,7 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 	/* get physical memory */
 	phyaddr = get_pages(npages);
 	if (BUILTIN_EXPECT(!phyaddr, 0)) {
-		vma_free(viraddr, viraddr+npages*PAGE_SIZE);
+		vma_free(viraddr, viraddr+npages*PAGE_SIZE, 0);
 		return -ENOMEM;
 	}
 
@@ -91,7 +82,7 @@ size_t sys_mmap(unsigned long addr, unsigned long len, unsigned long prot,
 	/* map physical pages to VMA */
 	err = page_map(viraddr, phyaddr, npages, bits);
 	if (BUILTIN_EXPECT(err, 0)) {
-		vma_free(viraddr, viraddr+npages*PAGE_SIZE);
+		vma_free(viraddr, viraddr+npages*PAGE_SIZE, 0);
 		put_pages(phyaddr, npages);
 		return -EFAULT;
 	}

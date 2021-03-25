@@ -225,8 +225,8 @@ int page_unmap(size_t viraddr, size_t npages)
      * to write inside. */
 	size_t vpn, start = viraddr>>PAGE_BITS;
 	for (vpn=start; vpn<start+npages; vpn++)
-		if ((self[3][vpn >> 3*PAGE_MAP_BITS] & PG_PRESENT))
-			if ((self[2][vpn >> 2*PAGE_MAP_BITS] & PG_PRESENT))
+		if ((self[3][vpn >> (3*PAGE_MAP_BITS)] & PG_PRESENT))
+			if ((self[2][vpn >> (2*PAGE_MAP_BITS)] & PG_PRESENT))
 				if ((self[1][vpn >> PAGE_MAP_BITS] & PG_PRESENT)) {
 					self[0][vpn] = 0;
 					tlb_flush_one_page(vpn << PAGE_BITS, 0);

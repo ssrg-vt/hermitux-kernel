@@ -362,7 +362,7 @@ static int init_rcce(void)
 	if (has_nx())
 		flags |= PG_XD;
 	if (page_map(addr, phy_rcce_internals, 1, flags)) {
-		vma_free(addr, addr + PAGE_SIZE);
+		vma_free(addr, addr + PAGE_SIZE, 0);
 		return -ENOMEM;
 	}
 
@@ -423,7 +423,7 @@ static int initd(void* arg)
 
 	// region is already reserved for the heap, we have to change the
 	// property of the first page
-	vma_free(curr_task->heap->start, curr_task->heap->start+PAGE_SIZE);
+	vma_free(curr_task->heap->start, curr_task->heap->start+PAGE_SIZE, 0);
 	vma_add(curr_task->heap->start, curr_task->heap->start+PAGE_SIZE, VMA_HEAP|VMA_USER);
 
 #ifndef NO_NET
