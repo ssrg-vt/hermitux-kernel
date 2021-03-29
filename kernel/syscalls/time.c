@@ -2,6 +2,7 @@
 
 extern unsigned long long syscall_boot_tsc;
 extern unsigned long long syscall_freq;
+extern unsigned long epoch_offset;
 
 inline static unsigned long long t_rdtsc(void)
 {
@@ -18,6 +19,8 @@ int sys_time(long *tloc) {
 
 	unsigned long long diff = t_rdtsc() - syscall_boot_tsc;
 	sec = diff/syscall_freq;
+
+	sec += epoch_offset;
 
 	if(tloc)
 		*tloc = sec;

@@ -2073,6 +2073,11 @@ int uhyve_loop(int argc, char **argv)
 	*((uint64_t*) (mboot + 0xF2)) = tux_ehdr_phnum;
 	*((uint64_t*) (mboot + 0xFA)) = tux_ehdr_phentsize;
 
+	/* epoch offset in secs */
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	*((uint64_t*) (mboot + 0x102)) = (long)tv.tv_sec;
+
 	if(uhyve_gdb_enabled)
 		*((uint8_t*) (mboot + 0xD0)) = 0x1;
 

@@ -85,6 +85,7 @@ align 4
 	global tux_ehdr_phoff
 	global tux_ehdr_phnum
 	global tux_ehdr_phentsize
+	global epoch_offset
     base dq 0
     limit dq 0
     cpu_freq dd 0
@@ -126,6 +127,7 @@ align 8
 	tux_ehdr_phoff dq 0
 	tux_ehdr_phnum dq 0
 	tux_ehdr_phentsize dq 0
+	epoch_offset dq 0
 
 ; Bootstrap page tables are used during the initialization.
 align 4096
