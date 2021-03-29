@@ -105,7 +105,8 @@ int sys_prlimit64(int pid, unsigned int resource, struct rlimit *new_rlim,
             default:
                 LOG_ERROR("prlimit64: unsupported operation %d\n", resource);
                 return -ENOSYS;
-	}
+	    }
+    }
 
 	return -ENOSYS;
 }
