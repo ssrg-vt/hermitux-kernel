@@ -40,7 +40,7 @@ int sys_prlimit64(int pid, unsigned int resource, struct rlimit *new_rlim,
 
 	if(unlikely(new_rlim)) {
 		LOG_ERROR("prlimit64: do not support setting new limits\n");
-		return -EINVAL;
+		return -ENOSYS;
 	}
 
 	switch(resource) {
