@@ -192,6 +192,8 @@ int vma_free(size_t start, size_t end, int unmap_and_put)
 	spinlock_irqsave_t* lock = &hermit_mm_lock;
 	vma_t* vma;
 	vma_t** list = &vma_list;
+	size_t unmap_and_put_start = 0;
+	size_t unmap_and_put_npages = 0;
 
 	LOG_DEBUG("vma_free: start = %#lx, end = %#lx\n", start, end);
 
@@ -226,17 +228,17 @@ int vma_free(size_t start, size_t end, int unmap_and_put)
 			vma->next->prev = vma->prev;
 		kfree(vma);
 
-        if(unmap_and_put && do_unmap_and_put(vma->start, (vma->end-vma->start)/PAGE_SIZE))
-            LOG_ERROR("error unmap_and_put\n");
+		unmap_and_put_start = vma->start;
+		unmap_and_put_npages = (vma->end-vma->start)/PAGE_SIZE;
 	}
 	else if (start == vma->start) {
-        if(unmap_and_put && do_unmap_and_put(start, (end-start)/PAGE_SIZE))
-            LOG_ERROR("error unmap_and_put\n");
+		unmap_and_put_start = start;
+		unmap_and_put_npages = (end-start)/PAGE_SIZE;
 
-		vma->start = end;
+        vma->start = end;
     } else if (end == vma->end) {
-         if(unmap_and_put && do_unmap_and_put(start, (end-start)/PAGE_SIZE))
-            LOG_ERROR("error unmap_and_put\n");
+		unmap_and_put_start = start;
+		unmap_and_put_npages = (end-start)/PAGE_SIZE;
 
 		vma->end = start;
     } else {
@@ -258,6 +260,10 @@ int vma_free(size_t start, size_t end, int unmap_and_put)
 	}
 
 	spinlock_irqsave_unlock(lock);
+
+	if(unmap_and_put && do_unmap_and_put(unmap_and_put_start,
+                unmap_and_put_npages))
+		LOG_ERROR("error unmap_and_put\n");
 
 	return 0;
 }
