@@ -263,12 +263,16 @@ void shutdown_system(void);
 extern volatile uint32_t go_down;
 static inline void check_workqueues_in_irqhandler(int irq)
 {
+	uint8_t flags;
+
 #ifdef DYNAMIC_TICKS
 	// Increment ticks
 	check_ticks();
 #endif
 
+	flags = irq_nested_disable();
 	check_timers();
+	irq_nested_enable(flags);
 
 	if (go_down)
 		shutdown_system();
