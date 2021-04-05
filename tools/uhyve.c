@@ -1315,8 +1315,14 @@ static int vcpu_loop(void)
 				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
 				uhyve_creat_t *arg = (uhyve_creat_t *)(guest_mem + data);
 
-				arg->ret = creat((const char *)(guest_mem+(size_t)arg->path),
+				int ret = creat((const char *)(guest_mem+(size_t)arg->path),
 						arg->mode);
+
+				if(ret == -1)
+					arg->ret = -errno;
+				else
+					arg->ret = ret;
+
 				break;
 			}
 
