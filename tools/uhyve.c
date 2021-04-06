@@ -872,6 +872,16 @@ static int vcpu_loop(void)
 {
 	int ret;
 
+	/* Try to determine the smallest fd value the guest can use, assume they
+	 * are given sequentially by the kernel */
+	int max_guest_fd = open("/tmp", O_RDONLY, 0x0);
+	if(max_guest_fd != -1) {
+		close(max_guest_fd);
+	} else {
+		/* for now at least let's not let app close stdin/out/err */
+		max_guest_fd = 2;
+	}
+
 	if (restart) {
 		pthread_barrier_wait(&barrier);
 		if (cpuid == 0)
@@ -1042,14 +1052,18 @@ static int vcpu_loop(void)
 				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
 				uhyve_close_t* uhyve_close = (uhyve_close_t*) (guest_mem+data);
 
-				if (uhyve_close->fd > 2) {
+				if (uhyve_close->fd > max_guest_fd) {
 					ret = close(uhyve_close->fd);
 					uhyve_close->ret = (ret == -1) ? -errno : ret;
-				}
-				else
+                } else if (uhyve_close->fd <= 2) {
+                    /* fake success for closing stdin/stdout/stderr */
 					uhyve_close->ret = 0;
+                } else {
+                    /* internal uhyve fds for KVM VM and vCPUs! */
+                    uhyve_close->ret = -EBADF;
+                }
 				break;
-				}
+			}
 
 			case UHYVE_PORT_GETDENTS64: {
 				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
