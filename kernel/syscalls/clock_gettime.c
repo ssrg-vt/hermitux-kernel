@@ -43,10 +43,9 @@ int sys_clock_gettime(clockid_t id, struct timespec *tp) {
 	if(likely(tp)) {
 		unsigned long long diff = cgt_rdtsc() - syscall_boot_tsc;
 		tp->tv_sec = diff/syscall_freq;
-        if (id == CLOCK_REALTIME)
-            tp->tv_sec += epoch_offset;
-		tp->tv_nsec = ((diff - tp->tv_sec * syscall_freq) * 1000000000ULL) /
-			syscall_freq;
+		tp->tv_nsec = (diff - tp->tv_sec*syscall_freq) / (syscall_freq/1000000000ULL);
+		if (id == CLOCK_REALTIME)
+			tp->tv_sec += epoch_offset;
 	} else {
 		LOG_ERROR("clock_gettime: timespec parameter is NULL\n");
 		return -EINVAL;

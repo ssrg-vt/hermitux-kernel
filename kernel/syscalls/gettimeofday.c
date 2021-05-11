@@ -25,8 +25,8 @@ int sys_gettimeofday(struct timeval *tv, struct timezone *tz) {
 	if(likely(tv)) {
 		unsigned long long diff = gtod_rdtsc() - syscall_boot_tsc;
 		tv->tv_sec = diff/syscall_freq;
-		tv->tv_usec = ((diff - tv->tv_sec * syscall_freq) * 1000000ULL) /
-			syscall_freq;
+		tv->tv_usec = (diff - tv->tv_sec*syscall_freq) / (syscall_freq/1000000ULL);
+
 		return 0;
 	}
 
