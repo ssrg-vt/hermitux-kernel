@@ -874,12 +874,12 @@ static int vcpu_loop(void)
 
 	/* Try to determine the smallest fd value the guest can use, assume they
 	 * are given sequentially by the kernel */
-	int max_guest_fd = open("/tmp", O_RDONLY, 0x0);
-	if(max_guest_fd != -1) {
-		close(max_guest_fd);
+	int min_guest_fd = open("/tmp", O_RDONLY, 0x0);
+	if(min_guest_fd != -1) {
+		close(min_guest_fd);
 	} else {
 		/* for now at least let's not let app close stdin/out/err */
-		max_guest_fd = 2;
+		min_guest_fd = 2;
 	}
 
 	if (restart) {
@@ -1052,7 +1052,7 @@ static int vcpu_loop(void)
 				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
 				uhyve_close_t* uhyve_close = (uhyve_close_t*) (guest_mem+data);
 
-				if (uhyve_close->fd > max_guest_fd) {
+				if (uhyve_close->fd >= min_guest_fd) {
 					ret = close(uhyve_close->fd);
 					uhyve_close->ret = (ret == -1) ? -errno : ret;
                 } else if (uhyve_close->fd <= 2) {
