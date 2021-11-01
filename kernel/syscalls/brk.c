@@ -37,7 +37,7 @@ ssize_t sys_brk(ssize_t val) {
 
 		ret = val;
 
-	} else ret = -ENOMEM;
+	} // on failure brk returns the unchanged heap value
 
 	// allocation and mapping of new pages for the heap
 	// is catched by the pagefault handler
