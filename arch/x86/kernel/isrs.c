@@ -48,8 +48,6 @@
 
 #include <asm/uhyve.h>
 
-char *syscalls_names[250];
-
 #define SYSCALL_INT_NO 6
 
 typedef struct {
@@ -102,21 +100,6 @@ static void arch_fault_handler(struct state *s);
 static void arch_fpu_handler(struct state *s);
 extern void fpu_handler(void);
 static void static_syscall_handler(struct state *s);
-
-static void init_syscalls_names() {
-	syscalls_names[0] = "read";
-	syscalls_names[1] = "write";
-	syscalls_names[2] = "open";
-	syscalls_names[3] = "close";
-	syscalls_names[12] = "brk";
-	syscalls_names[16] = "ioctl";
-	syscalls_names[20] = "writev";
-	syscalls_names[63] = "uname";
-	syscalls_names[158] = "arch_prctl";
-	syscalls_names[218] = "set_tid_address";
-	syscalls_names[228] = "clock_gettime";
-	syscalls_names[231] = "exit_group";
-}
 
 /*
  * This is a very repetitive function... it's not hard, it's
@@ -214,8 +197,6 @@ void isrs_install(void)
 	irq_uninstall_handler(SYSCALL_INT_NO);
 	irq_install_handler(SYSCALL_INT_NO, static_syscall_handler);
 
-	init_syscalls_names();
-	
 	// set hanlder for fpu exceptions
 	irq_uninstall_handler(7);
 	irq_install_handler(7, arch_fpu_handler);
@@ -258,7 +239,7 @@ static void static_syscall_handler(struct state *s)
 
 void syscall_handler(struct state *s)
 {
-//	LOG_INFO("Caught syscall %d (%s) %#lx:%#lx\n", s->rax, syscalls_names[s->rax]);
+//	LOG_INFO("Caught syscall %d (%s) %#lx:%#lx\n", s->rax);
 
 	switch(s->rax) {
 
