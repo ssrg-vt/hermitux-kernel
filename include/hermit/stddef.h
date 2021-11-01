@@ -54,8 +54,9 @@ extern uint64_t tux_start_address;
 #define CACHE_LINE	64
 #define HEAP_START	(PAGE_CEIL(tux_start_address + tux_size) + 4*PAGE_SIZE)
 /* As opposed to HermitCore we can have a reduced heap size as most of native
- * Linux C libraries will rely on mmap for large memory allocations. */
-#define HEAP_SIZE	(1ULL << 20)
+ * Linux C libraries will rely on mmap for large memory allocations: HEAP_SIZE
+ * represents only the size of the program break */
+#define HEAP_SIZE	(1ULL << 28) // 28 bits -> 128 MB
 #define KMSG_SIZE	0x4000
 #define INT_SYSCALL	0x80
 #define MAILBOX_SIZE	128
