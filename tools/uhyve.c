@@ -1828,6 +1828,10 @@ int uhyve_init(char** argv)
 	//if (cap_vapic)
 	//	printf("System supports vapic\n");
 
+    // create PIT
+    struct kvm_pit_config pit_config = { .flags = 0, };
+    int retpierre = kvm_ioctl(vmfd, KVM_CREATE_PIT2, &pit_config);
+
 	const char* hermit_tux;
 	hermit_tux = getenv("HERMIT_TUX");
 	if (hermit_tux)
