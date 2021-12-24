@@ -180,7 +180,7 @@ int devzero_write(int fd, void *buf, uint64_t len) {
 }
 
 int devzero_read(int fd, void *buf, uint64_t len) {
-	memcpy(buf, 0x0, len);
+	memset(buf, 0x0, len);
 	return len;
 }
 
