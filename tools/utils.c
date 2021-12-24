@@ -105,17 +105,44 @@ uint32_t get_cpufreq(void)
 	if (freq > 0)
 	return freq;
 
-	// TODO: fallback solution, on some systems is cpuinfo_max_freq the turbo frequency
-	// => wrong value
-	FILE* fp = fopen("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq", "r");
+	FILE* fp = fopen("/sys/devices/system/cpu/cpu0/cpufreq/base_frequency", "r");
+	if (fp != NULL) {
+		if (fgets(line, sizeof(line), fp) != NULL) {
+            // unit is kHz
+			freq = (uint32_t) atoi(line) / 1000;
+            fclose(fp);
+            return freq;
+		}
+
+        fclose(fp);
+    }
+
+    fp = fopen("/sys/devices/system/cpu/cpu0/cpufreq/bios_limit", "r");
+	if (fp != NULL) {
+		if (fgets(line, sizeof(line), fp) != NULL) {
+            // unit is kHz
+			freq = (uint32_t) atoi(line) / 1000;
+            fclose(fp);
+            return freq;
+		}
+
+        fclose(fp);
+    }
+
+	fp = fopen("/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq", "r");
 	if (fp != NULL) {
 		if (fgets(line, sizeof(line), fp) != NULL) {
 			// cpuinfo_max_freq is in kHz
 			freq = (uint32_t) atoi(line) / 1000;
+            fclose(fp);
+            return freq;
 		}
 
 		fclose(fp);
-	} else if( (fp = fopen("/proc/cpuinfo", "r")) ) {
+    }
+
+	fp = fopen("/proc/cpuinfo", "r");
+    if (fp != NULL) {
 		// Resorting to /proc/cpuinfo, however on most systems this will only
 		// return the current frequency that might change over time.
 		// Currently only needed when running inside a VM
@@ -130,14 +157,15 @@ uint32_t get_cpufreq(void)
 				match++;
 
 				freq = (uint32_t) atoi(match);
-				break;
+                fclose(fp);
+                return freq;
 			}
 		}
 
 		fclose(fp);
-	}
+    }
 
-	return freq;
+	return 0;
 }
 
 ssize_t pread_in_full(int fd, void *buf, size_t count, off_t offset)
