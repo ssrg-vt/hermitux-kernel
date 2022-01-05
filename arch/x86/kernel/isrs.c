@@ -625,6 +625,11 @@ void syscall_handler(struct state *s)
 			s->rax = sys_chdir((const char *)s->rdi);
 			break;
 #endif
+		case 82:
+			/* rename */
+
+			s->rax = sys_rename((const char *)s->rdi, (const char *)s->rsi);
+			break;
 
 #ifndef DISABLE_SYS_MKDIR
 		case 83:
@@ -956,3 +961,4 @@ static void arch_fault_handler(struct state *s)
 	//do_abort();
 	sys_exit(-EFAULT);
 }
+
