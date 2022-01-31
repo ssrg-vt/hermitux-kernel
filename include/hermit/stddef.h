@@ -99,6 +99,7 @@ extern uint64_t tux_start_address;
 #define UHYVE_PORT_DUP2         0x530
 #define UHYVE_PORT_PIPE         0x531
 #define UHYVE_PORT_NEWFSTATAT   0x532
+#define UHYVE_PORT_RENAME 		0x533
 
 // Networkports
 #define UHYVE_PORT_NETINFO             0x505
