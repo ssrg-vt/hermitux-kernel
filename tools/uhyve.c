@@ -1339,6 +1339,20 @@ static int vcpu_loop(void)
 
 				break;
 			}
+			case UHYVE_PORT_RENAME: {
+				unsigned data = *((unsigned*)((size_t)run+run->io.data_offset));
+				uhyve_rename_t *arg = (uhyve_rename_t *)(guest_mem + data);
+
+				int ret = rename((const char *)(guest_mem+(size_t)arg->oldpath),
+						(const char *)(guest_mem+(size_t)arg->newpath));
+
+				if(ret == -1)
+					arg->ret = -errno;
+				else
+					arg->ret = ret;
+
+				break;
+			}
 
 			case UHYVE_PORT_SYNC:
 			case UHYVE_PORT_FSYNC:
@@ -2154,3 +2168,4 @@ int uhyve_loop(int argc, char **argv)
 	// Run first CPU
 	return vcpu_loop();
 }
+
