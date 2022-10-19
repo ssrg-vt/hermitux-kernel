@@ -902,6 +902,20 @@ void syscall_handler(struct state *s)
 			break;
 #endif
 
+#ifndef DISABLE_SYS_GETRANDOM
+		case 318:
+			/* getrandom */
+			s->rax = sys_getrandom((void *)s->rdi, s->rsi, s->rdx);
+			break;
+#endif
+
+#ifndef DISABLE_SYS_RSEQ
+		case 334:
+			/* rseq */
+			s->rax = sys_rseq((void *)s->rdi, s->rsi, s->rdx, s->r10);
+			break;
+#endif
+
 		default:
 			LOG_ERROR("Unsuported Linux syscall: %d\n", s->rax);
 			sys_exit(-EFAULT);
