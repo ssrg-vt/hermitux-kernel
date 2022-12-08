@@ -131,11 +131,20 @@ char *auxv_platform = "x86_64";
 
 int main(int argc, char** argv) {
 	unsigned long long int libc_argc = argc -1;
+	unsigned long long int sp;
 	int i, envc;
 
 	/* count the number of environment variables */
 	envc = 0;
 	for (char **env = environ; *env; ++env) envc++;
+
+	/* Stack pointer needs to be 16 bytes aligned when we jump to the entry
+	 * point. The elements of the ELF auxiliary vector won't influence that
+	 * because they are always pushed in pairs of two elements of 8 bytes
+	 * each, so compute that based on argc and envp */
+	asm( "mov %%rsp, %0" : "=rm" ( sp ));
+	if((sp+argc+envc) % 16)
+		asm volatile("pushq $0" : : );
 
 	/* We need to push the element on the stack in the inverse order they will
 	 * be read by the C library (i.e. argc in the end) */
