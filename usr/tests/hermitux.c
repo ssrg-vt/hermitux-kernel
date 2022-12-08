@@ -143,7 +143,7 @@ int main(int argc, char** argv) {
 	 * because they are always pushed in pairs of two elements of 8 bytes
 	 * each, so compute that based on argc and envp */
 	asm( "mov %%rsp, %0" : "=rm" ( sp ));
-	if((sp+argc+envc) % 16)
+	if((sp+argc+envc) % 2)
 		asm volatile("pushq $0" : : );
 
 	/* We need to push the element on the stack in the inverse order they will
