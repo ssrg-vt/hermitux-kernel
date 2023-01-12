@@ -606,6 +606,20 @@ void syscall_handler(struct state *s)
 			break;
 #endif
 
+#ifndef DISABLE_SYS_TRUNCATE
+		case 76:
+			/* truncate */
+			s->rax = sys_truncate((const char*)s->rdi, s->rsi);
+			break;
+#endif
+
+#ifndef DISABLE_SYS_FTRUNCATE
+		case 77:
+			/*ftruncate */
+			s->rax = sys_ftruncate(s->rdi, s->rsi);
+			break;
+#endif
+
 #ifndef DISABLE_SYS_GETDENTS
 		case 78:
 			/* getdents */

@@ -215,6 +215,7 @@ int sys_poll(struct pollfd *ufds, unsigned int nfds, int timeout_msecs);
 int sys_getrandom(void *buf, unsigned long int buflen, unsigned int flags);
 int sys_rseq(void *rseq, unsigned int rseq_len, int flags, unsigned int sig);
 
+
 struct ucontext;
 typedef struct ucontext ucontext_t;
 
@@ -222,6 +223,11 @@ void makecontext(ucontext_t *ucp, void (*func)(), int argc, ...);
 int swapcontext(ucontext_t *oucp, const ucontext_t *ucp);
 int getcontext(ucontext_t *ucp);
 int setcontext(ucontext_t *ucp);
+
+//added prototype for truncate and ftruncate functions
+int sys_ftruncate(int fd, off_t length);
+int sys_truncate(const char *path, off_t length);
+
 
 #define __NR_exit 		0
 #define __NR_write		1

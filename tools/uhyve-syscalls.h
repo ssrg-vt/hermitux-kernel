@@ -53,7 +53,9 @@ typedef enum {
 	UHYVE_PORT_DUP2			= 0X530,
 	UHYVE_PORT_PIPE			= 0X531,
 	UHYVE_PORT_NEWFSTATAT	= 0X532,
-	UHYVE_PORT_RENAME = 0X533
+	UHYVE_PORT_RENAME		= 0X533,
+	UHYVE_PORT_TRUNCATE		= 0X534,
+	UHYVE_PORT_FTRUNCATE	= 0X535
 } uhyve_syscall_t;
 
 typedef struct {
@@ -193,6 +195,7 @@ typedef struct {
 	int ret;
 } __attribute__((packed)) uhyve_rename_t;
 
+
 typedef struct {
 	int fd;
 	int ret;
@@ -223,6 +226,18 @@ typedef struct {
 	int flag;
     int ret;
 } __attribute__((packed)) uhyve_newfstatat_t;
+
+typedef struct {
+	int fd;
+	off_t length;
+	int ret;
+} __attribute__((packed)) uhyve_ftruncate_t;
+
+typedef struct {
+	char* path;
+	off_t length;
+	int ret;
+} __attribute__((packed)) uhyve_truncate_t;
 
 #endif // UHYVE_SYSCALLS_H
 
